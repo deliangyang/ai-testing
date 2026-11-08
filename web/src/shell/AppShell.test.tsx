@@ -53,6 +53,24 @@ describe('AppShell', () => {
     })
   })
 
+  it('opens global search with Ctrl+K', () => {
+    render(<AppShell />)
+    fireEvent.keyDown(window, { key: 'k', ctrlKey: true })
+    expect(screen.getByTestId('global-search-dialog')).toBeInTheDocument()
+  })
+
+  it('opens shortcut help with ?', () => {
+    render(<AppShell />)
+    fireEvent.keyDown(window, { key: '?' })
+    expect(screen.getByTestId('shortcut-help-dialog')).toBeInTheDocument()
+  })
+
+  it('switches run mode with digit keys', () => {
+    render(<AppShell />)
+    fireEvent.keyDown(window, { key: '2' })
+    expect(screen.getByTestId('run-mode-select')).toHaveValue('loop')
+  })
+
   it('applies a workspace preset to shell chrome', () => {
     render(<AppShell />)
     fireEvent.change(screen.getByTestId('workspace-preset-select'), {

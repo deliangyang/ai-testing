@@ -164,7 +164,7 @@ M0 两周联合评审：P0-56。
 | P1-24 | 实时校验：编辑时调用校验 API，徽标 ✓/⚠/✗，问题列表点击定位节点 | `web/src` | P1-22 | E2E 用例 | DONE |
 | P1-25 | 报告回放视图：最终态叠加、摘要条（通过率/耗时/与上次对比/触发方式）、时间轴滑块回放 | `web/src/canvas` | P1-10、P1-03 | 组件测试 | DONE |
 | P1-26 | 布局持久化：迁移新增 `ui_layouts`、`workspace_presets` 表；按场景记住缩放/位置/面板宽度/抽屉状态 | `crates/store`、`crates/server`、`web/` | P1-07、P1-03 | 重开后布局恢复 | DONE |
-| P1-27 | 快捷键（§5.3 第 5 条）与全局搜索 Ctrl/Cmd+K、`?` 快捷键面板 | `web/src` | P1-17 | 组件测试 | TODO |
+| P1-27 | 快捷键（§5.3 第 5 条）与全局搜索 Ctrl/Cmd+K、`?` 快捷键面板 | `web/src` | P1-17 | 组件测试 | DONE |
 | P1-28 | 工作区预设：编排者/执行调试者/看报告者，一键切换 | `web/src` | P1-26 | 组件测试 | DONE |
 | P1-29 | Playwright E2E：轮询超时失败从「变红」到右面板看到完整证据 ≤2 次点击 | `web/e2e` | P1-13、P1-04 | E2E 通过并纳入 CI | DONE |
 | P1-30 | nsh 技术 spike：验证加载 web 组件、`native_module` 调用 engine/store、`nsh test` 无界面测试；结论写 ADR | `app/`、`docs/decisions/` | P1-09 | ADR 给出可行/不可行与替代方案 | TODO |
@@ -387,6 +387,7 @@ M0 两周联合评审：P0-56。
 | 2026-11-08 | P1-15 | TODO→DONE | `StatusBar` + `buildStatusBarModel`（SSE/SQLite、n/N·并行·轮询中、环境、耗时）；`asyncPollFail` run fixture；`statusBarModel.test.ts` |
 | 2026-11-08 | P1-16 | TODO→DONE | `web/src/nav`：`LeftNav` 场景状态点+通过率条、计划 ✓/⚠/✗、报告列表；`FIXTURE_NAV_CATALOG`；接入 `AppShell` |
 | 2026-11-08 | P1-17 | TODO→DONE | `WorkspaceTabBar` + `resolveWorkspaceForTab`；左导航双击打开场景/报告标签；`AppShell.tabs.test.tsx` |
+| 2026-11-09 | P1-27 | TODO→DONE | `useAppShellShortcuts`（运行/重跑/模式/F/搜索/帮助）；`GlobalSearchDialog`+`ShortcutHelpDialog`；状态栏提示；画布 `fitViewToken` |
 | 2026-11-09 | P1-28 | TODO→DONE | `workspacePresets` 对齐 DB 种子；顶栏 `WorkspacePresetSelect` 一键套用壳层布局；`AppShell`/`WorkspacePresetSelect` 单测 |
 | 2026-11-09 | P1-26 | TODO→DONE | `V003__ui_layout` + `UiLayoutRepository`；server `/api/ui/layouts` 与 presets；web 按 `scenario:{id}` scope 用 localStorage 恢复壳层尺寸（画布视口后续）；`layoutStorage`/`AppShell` 单测 |
 | 2026-11-09 | P1-29 | TODO→DONE | `e2e/failure-evidence.spec.ts`；CI `web-e2e` job |

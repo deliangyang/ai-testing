@@ -22,6 +22,9 @@ export function StatusBar({ model }: StatusBarProps) {
       </span>
       <span data-testid="status-env">环境 {model.envName}</span>
       <span data-testid="status-elapsed">{model.elapsedLabel}</span>
+      <span className="status-bar__shortcut-hint" data-testid="status-shortcut-hint">
+        {model.shortcutHint}
+      </span>
     </footer>
   )
 }

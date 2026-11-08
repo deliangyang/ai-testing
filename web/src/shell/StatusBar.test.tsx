@@ -18,5 +18,6 @@ describe('StatusBar', () => {
     expect(screen.getByTestId('status-sse')).toHaveTextContent('SSE 已连接')
     expect(screen.getByTestId('status-env')).toHaveTextContent('local')
     expect(screen.getByTestId('status-elapsed')).toHaveTextContent('250 ms')
+    expect(screen.getByTestId('status-shortcut-hint')).toHaveTextContent('Ctrl+K')
   })
 })

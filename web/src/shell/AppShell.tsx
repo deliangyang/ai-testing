@@ -27,6 +27,10 @@ import {
   runControlReducer,
   type RunControlAction,
 } from './runControl'
+import { GlobalSearchDialog } from './GlobalSearchDialog'
+import { ShortcutHelpDialog } from './ShortcutHelpDialog'
+import type { GlobalSearchItem } from './globalSearch'
+import { useAppShellShortcuts } from './useAppShellShortcuts'
 import { WorkspaceTabBar } from './WorkspaceTabBar'
 import {
   activeTabAfterClose,
@@ -61,6 +65,9 @@ export function AppShell() {
 
   const [runControl, dispatchRunControl] = useReducer(runControlReducer, initialRunControlState)
   const [partialRerunNode, setPartialRerunNode] = useState<string | null>(null)
+  const [searchOpen, setSearchOpen] = useState(false)
+  const [helpOpen, setHelpOpen] = useState(false)
+  const [fitViewToken, setFitViewToken] = useState(0)
 
   const activeTab = useMemo(
     () => workspaceTabs.find((tab) => tab.key === activeTabKey),
@@ -179,6 +186,45 @@ export function AppShell() {
     })
   }, [layoutScopeKey, navCollapsed, rightWidth, drawerHeight, drawerCollapsed])
 
+  const runBlocked = runControl.phase === 'running' || runControl.phase === 'cancelling'
+
+  const openSearch = useCallback(() => {
+    setSearchOpen(true)
+  }, [])
+
+  const openHelp = useCallback(() => {
+    setHelpOpen(true)
+  }, [])
+
+  const handleFitCanvas = useCallback(() => {
+    setFitViewToken((n) => n + 1)
+  }, [])
+
+  const handleSearchPick = useCallback(
+    (item: GlobalSearchItem) => {
+      if (item.kind === 'scenario') {
+        openScenarioTab(item.refId)
+        return
+      }
+      openReportTab(item.refId)
+    },
+    [openReportTab, openScenarioTab],
+  )
+
+  useAppShellShortcuts({
+    openSearch,
+    openHelp,
+    onRun: handleRun,
+    onRerunFailed: handleRerunFailed,
+    onModeChange: (mode) => {
+      dispatchRunControl({ type: 'set_mode', mode })
+    },
+    onFitCanvas: handleFitCanvas,
+    canRerunFailed: runControl.canRerunFailed,
+    runBlocked,
+    anyDialogOpen: searchOpen || helpOpen,
+  })
+
   const handleWorkspacePreset = useCallback((presetId: string) => {
     const preset = workspacePresetById(presetId)
     if (!preset) {
@@ -244,6 +290,7 @@ export function AppShell() {
             dispatchRunControl({ type: 'set_mode', mode })
           }}
           onWorkspacePreset={handleWorkspacePreset}
+          onOpenSearch={openSearch}
         />
       </header>
 
@@ -287,6 +334,7 @@ export function AppShell() {
                     sourceRunId={sourceRunId}
                     partialRerunNode={partialRerunNode}
                     onRerunFromNode={handleRerunFromNode}
+                    fitViewToken={fitViewToken}
                   />
                 ) : (
                   <DagRunCanvas
@@ -296,6 +344,7 @@ export function AppShell() {
                     sourceRunId={sourceRunId}
                     partialRerunNode={partialRerunNode}
                     onRerunFromNode={handleRerunFromNode}
+                    fitViewToken={fitViewToken}
                   />
                 )}
               </main>
@@ -366,6 +415,21 @@ export function AppShell() {
       </div>
 
       <StatusBar model={statusBar} />
+
+      <GlobalSearchDialog
+        open={searchOpen}
+        catalog={FIXTURE_NAV_CATALOG}
+        onClose={() => {
+          setSearchOpen(false)
+        }}
+        onPick={handleSearchPick}
+      />
+      <ShortcutHelpDialog
+        open={helpOpen}
+        onClose={() => {
+          setHelpOpen(false)
+        }}
+      />
     </div>
   )
 }

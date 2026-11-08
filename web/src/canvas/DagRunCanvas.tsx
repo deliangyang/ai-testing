@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState, type MouseEvent as DomMouseEvent } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, type MouseEvent as DomMouseEvent } from 'react'
 import {
   Background,
   Controls,
@@ -30,6 +30,10 @@ const nodeTypes: NodeTypes = {
   [DAG_RUN_NODE_TYPE]: DagRunNodeCard,
 }
 
+function fitCanvasView(fitView: (options: { padding: number; duration: number }) => Promise<boolean>) {
+  void fitView({ padding: 0.2, duration: 200 })
+}
+
 function FitViewControl() {
   const { fitView } = useReactFlow()
   return (
@@ -37,12 +41,25 @@ function FitViewControl() {
       type="button"
       className="dag-edit-canvas__fit"
       onClick={() => {
-        void fitView({ padding: 0.2, duration: 200 })
+        fitCanvasView(fitView)
       }}
     >
       适应画布
     </button>
   )
+}
+
+function FitViewOnSignal({ token }: { token: number }) {
+  const { fitView } = useReactFlow()
+  const lastToken = useRef(0)
+  useEffect(() => {
+    if (token <= 0 || token === lastToken.current) {
+      return
+    }
+    lastToken.current = token
+    fitCanvasView(fitView)
+  }, [fitView, token])
+  return null
 }
 
 function SelectionBridge({
@@ -66,6 +83,7 @@ function DagRunCanvasInner({
   replayMode,
   sourceRunId,
   onRerunFromNode,
+  fitViewToken,
 }: {
   dag: Dag
   events: StoredRunEvent[]
@@ -74,6 +92,7 @@ function DagRunCanvasInner({
   replayMode?: boolean
   sourceRunId?: string
   onRerunFromNode?: (nodeId: string) => void
+  fitViewToken?: number
 }) {
   const [contextMenu, setContextMenu] = useState<{ nodeId: string; x: number; y: number } | null>(
     null,
@@ -151,6 +170,7 @@ function DagRunCanvasInner({
         </Panel>
       ) : null}
       <FocusNodeEffect nodeId={focusNodeId} />
+      <FitViewOnSignal token={fitViewToken ?? 0} />
       {contextMenu ? (
         <RunNodeContextMenu
           nodeId={contextMenu.nodeId}
@@ -178,6 +198,8 @@ export interface DagRunCanvasProps {
   onRerunFromNode?: (nodeId: string) => void
   /** 最近一次触发的部分重跑节点（供测试与状态展示） */
   partialRerunNode?: string | null
+  /** Increment to trigger keyboard / shell “fit canvas”. */
+  fitViewToken?: number
 }
 
 export function DagRunCanvas({
@@ -189,6 +211,7 @@ export function DagRunCanvas({
   sourceRunId,
   onRerunFromNode,
   partialRerunNode,
+  fitViewToken,
 }: DagRunCanvasProps) {
   return (
     <div
@@ -208,6 +231,7 @@ export function DagRunCanvas({
           replayMode={replayMode}
           sourceRunId={sourceRunId}
           onRerunFromNode={onRerunFromNode}
+          fitViewToken={fitViewToken}
         />
       </ReactFlowProvider>
     </div>

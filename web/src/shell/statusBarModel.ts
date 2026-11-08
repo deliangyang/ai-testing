@@ -1,6 +1,7 @@
 import type { Dag } from '../types/generated'
 import type { RunDto, StoredRunEvent } from '../data/types'
 import { applyRunEvents, type RunViewModel } from '../canvas/runReplay'
+import { STATUS_BAR_SHORTCUT_HINT } from './shortcutReference'
 
 export interface ConnectionStatus {
   sqliteConnected: boolean
@@ -15,6 +16,7 @@ export interface StatusBarModel {
   sseConnected: boolean
   envName: string
   elapsedLabel: string
+  shortcutHint: string
 }
 
 export function countPollingNodes(view: RunViewModel): number {
@@ -73,5 +75,6 @@ export function buildStatusBarModel(input: {
     sseConnected: input.connections.sseConnected,
     envName: input.run.env_name,
     elapsedLabel: `耗时 ${formatElapsed(input.run)}`,
+    shortcutHint: STATUS_BAR_SHORTCUT_HINT,
   }
 }

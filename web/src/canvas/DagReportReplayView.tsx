@@ -16,6 +16,7 @@ export interface DagReportReplayViewProps {
   sourceRunId?: string
   partialRerunNode?: string | null
   onRerunFromNode?: (nodeId: string) => void
+  fitViewToken?: number
 }
 
 export function DagReportReplayView({
@@ -27,6 +28,7 @@ export function DagReportReplayView({
   sourceRunId,
   partialRerunNode,
   onRerunFromNode,
+  fitViewToken,
 }: DagReportReplayViewProps) {
   const maxSeq = maxEventSeq(events)
   const [replaySeq, setReplaySeq] = useState(maxSeq)
@@ -50,6 +52,7 @@ export function DagReportReplayView({
           sourceRunId={sourceRunId ?? run.id}
           partialRerunNode={partialRerunNode}
           onRerunFromNode={onRerunFromNode}
+          fitViewToken={fitViewToken}
         />
       </div>
     </div>
