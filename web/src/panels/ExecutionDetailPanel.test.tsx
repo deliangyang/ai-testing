@@ -1,6 +1,7 @@
 import { render, screen, within } from '@testing-library/react'
 
 import { FAILED_ASSERT_EXECUTION } from '../data/fixtures/failedAssert'
+import { POLL_TIMEOUT_EXECUTION } from '../data/fixtures/pollTimeout'
 import { SERIAL_EXECUTIONS } from '../data/fixtures/serial'
 import { ExecutionDetailPanel } from './ExecutionDetailPanel'
 
@@ -26,6 +27,13 @@ describe('ExecutionDetailPanel', () => {
     const row = screen.getByTestId('assertion-$.status')
     expect(within(row).getByText('通过')).toBeInTheDocument()
     expect(screen.queryByTestId('assertion-diff')).not.toBeInTheDocument()
+  })
+
+  it('renders poll trace timeline for timeout execution', () => {
+    render(<ExecutionDetailPanel nodeId="wait_paid" execution={POLL_TIMEOUT_EXECUTION} />)
+    expect(screen.getByTestId('poll-trace-timeline')).toBeInTheDocument()
+    expect(screen.getByTestId('poll-timeline-wait_paid-1')).toBeInTheDocument()
+    expect(screen.getByTestId('poll-timeline-wait_paid-4')).toBeInTheDocument()
   })
 
   it('renders failed assertion diff from error detail', () => {

@@ -1,3 +1,6 @@
 export { ExecutionDetailPanel } from './ExecutionDetailPanel'
+export { PollTraceTable } from './PollTraceTable'
+export { PollTraceTimeline } from './PollTraceTimeline'
 export { extractAssertionRows } from './assertionResults'
+export { flattenPollTraces, parsePollTrace } from './pollTrace'
 export { timingBreakdown } from './executionTiming'

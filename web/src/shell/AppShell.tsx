@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 
 import { DagEditCanvas } from '../canvas'
-import { SERIAL_DAG, SERIAL_EXECUTIONS } from '../data/fixtures/serial'
-import { ExecutionDetailPanel } from '../panels'
+import { POLL_TIMEOUT_EXECUTION } from '../data/fixtures/pollTimeout'
+import { SERIAL_DAG } from '../data/fixtures/serial'
+import { ExecutionDetailPanel, PollTraceTable, flattenPollTraces } from '../panels'
 import { clampBottomDrawerHeight, clampRightPanelWidth, leftNavWidthPx } from './layout'
 import { shellTokens } from './tokens'
 import './shell.css'
@@ -119,10 +120,7 @@ export function AppShell() {
               data-testid="right-panel"
               style={{ width: `${String(rightWidth)}px` }}
             >
-              <ExecutionDetailPanel
-                nodeId="pay"
-                execution={SERIAL_EXECUTIONS.find((e) => e.node_id === 'pay') ?? null}
-              />
+              <ExecutionDetailPanel nodeId="wait_paid" execution={POLL_TIMEOUT_EXECUTION} />
             </aside>
           </div>
 
@@ -155,7 +153,11 @@ export function AppShell() {
                 {drawerCollapsed ? '展开' : '折叠'}
               </button>
             </div>
-            {!drawerCollapsed ? <div className="app-shell__drawer-body">底部抽屉内容</div> : null}
+            {!drawerCollapsed ? (
+              <div className="app-shell__drawer-body">
+                <PollTraceTable rows={flattenPollTraces([POLL_TIMEOUT_EXECUTION])} />
+              </div>
+            ) : null}
           </section>
         </div>
       </div>

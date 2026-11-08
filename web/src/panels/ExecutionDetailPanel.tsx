@@ -2,6 +2,8 @@ import type { NodeExecutionDto } from '../data/types'
 import { extractAssertionRows, type AssertionRow } from './assertionResults'
 import { formatDisplayValue } from './formatValue'
 import { formatTimingBreakdown, timingBreakdown } from './executionTiming'
+import { parsePollTrace } from './pollTrace'
+import { PollTraceTimeline } from './PollTraceTimeline'
 import './panels.css'
 
 export interface ExecutionDetailPanelProps {
@@ -75,6 +77,7 @@ export function ExecutionDetailPanel({ nodeId, execution }: ExecutionDetailPanel
   }
 
   const timingLines = formatTimingBreakdown(timingBreakdown(execution))
+  const pollTrace = parsePollTrace(execution.poll_trace)
   const assertions = extractAssertionRows(execution)
   const hasHttp = looksLikeHttpResolved(execution.input_resolved)
   const response = hasHttp ? httpResponseBody(execution.output) : null
@@ -113,6 +116,10 @@ export function ExecutionDetailPanel({ nodeId, execution }: ExecutionDetailPanel
 
       {response ? (
         <JsonSection title="实际响应" value={response} testId="execution-response" />
+      ) : null}
+
+      {pollTrace.length > 0 ? (
+        <PollTraceTimeline nodeId={nodeId} entries={pollTrace} />
       ) : null}
 
       {assertions.length > 0 ? (
