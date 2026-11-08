@@ -7,6 +7,8 @@ lives in [`web/`](../web/) (Vite + React); the desktop path embeds that UI and w
 ## Prerequisites
 
 - [NSH installation](https://nsh.dev/docs/installation.md) (`nsh` on `PATH`, Windows 10 1809+)
+
+若官方 `irm https://nsh.dev/install.ps1 | iex` 在 `Move-Item` 报「访问被拒绝」，可改用：`scoop install https://github.com/longbridge/nsh/releases/latest/download/nsh.json`，或以管理员 PowerShell 重试并指定 `$env:NSH_INSTALL_DIR`；亦可直接解压 [nsh-windows-x86_64.zip](https://github.com/longbridge/nsh/releases/latest/download/nsh-windows-x86_64.zip) 并把 `bin` 加入用户 `PATH`。
 - Rust toolchain (same as the repo workspace)
 - Built web assets: `cd web && npm run build`
 

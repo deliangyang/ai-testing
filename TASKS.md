@@ -168,7 +168,7 @@ M0 两周联合评审：P0-56。
 | P1-28 | 工作区预设：编排者/执行调试者/看报告者，一键切换 | `web/src` | P1-26 | 组件测试 | DONE |
 | P1-29 | Playwright E2E：轮询超时失败从「变红」到右面板看到完整证据 ≤2 次点击 | `web/e2e` | P1-13、P1-04 | E2E 通过并纳入 CI | DONE |
 | P1-30 | nsh 技术 spike：验证加载 web 组件、`native_module` 调用 engine/store、`nsh test` 无界面测试；结论写 ADR | `app/`、`docs/decisions/` | P1-09 | ADR 给出可行/不可行与替代方案 | DONE |
-| P1-31 | nsh 外壳集成：以 `native_module` 实现 `DataSource`，复用全部 web 组件 | `app/` | P1-30 | `nsh test` 跑通核心用例 | TODO |
+| P1-31 | nsh 外壳集成：以 `native_module` 实现 `DataSource`，复用全部 web 组件 | `app/` | P1-30 | `nsh test` 跑通核心用例 | DOING |
 | P1-32 | **阶段 1 验收** | `docs/reviews/phase1.md` | P1-29、P1-25、P1-24、P1-31 | 验收通过 | TODO |
 
 ---
@@ -321,7 +321,7 @@ M0 两周联合评审：P0-56。
 | Q5 | JSONPath 方言 | P0-34、P0-07 | 暂按 RFC 9535 的 singular query 子集（`$`、`.name`、`['name']`、`[n]`）自行解析（`model::parse_json_path`，与模板路径共用解析器），不引入 serde_json_path；若需要通配/过滤再议 | OPEN |
 | Q6 | 用于 spike 的 3 条「真实链路」由谁提供？ | P0-52 | 先用 mock-sut 构造等价链路 | OPEN |
 | Q7 | 代码托管远程仓库（GitHub / Cursor origin / 其他）？ | P0-03 | GitHub：`git@github.com:deliangyang/ai-testing.git`（2026-11-08 人类答复） | RESOLVED |
-| Q8 | M0 §7.3 Q2（失败→证据 ≤2 点击）能否在阶段 0 验收？ | P0-56 | 否；等 P1-13 后补数据到 `docs/reviews/m0.md` | OPEN |
+| Q8 | M0 §7.3 Q2（失败→证据 ≤2 点击）能否在阶段 0 验收？ | P0-56 | P1-13/P1-29 已 DONE；以阶段 1 E2E 补写 `m0.md` Q2 是否足够 → **待人类签收** | OPEN |
 
 ---
 
@@ -387,6 +387,9 @@ M0 两周联合评审：P0-56。
 | 2026-11-08 | P1-15 | TODO→DONE | `StatusBar` + `buildStatusBarModel`（SSE/SQLite、n/N·并行·轮询中、环境、耗时）；`asyncPollFail` run fixture；`statusBarModel.test.ts` |
 | 2026-11-08 | P1-16 | TODO→DONE | `web/src/nav`：`LeftNav` 场景状态点+通过率条、计划 ✓/⚠/✗、报告列表；`FIXTURE_NAV_CATALOG`；接入 `AppShell` |
 | 2026-11-08 | P1-17 | TODO→DONE | `WorkspaceTabBar` + `resolveWorkspaceForTab`；左导航双击打开场景/报告标签；`AppShell.tabs.test.tsx` |
+| 2026-11-09 | — | 编排 | [P0-56 m0 收尾](78acd747-a65a-41d0-9555-1fbc91c74fc6) → `d5120c1`：`m0.md` Q3/P2-25、`phase0.md` 互链；poll/classifier 脚本未重跑 |
+| 2026-11-09 | — | 编排 | [P1-32 预备](2c8a0b19-3f55-4bc2-8321-952fbd5707f3) → `docs/reviews/phase1.md`（7 行清单）；主编排已将 #1–#5 标为 Web 证据就绪 |
+| 2026-11-09 | — | 编排 | [P0-56 探索](1be80a6d-52da-429e-82a2-39ab665dc4c4) 后：Q8 文案同步 P1-29（细节见 `d5120c1`）；P0-56 仍 BLOCKED |
 | 2026-11-09 | P1-30 | TODO→DONE | ADR-006；`nsh-bridge` store 探针；`app/` 脚手架与 `scripts/nsh-spike.ps1`；React 经 WebView+server 复用 |
 | 2026-11-09 | P1-27 | TODO→DONE | `useAppShellShortcuts`（运行/重跑/模式/F/搜索/帮助）；`GlobalSearchDialog`+`ShortcutHelpDialog`；状态栏提示；画布 `fitViewToken` |
 | 2026-11-09 | P1-28 | TODO→DONE | `workspacePresets` 对齐 DB 种子；顶栏 `WorkspacePresetSelect` 一键套用壳层布局；`AppShell`/`WorkspacePresetSelect` 单测 |
