@@ -1,1 +1,6 @@
+export { BottomDrawer } from './BottomDrawer'
 export { RunLogList } from './RunLogList'
+export { RunLogPanel } from './RunLogPanel'
+export { VariableWatch } from './VariableWatch'
+export { groupLogsByNode, filterLogEntries } from './groupLogs'
+export { watchVariablesFromExecutions, type WatchedVariable } from './watchVariables'

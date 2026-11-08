@@ -59,9 +59,10 @@ export const ASYNC_POLL_FAIL_EVENTS: StoredRunEvent[] = [
   { seq: 3, event: { type: 'log', node: 'create', level: 'info', message: 'POST /orders → 200' } },
   { seq: 4, event: { type: 'node_state_changed', node: 'pay', status: 'RUNNING' } },
   { seq: 5, event: { type: 'node_state_changed', node: 'pay', status: 'COMPLETED' } },
-  { seq: 6, event: { type: 'node_state_changed', node: 'wait_paid', status: 'POLLING' } },
+  { seq: 6, event: { type: 'log', node: 'pay', level: 'info', message: 'pay ok' } },
+  { seq: 7, event: { type: 'node_state_changed', node: 'wait_paid', status: 'POLLING' } },
   {
-    seq: 7,
+    seq: 8,
     event: {
       type: 'poll_iteration',
       node: 'wait_paid',
@@ -70,7 +71,7 @@ export const ASYNC_POLL_FAIL_EVENTS: StoredRunEvent[] = [
     },
   },
   {
-    seq: 8,
+    seq: 9,
     event: {
       type: 'poll_iteration',
       node: 'wait_paid',
@@ -78,9 +79,9 @@ export const ASYNC_POLL_FAIL_EVENTS: StoredRunEvent[] = [
       entry: { actual: 'PENDING', passed: false },
     },
   },
-  { seq: 9, event: { type: 'node_state_changed', node: 'wait_paid', status: 'FAILED' } },
+  { seq: 10, event: { type: 'node_state_changed', node: 'wait_paid', status: 'FAILED' } },
   {
-    seq: 10,
+    seq: 11,
     event: {
       type: 'log',
       node: 'wait_paid',
@@ -88,8 +89,8 @@ export const ASYNC_POLL_FAIL_EVENTS: StoredRunEvent[] = [
       message: 'poll deadline exceeded',
     },
   },
-  { seq: 11, event: { type: 'log', node: 'create', level: 'info', message: 'ignored when focused' } },
-  { seq: 12, event: { type: 'run_finished', status: 'FAILED' } },
+  { seq: 12, event: { type: 'log', node: 'create', level: 'info', message: 'ignored when focused' } },
+  { seq: 13, event: { type: 'run_finished', status: 'FAILED' } },
 ]
 
 export const ASYNC_POLL_FAIL_SCENARIO = {

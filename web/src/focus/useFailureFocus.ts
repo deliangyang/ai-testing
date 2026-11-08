@@ -19,8 +19,10 @@ export interface RunFocusScenario {
 export interface FailureFocusState {
   failedNodeId: string | null
   execution: NodeExecutionDto | null
+  allLogs: RunLogEntry[]
   filteredLogs: RunLogEntry[]
   pollRows: ReturnType<typeof flattenPollTraces>
+  executions: NodeExecutionDto[]
   dag: Dag
   events: StoredRunEvent[]
 }
@@ -41,8 +43,10 @@ export function useFailureFocus(scenario: RunFocusScenario): FailureFocusState {
     return {
       failedNodeId,
       execution,
+      allLogs,
       filteredLogs,
       pollRows,
+      executions: scenario.executions,
       dag: scenario.dag,
       events: scenario.events,
     }

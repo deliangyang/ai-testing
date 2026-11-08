@@ -2,10 +2,11 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 
 import { DagRunCanvas } from '../canvas'
 import { ASYNC_POLL_FAIL_SCENARIO } from '../data/fixtures/asyncPollFail'
-import { RunLogList } from '../drawer/RunLogList'
+import { BottomDrawer } from '../drawer/BottomDrawer'
 import '../drawer/drawer.css'
+import { watchVariablesFromExecutions } from '../drawer/watchVariables'
 import { useFailureFocus } from '../focus'
-import { ExecutionDetailPanel, PollTraceTable } from '../panels'
+import { ExecutionDetailPanel } from '../panels'
 import { clampBottomDrawerHeight, clampRightPanelWidth, leftNavWidthPx } from './layout'
 import { shellTokens } from './tokens'
 import './shell.css'
@@ -165,11 +166,12 @@ export function AppShell() {
             </div>
             {!drawerCollapsed ? (
               <div className="app-shell__drawer-body">
-                <RunLogList
-                  entries={failureFocus.filteredLogs}
-                  focusNodeId={failureFocus.failedNodeId}
+                <BottomDrawer
+                  logs={failureFocus.allLogs}
+                  pollRows={failureFocus.pollRows}
+                  variables={watchVariablesFromExecutions(failureFocus.executions)}
+                  initialNodeFilter={failureFocus.failedNodeId}
                 />
-                <PollTraceTable rows={failureFocus.pollRows} />
               </div>
             ) : null}
           </section>
