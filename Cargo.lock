@@ -1290,6 +1290,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "nsh-bridge"
+version = "0.1.0"
+dependencies = [
+ "common",
+ "model",
+ "serde",
+ "serde_json",
+ "store",
+ "tempfile",
+ "thiserror",
+]
+
+[[package]]
 name = "nu-ansi-term"
 version = "0.50.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
