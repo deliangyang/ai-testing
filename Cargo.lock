@@ -280,9 +280,12 @@ dependencies = [
  "model",
  "serde",
  "serde_json",
+ "serde_path_to_error",
  "store",
+ "tempfile",
  "thiserror",
  "tokio",
+ "yaml_serde",
 ]
 
 [[package]]
