@@ -1,3 +1,5 @@
 export { AppShell } from './AppShell'
+export { StatusBar } from './StatusBar'
+export { buildStatusBarModel } from './statusBarModel'
 export { clampBottomDrawerHeight, clampRightPanelWidth, leftNavWidthPx } from './layout'
 export { shellTokens } from './tokens'

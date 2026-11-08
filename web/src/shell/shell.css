@@ -142,6 +142,14 @@
     color: var(--chrome-muted);
 }
 
+.status-bar__ok {
+    color: #3d9e6a;
+}
+
+.status-bar__bad {
+    color: #e25c5c;
+}
+
 .app-shell__nav-toggle,
 .app-shell__drawer-toggle {
     border: 1px solid var(--chrome-border);

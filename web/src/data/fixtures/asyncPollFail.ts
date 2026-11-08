@@ -1,4 +1,4 @@
-import type { NodeExecutionDto, StoredRunEvent } from '../types'
+import type { NodeExecutionDto, RunDto, StoredRunEvent } from '../types'
 import { ASYNC_POLL_DAG } from './asyncPoll'
 import { POLL_TIMEOUT_EXECUTION } from './pollTimeout'
 
@@ -90,11 +90,24 @@ export const ASYNC_POLL_FAIL_EVENTS: StoredRunEvent[] = [
     },
   },
   { seq: 12, event: { type: 'log', node: 'create', level: 'info', message: 'ignored when focused' } },
-  { seq: 13, event: { type: 'run_finished', status: 'FAILED' } },
+  { seq: 13, event: { type: 'node_state_changed', node: 'check', status: 'SKIPPED' } },
+  { seq: 14, event: { type: 'run_finished', status: 'FAILED' } },
 ]
+
+export const ASYNC_POLL_FAIL_RUN: RunDto = {
+  id: 'run-async-poll-fail',
+  dag_id: 'async-poll',
+  dag_version: 1,
+  env_name: 'local',
+  mode: 'MANUAL',
+  status: 'FAILED',
+  started_at: '2026-11-08T14:05:00.000+08:00',
+  finished_at: '2026-11-08T14:05:00.250+08:00',
+}
 
 export const ASYNC_POLL_FAIL_SCENARIO = {
   dag: ASYNC_POLL_DAG,
   events: ASYNC_POLL_FAIL_EVENTS,
   executions: ASYNC_POLL_FAIL_EXECUTIONS,
+  run: ASYNC_POLL_FAIL_RUN,
 }

@@ -1,18 +1,33 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
 import { DagRunCanvas } from '../canvas'
-import { ASYNC_POLL_FAIL_SCENARIO } from '../data/fixtures/asyncPollFail'
+import {
+  ASYNC_POLL_FAIL_RUN,
+  ASYNC_POLL_FAIL_SCENARIO,
+} from '../data/fixtures/asyncPollFail'
 import { BottomDrawer } from '../drawer/BottomDrawer'
 import '../drawer/drawer.css'
 import { watchVariablesFromExecutions } from '../drawer/watchVariables'
 import { useFailureFocus } from '../focus'
 import { ExecutionDetailPanel } from '../panels'
 import { clampBottomDrawerHeight, clampRightPanelWidth, leftNavWidthPx } from './layout'
+import { StatusBar } from './StatusBar'
+import { buildStatusBarModel } from './statusBarModel'
 import { shellTokens } from './tokens'
 import './shell.css'
 
 export function AppShell() {
   const failureFocus = useFailureFocus(ASYNC_POLL_FAIL_SCENARIO)
+  const statusBar = useMemo(
+    () =>
+      buildStatusBarModel({
+        dag: failureFocus.dag,
+        events: failureFocus.events,
+        run: ASYNC_POLL_FAIL_RUN,
+        connections: { sqliteConnected: true, sseConnected: true },
+      }),
+    [failureFocus.dag, failureFocus.events],
+  )
   const [navCollapsed, setNavCollapsed] = useState(false)
   const [rightWidth, setRightWidth] = useState<number>(shellTokens.rightPanelWidthPx)
   const [drawerHeight, setDrawerHeight] = useState<number>(shellTokens.bottomDrawerHeightPx)
@@ -178,12 +193,7 @@ export function AppShell() {
         </div>
       </div>
 
-      <footer className="app-shell__status" role="contentinfo" data-testid="status-bar">
-        <span>● SQLite</span>
-        <span>3/12 节点 · 并行 2</span>
-        <span>SSE 已连接</span>
-        <span>耗时 4.2s</span>
-      </footer>
+      <StatusBar model={statusBar} />
     </div>
   )
 }
