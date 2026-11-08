@@ -5,7 +5,7 @@ mod common;
 use std::sync::Arc;
 
 use common::{dag, dag_with_cleanup, MockExecutor};
-use engine::NodeStatus::{self, Completed, Failed, Pending, Skipped};
+use engine::NodeStatus::{self, Completed, Failed, Skipped};
 use engine::{RunOutcome, Scheduler};
 use model::Dag;
 
@@ -105,7 +105,8 @@ async fn cleanup_downstream_of_a_failure_is_not_skipped() {
     let exec = Arc::new(MockExecutor::failing(&["a"]));
     let outcome = run(&exec, &d, 1).await;
     assert_eq!(outcome.nodes["b"].status, Skipped);
-    assert_eq!(outcome.nodes["teardown"].status, Pending);
+    assert_eq!(outcome.nodes["teardown"].status, Completed);
+    assert_eq!(exec.order(), ["a", "teardown"]);
 }
 
 #[tokio::test]

@@ -90,7 +90,11 @@ pub enum SchedulerError {
 /// A node becomes `READY` once all its predecessors completed and is started in
 /// (level, node id) order, levels as in [`DagGraph::topo_levels`]. With `max_parallel == 1`
 /// this is a strict serial order. When a node fails, every descendant that has not run is
-/// marked `SKIPPED`, except cleanup nodes, which stay `PENDING` here.
+/// marked `SKIPPED`, except cleanup nodes.
+///
+/// Cleanup nodes are held back until every other node is terminal, then run one at a time in
+/// (level, id) order whatever happened upstream. They see the outputs of whichever ancestors
+/// completed.
 pub struct Scheduler {
     executor: Arc<dyn NodeExecutor>,
     max_parallel: usize,
@@ -139,9 +143,16 @@ impl Scheduler {
             .keys()
             .map(|id| (*id, graph.predecessors(id).count()))
             .collect();
+        let cleanup: Vec<(usize, &str)> = level_of
+            .iter()
+            .filter(|(id, _)| dag.node(id).is_some_and(is_cleanup))
+            .map(|(id, level)| (*level, *id))
+            .collect();
         let mut ready: BTreeSet<(usize, &str)> = BTreeSet::new();
         for (id, _) in waiting_on.iter().filter(|(_, n)| **n == 0) {
-            ready.insert((0, id));
+            if !cleanup.iter().any(|(_, c)| c == id) {
+                ready.insert((0, id));
+            }
         }
         for &(_, id) in &ready {
             self.result(&mut nodes, id)?
@@ -150,71 +161,92 @@ impl Scheduler {
 
         let mut started = Vec::new();
         let mut in_flight: JoinSet<(String, Result<ExecOutput, ExecError>)> = JoinSet::new();
-        loop {
-            while in_flight.len() < self.max_parallel {
-                let Some((_, id)) = ready.pop_first() else {
-                    break;
-                };
-                let Some(node) = dag.node(id) else { continue };
-                let ctx = ExecContext {
-                    run_id: run_id.to_owned(),
-                    outputs: graph
-                        .ancestors(id)
-                        .into_iter()
-                        .filter_map(|a| Some((a.to_owned(), nodes.get(a)?.output.clone()?)))
-                        .collect(),
-                    env: Arc::clone(&self.env),
-                };
-                self.result(&mut nodes, id)?
-                    .advance(id, NodeStatus::Running)?;
-                started.push(id.to_owned());
-
-                let executor = Arc::clone(&self.executor);
-                let node = node.clone();
-                in_flight.spawn(async move {
-                    let result = executor.execute(&node, ctx).await;
-                    (node.id, result)
-                });
-            }
-
-            let Some(joined) = in_flight.join_next().await else {
-                break;
-            };
-            let (id, result) =
-                joined.map_err(|e| SchedulerError::ExecutorCrashed(e.to_string()))?;
-            match result {
-                Ok(done) => {
-                    let entry = self.result(&mut nodes, &id)?;
-                    entry.advance(&id, NodeStatus::Completed)?;
-                    entry.output = Some(done.output);
-                    entry.trace = done.trace;
-                    for succ in graph.successors(&id) {
-                        let Some(count) = waiting_on.get_mut(succ) else {
-                            continue;
-                        };
-                        *count -= 1;
-                        let pending = nodes
-                            .get(succ)
-                            .is_some_and(|n| n.status == NodeStatus::Pending);
-                        if *count == 0 && pending {
-                            ready.insert((level_of.get(succ).copied().unwrap_or(0), succ));
-                            self.result(&mut nodes, succ)?
-                                .advance(succ, NodeStatus::Ready)?;
+        for phase in [Phase::Main, Phase::Cleanup] {
+            let limit = match phase {
+                Phase::Main => self.max_parallel,
+                Phase::Cleanup => {
+                    let mut queued: Vec<(usize, &str)> = cleanup.clone();
+                    queued.sort();
+                    for (level, id) in queued {
+                        let entry = self.result(&mut nodes, id)?;
+                        if entry.status == NodeStatus::Pending {
+                            entry.advance(id, NodeStatus::Ready)?;
+                            ready.insert((level, id));
                         }
                     }
+                    1
                 }
-                Err(mut error) => {
-                    let entry = self.result(&mut nodes, &id)?;
-                    entry.advance(&id, NodeStatus::Failed)?;
-                    entry.trace = error.trace.take();
-                    entry.error = Some(error);
-                    for desc in graph.descendants(&id) {
-                        if dag.node(desc).is_some_and(is_cleanup) {
+            };
+            loop {
+                while in_flight.len() < limit {
+                    let Some((_, id)) = ready.pop_first() else {
+                        break;
+                    };
+                    let Some(node) = dag.node(id) else { continue };
+                    let ctx = ExecContext {
+                        run_id: run_id.to_owned(),
+                        outputs: graph
+                            .ancestors(id)
+                            .into_iter()
+                            .filter_map(|a| Some((a.to_owned(), nodes.get(a)?.output.clone()?)))
+                            .collect(),
+                        env: Arc::clone(&self.env),
+                    };
+                    self.result(&mut nodes, id)?
+                        .advance(id, NodeStatus::Running)?;
+                    started.push(id.to_owned());
+
+                    let executor = Arc::clone(&self.executor);
+                    let node = node.clone();
+                    in_flight.spawn(async move {
+                        let result = executor.execute(&node, ctx).await;
+                        (node.id, result)
+                    });
+                }
+
+                let Some(joined) = in_flight.join_next().await else {
+                    break;
+                };
+                let (id, result) =
+                    joined.map_err(|e| SchedulerError::ExecutorCrashed(e.to_string()))?;
+                match result {
+                    Ok(done) => {
+                        let entry = self.result(&mut nodes, &id)?;
+                        entry.advance(&id, NodeStatus::Completed)?;
+                        entry.output = Some(done.output);
+                        entry.trace = done.trace;
+                        if phase == Phase::Cleanup {
                             continue;
                         }
-                        let entry = self.result(&mut nodes, desc)?;
-                        if entry.status == NodeStatus::Pending {
-                            entry.advance(desc, NodeStatus::Skipped)?;
+                        for succ in graph.successors(&id) {
+                            let Some(count) = waiting_on.get_mut(succ) else {
+                                continue;
+                            };
+                            *count -= 1;
+                            let pending = nodes
+                                .get(succ)
+                                .is_some_and(|n| n.status == NodeStatus::Pending);
+                            let deferred = dag.node(succ).is_some_and(is_cleanup);
+                            if *count == 0 && pending && !deferred {
+                                ready.insert((level_of.get(succ).copied().unwrap_or(0), succ));
+                                self.result(&mut nodes, succ)?
+                                    .advance(succ, NodeStatus::Ready)?;
+                            }
+                        }
+                    }
+                    Err(mut error) => {
+                        let entry = self.result(&mut nodes, &id)?;
+                        entry.advance(&id, NodeStatus::Failed)?;
+                        entry.trace = error.trace.take();
+                        entry.error = Some(error);
+                        for desc in graph.descendants(&id) {
+                            if dag.node(desc).is_some_and(is_cleanup) {
+                                continue;
+                            }
+                            let entry = self.result(&mut nodes, desc)?;
+                            if entry.status == NodeStatus::Pending {
+                                entry.advance(desc, NodeStatus::Skipped)?;
+                            }
                         }
                     }
                 }
@@ -232,6 +264,13 @@ impl Scheduler {
             .get_mut(id)
             .ok_or_else(|| SchedulerError::ExecutorCrashed(format!("unknown node '{id}'")))
     }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum Phase {
+    Main,
+    /// After every other node is terminal; cleanup nodes run one at a time.
+    Cleanup,
 }
 
 fn is_cleanup(node: &Node) -> bool {
