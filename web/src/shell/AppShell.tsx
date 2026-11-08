@@ -9,6 +9,8 @@ import { BottomDrawer } from '../drawer/BottomDrawer'
 import '../drawer/drawer.css'
 import { watchVariablesFromExecutions } from '../drawer/watchVariables'
 import { useFailureFocus } from '../focus'
+import { FIXTURE_NAV_CATALOG, LeftNav } from '../nav'
+import '../nav/nav.css'
 import { ExecutionDetailPanel } from '../panels'
 import { clampBottomDrawerHeight, clampRightPanelWidth, leftNavWidthPx } from './layout'
 import { StatusBar } from './StatusBar'
@@ -85,31 +87,13 @@ export function AppShell() {
           data-testid="left-nav"
           style={{ width: `${String(leftNavWidthPx(navCollapsed))}px` }}
         >
-          <button
-            type="button"
-            className="app-shell__nav-toggle"
-            aria-expanded={!navCollapsed}
-            aria-label={navCollapsed ? '展开左导航' : '折叠左导航'}
-            onClick={() => {
+          <LeftNav
+            catalog={FIXTURE_NAV_CATALOG}
+            collapsed={navCollapsed}
+            onToggleCollapse={() => {
               setNavCollapsed((v) => !v)
             }}
-          >
-            {navCollapsed ? '»' : '«'}
-          </button>
-          <ul className="app-shell__nav-list">
-            <li>
-              <span className="app-shell__nav-label">场景库</span>
-            </li>
-            <li>
-              <span className="app-shell__nav-label">计划库</span>
-            </li>
-            <li>
-              <span className="app-shell__nav-label">报告</span>
-            </li>
-            <li>
-              <span className="app-shell__nav-label">Skill 库</span>
-            </li>
-          </ul>
+          />
         </nav>
 
         <div className="app-shell__center-col">

@@ -153,7 +153,7 @@ M0 两周联合评审：P0-56。
 | P1-13 | 失败即聚焦：失败时画布居中失败节点、右面板切详情、底部日志过滤到该节点 | `web/src` | P1-10、P1-12 | 组件/E2E 测试 | DONE |
 | P1-14 | 底部抽屉：实时日志（按节点分组、可过滤）、变量监视 | `web/src/drawer` | P1-07、P1-06 | 组件测试 | DONE |
 | P1-15 | 状态栏：存储连接、执行摘要（n/N 节点 · 并行 · 轮询中）、SSE 状态、环境、耗时 | `web/src/shell` | P1-04、P1-07 | 组件测试 | DONE |
-| P1-16 | 左导航：场景库（最近状态点 + 通过率迷你条）、计划库（校验徽标）、报告列表 | `web/src/nav` | P1-03、P1-07 | 组件测试 | TODO |
+| P1-16 | 左导航：场景库（最近状态点 + 通过率迷你条）、计划库（校验徽标）、报告列表 | `web/src/nav` | P1-03、P1-07 | 组件测试 | DONE |
 | P1-17 | 中央标签页：多场景/报告标签，双击导航项打开 | `web/src/shell` | P1-16 | 组件测试 | TODO |
 | P1-18 | 顶栏运行控制：运行/停止/重跑失败、运行模式切换、环境切换器（含连通性状态点） | `web/src/shell` | P1-05 | E2E 用例 | TODO |
 | P1-19 | 引擎：从指定节点起跑，复用已存档上游输出，仅重跑该节点及下游；CLI `run --from-run <id> --from-node <id>` | `crates/engine`、`crates/cli` | P0-40 | 单测：上游节点不再发请求 | TODO |
@@ -385,6 +385,7 @@ M0 两周联合评审：P0-56。
 | 2026-11-08 | P1-13 | TODO→DONE | `useFailureFocus` + `DagRunCanvas` `focusNodeId` 居中；`RunLogList` 按节点过滤；`asyncPollFail` 场景；`FailureFocusWorkspace.test.tsx` |
 | 2026-11-08 | P1-14 | TODO→DONE | `BottomDrawer` 日志/轮询/变量 Tab；`RunLogPanel` 按节点分组+过滤；`VariableWatch` 由 execution 派生；`useFailureFocus.allLogs` |
 | 2026-11-08 | P1-15 | TODO→DONE | `StatusBar` + `buildStatusBarModel`（SSE/SQLite、n/N·并行·轮询中、环境、耗时）；`asyncPollFail` run fixture；`statusBarModel.test.ts` |
+| 2026-11-08 | P1-16 | TODO→DONE | `web/src/nav`：`LeftNav` 场景状态点+通过率条、计划 ✓/⚠/✗、报告列表；`FIXTURE_NAV_CATALOG`；接入 `AppShell` |
 | 2026-11-08 | P0-27 | TODO→DONE | `NodeStatus` 从 store 移到 `model::status`，engine（`engine::state`）和 store 都重新导出它，避免两份状态机各自演化；store 的公开 API 不变。新增 `transition()`，返回 `InvalidTransition{from,to}`；serde 名称为全大写（PENDING…SKIPPED），并 derive JsonSchema。迁移规则沿用 P0-25：非终态允许原地停留（轮询每轮都会上报），终态不能再迁移。测试覆盖全部 49 种组合，期望表独立写出；另验证终态不可离开、从 PENDING 能到达所有状态、任一非终态都能走到终态，以及文本与 JSON 名称稳定 |
 | 2026-11-08 | P0-28 | TODO→DONE | `NodeExecutor::execute(&Node, ExecContext) -> ExecFuture`，用装箱 Future，与 Sleeper 的写法一致，不引入 async_trait。`ExecContext` 只包含该节点已完成祖先的输出，作用域由调度器保证。执行器失败返回 `ExecError{kind, message, detail}`，只描述原始错误，分类留给 P0-43/P0-44。`Scheduler::run` 串行执行，每个节点经过 PENDING→READY→RUNNING→COMPLETED/FAILED，每一步都走 `NodeStatus::transition` 校验。顺序：`同层`理解为 Kahn 算法的轮次。`topo_order`（每次挑最小的就绪 id）在 a→b 加独立 c 的情况下会得到 a,b,c，与按层的 a,c,b 不同，因此在 model 新增 `DagGraph::topo_levels()`，也方便与 P0-29 的并行波次对齐。失败节点的后继暂时保持 PENDING，SKIPPED 与 cleanup 例外由 P0-30 处理；有环时返回 `SchedulerError::Cycle`，一个节点都不执行 |
 | 2026-11-08 | P0-29 | TODO→DONE | 用 tokio `JoinSet` 加在途计数实现有界并行，效果等同信号量，但不额外引入 Semaphore。就绪队列为 `BTreeSet<(层号, id)>`，因此并行度 1 时与 P0-28 的串行按层顺序完全一致。节点入队即标 READY，发起执行时标 RUNNING。`RunOutcome::report()` 对 `BTreeMap<id, NodeResult>` 输出规范化 JSON，不包含发起顺序 `started`，测试验证并行度 1 与 4 的完成顺序不同，报告却字节一致。默认并行度为 1，传 0 时按 1 处理；执行器 panic 映射为 `SchedulerError::ExecutorCrashed`。tokio 从 dev 依赖改为正式依赖（`rt`/`sync` 已在 workspace 中启用）。测试用 `yield_now` 控制完成时序，不用 sleep |
