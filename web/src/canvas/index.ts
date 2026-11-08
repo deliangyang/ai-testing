@@ -1,4 +1,5 @@
 export { DagEditCanvas } from './DagEditCanvas'
+export { DagReportReplayView } from './DagReportReplayView'
 export { DagRunCanvas } from './DagRunCanvas'
 export { buildDagEditGraph } from './dagToFlow'
 export { applyRunEvents } from './runReplay'

@@ -1,3 +1,46 @@
+.dag-report-replay {
+    display: flex;
+    flex-direction: column;
+    gap: 0.45rem;
+    height: 100%;
+    min-height: 0;
+}
+
+.dag-report-replay__canvas {
+    flex: 1 1 auto;
+    min-height: 240px;
+    display: flex;
+}
+
+.run-report-summary {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.65rem;
+    font-size: 0.78rem;
+    color: #c4c8d0;
+    padding: 0.35rem 0.45rem;
+    border-radius: 4px;
+    border: 1px solid #2a2f3a;
+    background: #1a1d26;
+}
+
+.run-replay-timeline {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.78rem;
+    color: #9aa3b2;
+    padding: 0 0.25rem;
+}
+
+.run-replay-timeline__label {
+    flex: 0 0 auto;
+}
+
+.run-replay-timeline input[type='range'] {
+    flex: 1 1 auto;
+}
+
 .dag-edit-canvas {
     position: relative;
     flex: 1 1 auto;

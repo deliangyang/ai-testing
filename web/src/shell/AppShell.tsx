@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react'
 
-import { DagRunCanvas } from '../canvas'
+import { DagReportReplayView, DagRunCanvas } from '../canvas'
+import { reportPreviousFor } from '../data/fixtures/reportPrevious'
 import {
   ASYNC_POLL_FAIL_RUN,
   ASYNC_POLL_FAIL_SCENARIO,
@@ -233,15 +234,29 @@ export function AppShell() {
                 onClose={closeTab}
               />
               <main className="app-shell__canvas" data-testid="center-canvas">
-                <DagRunCanvas
-                  dag={failureFocus.dag}
-                  events={failureFocus.events}
-                  focusNodeId={failureFocus.failedNodeId}
-                  replayMode={replayMode}
-                  sourceRunId={sourceRunId}
-                  partialRerunNode={partialRerunNode}
-                  onRerunFromNode={handleRerunFromNode}
-                />
+                {replayMode && activeWorkspace.run ? (
+                  <DagReportReplayView
+                    dag={failureFocus.dag}
+                    events={failureFocus.events}
+                    run={activeWorkspace.run}
+                    previous={
+                      activeTab ? reportPreviousFor(activeTab.refId) : undefined
+                    }
+                    focusNodeId={failureFocus.failedNodeId}
+                    sourceRunId={sourceRunId}
+                    partialRerunNode={partialRerunNode}
+                    onRerunFromNode={handleRerunFromNode}
+                  />
+                ) : (
+                  <DagRunCanvas
+                    dag={failureFocus.dag}
+                    events={failureFocus.events}
+                    focusNodeId={failureFocus.failedNodeId}
+                    sourceRunId={sourceRunId}
+                    partialRerunNode={partialRerunNode}
+                    onRerunFromNode={handleRerunFromNode}
+                  />
+                )}
               </main>
             </section>
 
