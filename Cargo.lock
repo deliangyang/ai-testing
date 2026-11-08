@@ -306,7 +306,9 @@ dependencies = [
  "engine",
  "gate",
  "model",
+ "serde_json",
  "store",
+ "tempfile",
 ]
 
 [[package]]

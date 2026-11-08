@@ -19,6 +19,10 @@ model = { workspace = true }
 gate = { workspace = true }
 store = { workspace = true }
 engine = { workspace = true }
+serde_json = { workspace = true }
+
+[dev-dependencies]
+tempfile = { workspace = true }
 
 [lints]
 workspace = true

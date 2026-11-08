@@ -1,7 +1,9 @@
 //! `mytool`: the deterministic command-line entry point.
 
 mod args;
+mod dag;
 mod exit;
+mod input;
 
 use std::process::ExitCode;
 
@@ -27,7 +29,7 @@ fn main() -> ExitCode {
 
 fn dispatch(cli: &Cli) -> anyhow::Result<u8> {
     let name = match &cli.command {
-        Command::Dag(DagCommand::Validate { .. }) => "dag validate",
+        Command::Dag(DagCommand::Validate { file, format }) => return dag::validate(file, *format),
         Command::Dag(DagCommand::Save { .. }) => "dag save",
         Command::Dag(DagCommand::Activate { .. }) => "dag activate",
         Command::Dag(DagCommand::List) => "dag list",

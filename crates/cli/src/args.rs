@@ -50,6 +50,14 @@ impl LogLevel {
     }
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, ValueEnum)]
+pub enum OutputFormat {
+    /// One line per issue plus a summary.
+    Text,
+    /// Canonical JSON.
+    Json,
+}
+
 #[derive(Debug, Subcommand)]
 pub enum Command {
     /// Validate and manage DAG definitions.
@@ -61,10 +69,13 @@ pub enum Command {
 
 #[derive(Debug, Subcommand)]
 pub enum DagCommand {
-    /// Check a DAG file with the deterministic gate.
+    /// Check a DAG file with the deterministic gate; exits 3 when it is rejected.
     Validate {
-        /// DAG file (YAML or JSON).
+        /// DAG file (`.json` is read as JSON, anything else as YAML).
         file: PathBuf,
+        /// Report format.
+        #[arg(long, value_enum, default_value_t = OutputFormat::Text)]
+        format: OutputFormat,
     },
     /// Validate a DAG file and store it as a new pending version.
     Save {
