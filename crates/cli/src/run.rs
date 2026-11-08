@@ -89,6 +89,14 @@ async fn run_async(db_path: &Path, args: &RunArgs) -> anyhow::Result<u8> {
 
     let outcome = result?;
     let finished = recorder.finish_run(&run.id, &outcome)?;
+    if let Some(path) = &args.report_json {
+        let classifier = RuleClassifier::new()?;
+        crate::report::write(
+            path,
+            &crate::report::build(&finished, &outcome, &env, &classifier),
+        )
+        .with_context(|| format!("cannot write report {}", path.display()))?;
+    }
     print_summary(&run.id, &outcome, &env)?;
     Ok(match finished.status {
         RunStatus::Completed => exit::SUCCESS,

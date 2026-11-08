@@ -19,10 +19,13 @@ model = { workspace = true }
 gate = { workspace = true }
 store = { workspace = true }
 engine = { workspace = true }
+schemars = { workspace = true }
+serde = { workspace = true }
 serde_json = { workspace = true }
 tokio = { workspace = true, features = ["signal"] }
 
 [dev-dependencies]
+jsonschema = { workspace = true }
 tempfile = { workspace = true }
 wiremock = { workspace = true }
 tokio = { workspace = true, features = ["rt-multi-thread"] }

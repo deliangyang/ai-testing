@@ -322,6 +322,152 @@ async fn environment_problems_exit_2_before_anything_runs() {
     assert!(server.received_requests().await.unwrap().is_empty());
 }
 
+fn parse_report(path: &std::path::Path) -> serde_json::Value {
+    serde_json::from_str(&fs::read_to_string(path).unwrap()).unwrap()
+}
+
+fn canonical(value: &serde_json::Value) -> String {
+    model::to_canonical_json(value).unwrap()
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn report_json_partitions_clocks_and_is_stable_across_runs() {
+    let server = shop().await;
+    let ws = Workspace::new(&server.uri(), "");
+    let file = ws.file("serial.yaml", SERIAL);
+    let first_path = ws.dir.path().join("out/first.json");
+    let second_path = ws.dir.path().join("out/second.json");
+    let first = ws
+        .run(&file, &["--report-json", first_path.to_str().unwrap()])
+        .await;
+    let second = ws
+        .run(
+            &file,
+            &[
+                "--report-json",
+                second_path.to_str().unwrap(),
+                "--parallel",
+                "1",
+            ],
+        )
+        .await;
+    assert_eq!(
+        first.status.code(),
+        Some(0),
+        "{}{}",
+        stdout(&first),
+        stderr(&first)
+    );
+    assert_eq!(
+        second.status.code(),
+        Some(0),
+        "{}{}",
+        stdout(&second),
+        stderr(&second)
+    );
+
+    let a = parse_report(&first_path);
+    let b = parse_report(&second_path);
+    assert_eq!(a["schema"], "aitest.run-report/1");
+    assert_eq!(
+        canonical(&a["deterministic"]),
+        canonical(&b["deterministic"])
+    );
+    assert_ne!(a["volatile"]["run_id"], b["volatile"]["run_id"]);
+    assert!(a["volatile"]["started_at"].is_string());
+    assert!(a["volatile"]["finished_at"].is_string());
+    assert_eq!(a["deterministic"]["status"], "COMPLETED");
+    assert_eq!(a["deterministic"]["nodes"]["check"]["status"], "COMPLETED");
+    assert_eq!(
+        a["deterministic"]["nodes"]["check"]["assertions"][0]["passed"],
+        true
+    );
+    assert!(a["deterministic"]["nodes"]["create"]["output"]["timing"].is_null());
+    assert!(
+        a["volatile"]["nodes"]["create"]["timing"]["duration_ms"].is_number(),
+        "{a}"
+    );
+
+    let on_disk = fs::read_to_string(&first_path).unwrap();
+    assert_eq!(on_disk, canonical(&a));
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn report_deterministic_section_does_not_depend_on_parallelism() {
+    let server = shop().await;
+    let ws = Workspace::new(&server.uri(), "");
+    let file = ws.file("parallel.yaml", PARALLEL);
+    let one = ws.dir.path().join("p1.json");
+    let four = ws.dir.path().join("p4.json");
+    let a = ws
+        .run(
+            &file,
+            &["--parallel", "1", "--report-json", one.to_str().unwrap()],
+        )
+        .await;
+    let b = ws
+        .run(
+            &file,
+            &["--parallel", "4", "--report-json", four.to_str().unwrap()],
+        )
+        .await;
+    assert_eq!(a.status.code(), Some(0), "{}{}", stdout(&a), stderr(&a));
+    assert_eq!(b.status.code(), Some(0), "{}{}", stdout(&b), stderr(&b));
+    assert_eq!(
+        canonical(&parse_report(&one)["deterministic"]),
+        canonical(&parse_report(&four)["deterministic"])
+    );
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn report_json_records_classification_for_failures() {
+    let server = shop().await;
+    let ws = Workspace::new(&server.uri(), "");
+    let path = ws.dir.path().join("fail.json");
+    let out = ws
+        .run(
+            &ws.file(
+                "serial.yaml",
+                &SERIAL.replace("expected: 200", "expected: 201"),
+            ),
+            &["--report-json", path.to_str().unwrap()],
+        )
+        .await;
+    assert_eq!(out.status.code(), Some(1));
+    let report = parse_report(&path);
+    let check = &report["deterministic"]["nodes"]["check"];
+    assert_eq!(check["status"], "FAILED");
+    assert_eq!(check["failure"]["category"], "assertion_failed_status");
+    assert_eq!(check["failure"]["error_code"], "ASSERT_STATUS_MISMATCH");
+    assert_eq!(check["assertions"][0]["passed"], false);
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn report_json_masks_secrets() {
+    let ws = Workspace::new(
+        "http://127.0.0.1:1",
+        "  TOKEN: \"${env:AITEST_TEST_SECRET}\"\n",
+    );
+    let path = ws.dir.path().join("secret.json");
+    let dag = "id: secret\nnodes:\n  - { id: call, type: http, method: GET, path: \"/x?t=${env:TOKEN}\" }\n";
+    let out = ws
+        .run(
+            &ws.file("secret.yaml", dag),
+            &["--report-json", path.to_str().unwrap()],
+        )
+        .await;
+    assert_eq!(
+        out.status.code(),
+        Some(1),
+        "{}{}",
+        stdout(&out),
+        stderr(&out)
+    );
+    let text = fs::read_to_string(&path).unwrap();
+    assert!(!text.contains("s3cr3t-value"), "{text}");
+    assert!(text.contains("****"), "{text}");
+}
+
 #[tokio::test(flavor = "multi_thread")]
 async fn process_secrets_are_masked_in_the_output() {
     let ws = Workspace::new(

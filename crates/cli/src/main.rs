@@ -4,6 +4,7 @@ mod args;
 mod dag;
 mod exit;
 mod input;
+mod report;
 mod run;
 mod store;
 

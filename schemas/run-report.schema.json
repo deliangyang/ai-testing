@@ -1,0 +1,161 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "RunReport",
+  "type": "object",
+  "properties": {
+    "deterministic": {
+      "$ref": "#/$defs/DeterministicReport"
+    },
+    "schema": {
+      "type": "string"
+    },
+    "volatile": {
+      "$ref": "#/$defs/VolatileReport"
+    }
+  },
+  "required": [
+    "schema",
+    "deterministic",
+    "volatile"
+  ],
+  "$defs": {
+    "DeterministicNode": {
+      "type": "object",
+      "properties": {
+        "assertions": true,
+        "error": true,
+        "failure": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/FailureRef"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "output": true,
+        "poll": true,
+        "status": {
+          "$ref": "#/$defs/NodeStatus"
+        }
+      },
+      "required": [
+        "status"
+      ]
+    },
+    "DeterministicReport": {
+      "type": "object",
+      "properties": {
+        "dag_id": {
+          "type": "string"
+        },
+        "dag_version": {
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 0
+        },
+        "env": {
+          "type": "string"
+        },
+        "no_llm": {
+          "type": "boolean"
+        },
+        "nodes": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/DeterministicNode"
+          }
+        },
+        "status": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "dag_id",
+        "dag_version",
+        "env",
+        "status",
+        "no_llm",
+        "nodes"
+      ]
+    },
+    "FailureRef": {
+      "type": "object",
+      "properties": {
+        "category": {
+          "type": "string"
+        },
+        "error_code": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "category",
+        "error_code"
+      ]
+    },
+    "NodeStatus": {
+      "oneOf": [
+        {
+          "type": "string",
+          "enum": [
+            "PENDING",
+            "READY",
+            "RUNNING",
+            "COMPLETED",
+            "FAILED"
+          ]
+        },
+        {
+          "description": "Sub-state of a running poll node; may repeat for every iteration.",
+          "type": "string",
+          "const": "POLLING"
+        },
+        {
+          "description": "Not executed because an upstream node failed, or not finished because the run was\ncancelled.",
+          "type": "string",
+          "const": "SKIPPED"
+        }
+      ]
+    },
+    "VolatileNode": {
+      "type": "object",
+      "properties": {
+        "headers": true,
+        "poll": true,
+        "timing": true
+      }
+    },
+    "VolatileReport": {
+      "type": "object",
+      "properties": {
+        "finished_at": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "nodes": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/VolatileNode"
+          }
+        },
+        "run_id": {
+          "type": "string"
+        },
+        "started_at": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "run_id",
+        "nodes"
+      ]
+    }
+  }
+}
