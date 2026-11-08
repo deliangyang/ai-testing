@@ -193,8 +193,10 @@ fn status_follows_the_node_state_machine() {
         (Running, Polling),
         (Running, Completed),
         (Running, Failed),
+        (Running, Skipped),
         (Polling, Completed),
         (Polling, Failed),
+        (Polling, Skipped),
     ];
     let f = Fixture::new();
     let non_terminal = [Pending, Ready, Running, Polling];

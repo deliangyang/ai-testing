@@ -18,7 +18,8 @@ pub enum NodeStatus {
     Polling,
     Completed,
     Failed,
-    /// Not executed because an upstream node failed or the run was cancelled.
+    /// Not executed because an upstream node failed, or not finished because the run was
+    /// cancelled.
     Skipped,
 }
 
@@ -64,8 +65,9 @@ impl NodeStatus {
     }
 
     /// `PENDING -> READY -> RUNNING -> (POLLING ->) COMPLETED | FAILED`; nodes that have not
-    /// started may be `SKIPPED`. Staying in a non-terminal status is allowed so a polling node
-    /// can report every iteration. Terminal statuses are final.
+    /// started may be `SKIPPED`, and so may running nodes interrupted by a run cancellation
+    /// (ADR-003). Staying in a non-terminal status is allowed so a polling node can report
+    /// every iteration. Terminal statuses are final.
     pub fn can_transition_to(self, to: NodeStatus) -> bool {
         use NodeStatus::*;
         if self.is_terminal() {
@@ -76,8 +78,8 @@ impl NodeStatus {
                 (self, to),
                 (Pending, Ready | Skipped)
                     | (Ready, Running | Skipped)
-                    | (Running, Polling | Completed | Failed)
-                    | (Polling, Completed | Failed)
+                    | (Running, Polling | Completed | Failed | Skipped)
+                    | (Polling, Completed | Failed | Skipped)
             )
     }
 

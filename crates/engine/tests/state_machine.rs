@@ -6,7 +6,7 @@ use engine::InvalidTransition;
 use engine::NodeStatus::{self, Completed, Failed, Pending, Polling, Ready, Running, Skipped};
 
 /// Every allowed move other than staying in place, spelled out independently of the code.
-const ALLOWED: [(NodeStatus, NodeStatus); 9] = [
+const ALLOWED: [(NodeStatus, NodeStatus); 11] = [
     (Pending, Ready),
     (Pending, Skipped),
     (Ready, Running),
@@ -14,8 +14,11 @@ const ALLOWED: [(NodeStatus, NodeStatus); 9] = [
     (Running, Polling),
     (Running, Completed),
     (Running, Failed),
+    // Interrupted by a run cancellation (ADR-003).
+    (Running, Skipped),
     (Polling, Completed),
     (Polling, Failed),
+    (Polling, Skipped),
 ];
 
 fn expected(from: NodeStatus, to: NodeStatus) -> bool {

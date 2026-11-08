@@ -150,6 +150,7 @@ impl NodeExecutor for SubworkflowExecutor {
                 .with_shared_environment(Arc::clone(&ctx.env))
                 .with_frames(frames)
                 .with_inputs(inputs.clone())
+                .with_cancel(ctx.cancel.clone())
                 .run(&ctx.run_id, &child)
                 .await
                 .map_err(|e| ExecError::new(ExecErrorKind::Internal, e.to_string()))?;
@@ -167,6 +168,15 @@ impl NodeExecutor for SubworkflowExecutor {
                     .find_map(|(_, kind)| *kind)
                     .unwrap_or(ExecErrorKind::Internal);
                 let ids: Vec<&str> = failed.iter().map(|(id, _)| id.as_str()).collect();
+                if outcome.cancelled && ids.is_empty() {
+                    let mut err = ExecError::new(
+                        ExecErrorKind::Cancelled,
+                        format!("subworkflow '{}' was cancelled", child.id),
+                    )
+                    .with_detail(json!({"dag": dag_info}));
+                    err.children = outcome.nodes;
+                    return Err(err);
+                }
                 let mut err = ExecError::new(
                     kind,
                     format!(

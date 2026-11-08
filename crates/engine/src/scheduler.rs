@@ -6,10 +6,12 @@ use std::sync::Arc;
 use model::{to_canonical_json, Dag, DagGraph, Node, NodeKind};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
+use store::RunStatus;
 use tokio::task::JoinSet;
 
+use crate::cancel::CancelToken;
 use crate::environment::Environment;
-use crate::executor::{ExecContext, ExecError, ExecOutput, Frame, NodeExecutor};
+use crate::executor::{ExecContext, ExecError, ExecErrorKind, ExecOutput, Frame, NodeExecutor};
 use crate::state::{InvalidTransition, NodeStatus};
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -53,6 +55,8 @@ pub struct RunOutcome {
     pub started: Vec<String>,
     /// Final state of every node, keyed by id.
     pub nodes: BTreeMap<String, NodeResult>,
+    /// The cancellation token fired before every non-cleanup node had finished.
+    pub cancelled: bool,
 }
 
 impl RunOutcome {
@@ -60,6 +64,16 @@ impl RunOutcome {
         self.nodes
             .values()
             .all(|n| n.status == NodeStatus::Completed)
+    }
+
+    pub fn status(&self) -> RunStatus {
+        if self.cancelled {
+            RunStatus::Cancelled
+        } else if self.succeeded() {
+            RunStatus::Completed
+        } else {
+            RunStatus::Failed
+        }
     }
 
     /// Canonical JSON of the per-node results; identical for any parallelism and completion
@@ -95,12 +109,18 @@ pub enum SchedulerError {
 /// Cleanup nodes are held back until every other node is terminal, then run one at a time in
 /// (level, id) order whatever happened upstream. They see the outputs of whichever ancestors
 /// completed.
+///
+/// Cancelling the token stops the main phase: nodes not yet started become `SKIPPED`, running
+/// nodes are interrupted and become `SKIPPED` with a `cancelled` error, and the run is
+/// `CANCELLED`. Subworkflow nodes are not interrupted but wind their child DAG down through
+/// the same token, so the child's cleanup runs. Cleanup nodes run regardless.
 pub struct Scheduler {
     executor: Arc<dyn NodeExecutor>,
     max_parallel: usize,
     env: Arc<Environment>,
     frames: Vec<Frame>,
     inputs: Option<Value>,
+    cancel: CancelToken,
 }
 
 impl Scheduler {
@@ -112,7 +132,14 @@ impl Scheduler {
             env: Arc::new(Environment::default()),
             frames: Vec::new(),
             inputs: None,
+            cancel: CancelToken::new(),
         }
+    }
+
+    #[must_use]
+    pub fn with_cancel(mut self, cancel: CancelToken) -> Self {
+        self.cancel = cancel;
+        self
     }
 
     #[must_use]
@@ -184,6 +211,7 @@ impl Scheduler {
         }
 
         let mut started = Vec::new();
+        let mut cancelled = false;
         let mut in_flight: JoinSet<(String, Result<ExecOutput, ExecError>)> = JoinSet::new();
         for phase in [Phase::Main, Phase::Cleanup] {
             let limit = match phase {
@@ -202,6 +230,18 @@ impl Scheduler {
                 }
             };
             loop {
+                if phase == Phase::Main && !cancelled && self.cancel.is_cancelled() {
+                    cancelled = true;
+                    ready.clear();
+                    for (id, entry) in nodes.iter_mut() {
+                        let Some(node) = dag.node(id) else { continue };
+                        let unstarted =
+                            matches!(entry.status, NodeStatus::Pending | NodeStatus::Ready);
+                        if unstarted && !is_cleanup(node) {
+                            entry.advance(id, NodeStatus::Skipped)?;
+                        }
+                    }
+                }
                 while in_flight.len() < limit {
                     let Some((_, id)) = ready.pop_first() else {
                         break;
@@ -221,6 +261,7 @@ impl Scheduler {
                         env: Arc::clone(&self.env),
                         frames: self.frames.clone(),
                         runner: Some(Arc::clone(&self.executor)),
+                        cancel: self.cancel.clone(),
                     };
                     self.result(&mut nodes, id)?
                         .advance(id, NodeStatus::Running)?;
@@ -228,13 +269,36 @@ impl Scheduler {
 
                     let executor = Arc::clone(&self.executor);
                     let node = node.clone();
+                    let interrupt = (phase == Phase::Main
+                        && !matches!(node.kind, NodeKind::Subworkflow(_)))
+                    .then(|| self.cancel.clone());
                     in_flight.spawn(async move {
-                        let result = executor.execute(&node, ctx).await;
+                        let exec = executor.execute(&node, ctx);
+                        let result = match interrupt {
+                            Some(cancel) => tokio::select! {
+                                biased;
+                                () = cancel.cancelled() => Err(ExecError::new(
+                                    ExecErrorKind::Cancelled,
+                                    "interrupted by run cancellation",
+                                )),
+                                result = exec => result,
+                            },
+                            None => exec.await,
+                        };
                         (node.id, result)
                     });
                 }
 
-                let Some(joined) = in_flight.join_next().await else {
+                let joined = if phase == Phase::Main && !cancelled {
+                    tokio::select! {
+                        biased;
+                        () = self.cancel.cancelled() => continue,
+                        joined = in_flight.join_next() => joined,
+                    }
+                } else {
+                    in_flight.join_next().await
+                };
+                let Some(joined) = joined else {
                     break;
                 };
                 let (id, result) =
@@ -267,6 +331,16 @@ impl Scheduler {
                             }
                         }
                     }
+                    Err(mut error) if error.kind == ExecErrorKind::Cancelled => {
+                        let entry = self.result(&mut nodes, &id)?;
+                        entry.advance(&id, NodeStatus::Skipped)?;
+                        entry.trace = error.trace.take();
+                        let children = std::mem::take(&mut error.children);
+                        entry.error = Some(error);
+                        for (child, result) in children {
+                            nodes.insert(format!("{id}/{child}"), result);
+                        }
+                    }
                     Err(mut error) => {
                         let entry = self.result(&mut nodes, &id)?;
                         entry.advance(&id, NodeStatus::Failed)?;
@@ -289,7 +363,11 @@ impl Scheduler {
                 }
             }
         }
-        Ok(RunOutcome { started, nodes })
+        Ok(RunOutcome {
+            started,
+            nodes,
+            cancelled,
+        })
     }
 
     fn result<'n>(

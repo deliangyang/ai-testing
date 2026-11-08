@@ -10,6 +10,7 @@ use model::Node;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
+use crate::cancel::CancelToken;
 use crate::environment::Environment;
 use crate::render::VarContext;
 use crate::scheduler::NodeResult;
@@ -63,6 +64,9 @@ pub enum ExecErrorKind {
     /// The executor does not handle this node type.
     Unsupported,
     Internal,
+    /// The run was cancelled while the node executed. The scheduler records the node as
+    /// `SKIPPED`, never `FAILED`, so this kind is never classified.
+    Cancelled,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, thiserror::Error)]
@@ -117,6 +121,8 @@ pub struct ExecContext {
     pub frames: Vec<Frame>,
     /// The executor running this DAG, used by subworkflow nodes to run their child DAG.
     pub runner: Option<Arc<dyn NodeExecutor>>,
+    /// The run's cancellation token; subworkflow nodes hand it to their child DAG.
+    pub cancel: CancelToken,
 }
 
 impl fmt::Debug for ExecContext {
@@ -127,6 +133,7 @@ impl fmt::Debug for ExecContext {
             .field("env", &self.env)
             .field("frames", &self.frames)
             .field("runner", &self.runner.is_some())
+            .field("cancel", &self.cancel)
             .finish()
     }
 }
