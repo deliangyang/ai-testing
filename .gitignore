@@ -1,0 +1,13 @@
+/target/
+**/node_modules/
+/web/dist/
+/out/
+*.db
+*.db-wal
+*.db-shm
+.env
+.env.*
+!.env.example
+.idea/
+.vscode/
+*.log
