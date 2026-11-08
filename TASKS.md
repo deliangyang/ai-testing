@@ -146,7 +146,7 @@ M0 两周联合评审：P0-56。
 | P1-06 | 前端 `DataSource` 接口 + fixture 实现（读取 `examples/` 导出的运行快照）+ HTTP/SSE 实现 | `web/src/data` | P1-01 | 两种实现通过同一套契约测试 | DONE |
 | P1-07 | 应用外壳布局：顶栏/左导航/中央/右面板/底部抽屉/状态栏；§5.1 默认尺寸，可折叠、可拖拽范围限制 | `web/src/shell` | P1-01 | 组件测试覆盖尺寸边界 | DONE |
 | P1-08 | Dagre 布局纯函数：DAG → 节点坐标；同输入同输出 | `web/src/canvas/layout` | P1-01 | 单测（确定性） | DONE |
-| P1-09 | 画布编辑视图渲染（@xyflow/react）：节点卡片（类型图标+名称+摘要）、带箭头边与变量标注、缩放/平移/小地图/适应画布 | `web/src/canvas` | P1-08、P1-06 | 渲染三条样例链路 | TODO |
+| P1-09 | 画布编辑视图渲染（@xyflow/react）：节点卡片（类型图标+名称+摘要）、带箭头边与变量标注、缩放/平移/小地图/适应画布 | `web/src/canvas` | P1-08、P1-06 | 渲染三条样例链路 | DONE |
 | P1-10 | 执行态视图：状态色（灰/蓝脉动/绿/红/黄脉动/深灰）、并行同时脉动、轮询节点「第 n/N 次 · 状态=X」、进度条；沿用静态坐标 | `web/src/canvas` | P1-09 | 用 fixture 事件流回放验证 | TODO |
 | P1-11 | 右面板-执行详情：实际请求/响应、断言逐条结果带 diff、耗时分解 | `web/src/panels` | P1-07、P1-06 | 组件测试 | TODO |
 | P1-12 | 轮询轨迹：右面板时间线 + 底部抽屉表格（节点/第几次/时间戳/实际状态/距期望值） | `web/src/panels` | P1-11 | 超时 fixture 显示完整轨迹 | TODO |
@@ -378,6 +378,7 @@ M0 两周联合评审：P0-56。
 | 2026-11-08 | P1-06 | TODO→DONE | `web/src/data`：`DataSource` 契约、`FixtureDataSource`（`examples/serial` 镜像 + 运行证据）、`HttpDataSource`（REST + SSE）；`exerciseDataSourceContract` / `contract.test.ts` |
 | 2026-11-08 | P1-07 | TODO→DONE | `web/src/shell`：`AppShell` 六区布局、`shellTokens`（§5.1 默认尺寸）、左右/底部拖拽与折叠；`layout.test.ts` / `AppShell.test.ts` |
 | 2026-11-08 | P1-08 | TODO→DONE | `web/src/canvas/layout`：`layoutDag`（`@dagrejs/dagre`，稳定节点/边序）；`layout.test.ts` 确定性 + serial 拓扑断言 |
+| 2026-11-08 | P1-09 | TODO→DONE | `web/src/canvas`：`DagEditCanvas`（@xyflow/react，控件/小地图/适应画布）、节点卡片与边变量标注；`parallel`/`async-poll` fixture；`AppShell` 嵌入 serial 画布；Vitest 三条样例链路 |
 | 2026-11-08 | P0-27 | TODO→DONE | `NodeStatus` 从 store 移到 `model::status`，engine（`engine::state`）和 store 都重新导出它，避免两份状态机各自演化；store 的公开 API 不变。新增 `transition()`，返回 `InvalidTransition{from,to}`；serde 名称为全大写（PENDING…SKIPPED），并 derive JsonSchema。迁移规则沿用 P0-25：非终态允许原地停留（轮询每轮都会上报），终态不能再迁移。测试覆盖全部 49 种组合，期望表独立写出；另验证终态不可离开、从 PENDING 能到达所有状态、任一非终态都能走到终态，以及文本与 JSON 名称稳定 |
 | 2026-11-08 | P0-28 | TODO→DONE | `NodeExecutor::execute(&Node, ExecContext) -> ExecFuture`，用装箱 Future，与 Sleeper 的写法一致，不引入 async_trait。`ExecContext` 只包含该节点已完成祖先的输出，作用域由调度器保证。执行器失败返回 `ExecError{kind, message, detail}`，只描述原始错误，分类留给 P0-43/P0-44。`Scheduler::run` 串行执行，每个节点经过 PENDING→READY→RUNNING→COMPLETED/FAILED，每一步都走 `NodeStatus::transition` 校验。顺序：`同层`理解为 Kahn 算法的轮次。`topo_order`（每次挑最小的就绪 id）在 a→b 加独立 c 的情况下会得到 a,b,c，与按层的 a,c,b 不同，因此在 model 新增 `DagGraph::topo_levels()`，也方便与 P0-29 的并行波次对齐。失败节点的后继暂时保持 PENDING，SKIPPED 与 cleanup 例外由 P0-30 处理；有环时返回 `SchedulerError::Cycle`，一个节点都不执行 |
 | 2026-11-08 | P0-29 | TODO→DONE | 用 tokio `JoinSet` 加在途计数实现有界并行，效果等同信号量，但不额外引入 Semaphore。就绪队列为 `BTreeSet<(层号, id)>`，因此并行度 1 时与 P0-28 的串行按层顺序完全一致。节点入队即标 READY，发起执行时标 RUNNING。`RunOutcome::report()` 对 `BTreeMap<id, NodeResult>` 输出规范化 JSON，不包含发起顺序 `started`，测试验证并行度 1 与 4 的完成顺序不同，报告却字节一致。默认并行度为 1，传 0 时按 1 处理；执行器 panic 映射为 `SchedulerError::ExecutorCrashed`。tokio 从 dev 依赖改为正式依赖（`rt`/`sync` 已在 workspace 中启用）。测试用 `yield_now` 控制完成时序，不用 sleep |

@@ -1,3 +1,5 @@
+import { ASYNC_POLL_DAG } from './asyncPoll'
+import { PARALLEL_DAG } from './parallel'
 import {
   SERIAL_DAG,
   SERIAL_DAG_ACTIVE,
@@ -35,6 +37,38 @@ export const SCENARIOS: Record<string, ScenarioFixture> = {
     executionsByRun: { [SERIAL_RUN.id]: SERIAL_EXECUTIONS },
     eventsByRun: { [SERIAL_RUN.id]: SERIAL_EVENTS },
     dags: { serial: SERIAL_DAG },
+  },
+  parallel: {
+    id: 'parallel',
+    dagVersions: [],
+    activeDag: {
+      id: 'parallel',
+      version: 1,
+      status: 'ACTIVE',
+      created_by: 'fixture',
+      created_at: '2026-11-08T14:00:00.000+08:00',
+      dag: PARALLEL_DAG,
+    },
+    runs: [],
+    executionsByRun: {},
+    eventsByRun: {},
+    dags: { parallel: PARALLEL_DAG },
+  },
+  'async-poll': {
+    id: 'async-poll',
+    dagVersions: [],
+    activeDag: {
+      id: 'async-poll',
+      version: 1,
+      status: 'ACTIVE',
+      created_by: 'fixture',
+      created_at: '2026-11-08T14:00:00.000+08:00',
+      dag: ASYNC_POLL_DAG,
+    },
+    runs: [],
+    executionsByRun: {},
+    eventsByRun: {},
+    dags: { 'async-poll': ASYNC_POLL_DAG },
   },
 }
 

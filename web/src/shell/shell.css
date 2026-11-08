@@ -69,8 +69,11 @@
 
 .app-shell__canvas {
     flex: 1 1 auto;
-    padding: 1rem;
-    overflow: auto;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    padding: 0.5rem;
+    overflow: hidden;
 }
 
 .app-shell__resize-v {

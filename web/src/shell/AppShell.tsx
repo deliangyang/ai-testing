@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 
+import { DagEditCanvas } from '../canvas'
+import { SERIAL_DAG } from '../data/fixtures/serial'
 import { clampBottomDrawerHeight, clampRightPanelWidth, leftNavWidthPx } from './layout'
 import { shellTokens } from './tokens'
 import './shell.css'
@@ -98,7 +100,7 @@ export function AppShell() {
                 </span>
               </div>
               <main className="app-shell__canvas" data-testid="center-canvas">
-                <p>中央画布（编辑 / 执行 / 回放）</p>
+                <DagEditCanvas dag={SERIAL_DAG} />
               </main>
             </section>
 

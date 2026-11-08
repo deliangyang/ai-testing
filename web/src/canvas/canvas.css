@@ -1,0 +1,81 @@
+.dag-edit-canvas {
+    position: relative;
+    flex: 1 1 auto;
+    min-height: 240px;
+    width: 100%;
+    border-radius: 4px;
+    overflow: hidden;
+    border: 1px solid #2a2f3a;
+    background: #12141a;
+}
+
+.dag-edit-canvas__fit {
+    font-size: 0.75rem;
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    border: 1px solid #3d4556;
+    background: #1a1d26;
+    color: #e8eaed;
+    cursor: pointer;
+}
+
+.dag-edit-canvas__fit:hover {
+    border-color: #5b8def;
+}
+
+.dag-node-card {
+    box-sizing: border-box;
+    width: 180px;
+    min-height: 72px;
+    padding: 0.4rem 0.5rem 0.45rem;
+    border-radius: 6px;
+    border: 1px solid;
+    font-size: 0.75rem;
+    color: #e8eaed;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
+}
+
+.dag-node-card--selected {
+    box-shadow: 0 0 0 1px #5b8def;
+}
+
+.dag-node-card__head {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    margin-bottom: 0.2rem;
+}
+
+.dag-node-card__icon {
+    flex: 0 0 auto;
+    font-size: 0.65rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    color: #5b8def;
+}
+
+.dag-node-card__title {
+    font-weight: 600;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.dag-node-card__summary {
+    margin: 0;
+    color: #9aa3b2;
+    line-height: 1.25;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    word-break: break-all;
+}
+
+.dag-node-card__handle {
+    width: 6px !important;
+    height: 6px !important;
+    background: #5b8def !important;
+    border: none !important;
+    opacity: 0;
+}
