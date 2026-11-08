@@ -60,11 +60,49 @@
 .app-shell__tabs {
     flex: 0 0 auto;
     display: flex;
-    gap: 0.5rem;
+    flex-wrap: wrap;
+    gap: 0.35rem;
     padding: 0.35rem 0.75rem;
     border-bottom: 1px solid var(--chrome-border);
     font-size: 0.8rem;
     color: var(--chrome-muted);
+}
+
+.workspace-tab {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.15rem;
+    border-radius: 4px;
+    border: 1px solid transparent;
+}
+
+.workspace-tab__select {
+    border: none;
+    background: transparent;
+    color: inherit;
+    font-size: inherit;
+    padding: 0.15rem 0.35rem;
+    cursor: pointer;
+}
+
+.workspace-tab__select--active {
+    color: #e8eaed;
+    background: #22262f;
+    border-radius: 4px;
+}
+
+.workspace-tab__close {
+    border: none;
+    background: transparent;
+    color: var(--chrome-muted);
+    cursor: pointer;
+    font-size: 0.9rem;
+    line-height: 1;
+    padding: 0 0.2rem;
+}
+
+.workspace-tab__close:hover {
+    color: #e8eaed;
 }
 
 .app-shell__canvas {

@@ -8,9 +8,17 @@ export interface LeftNavProps {
   catalog: NavCatalog
   collapsed: boolean
   onToggleCollapse: () => void
+  onOpenScenario?: (scenarioId: string) => void
+  onOpenReport?: (reportId: string) => void
 }
 
-export function LeftNav({ catalog, collapsed, onToggleCollapse }: LeftNavProps) {
+export function LeftNav({
+  catalog,
+  collapsed,
+  onToggleCollapse,
+  onOpenScenario,
+  onOpenReport,
+}: LeftNavProps) {
   return (
     <>
       <button
@@ -27,7 +35,14 @@ export function LeftNav({ catalog, collapsed, onToggleCollapse }: LeftNavProps) 
           <h2 className="left-nav__heading">场景库</h2>
           <ul className="left-nav__list" data-testid="nav-scenarios">
             {catalog.scenarios.map((item) => (
-              <li key={item.id} className="left-nav__item" data-testid={`nav-scenario-${item.id}`}>
+              <li
+                key={item.id}
+                className="left-nav__item"
+                data-testid={`nav-scenario-${item.id}`}
+                onDoubleClick={() => {
+                  onOpenScenario?.(item.id)
+                }}
+              >
                 <span
                   className={`nav-status-dot ${runStatusDotClass(item.lastRunStatus)}`}
                   aria-hidden
@@ -56,7 +71,14 @@ export function LeftNav({ catalog, collapsed, onToggleCollapse }: LeftNavProps) 
           <h2 className="left-nav__heading">报告</h2>
           <ul className="left-nav__list" data-testid="nav-reports">
             {catalog.reports.map((item) => (
-              <li key={item.id} className="left-nav__item" data-testid={`nav-report-${item.id}`}>
+              <li
+                key={item.id}
+                className="left-nav__item"
+                data-testid={`nav-report-${item.id}`}
+                onDoubleClick={() => {
+                  onOpenReport?.(item.id)
+                }}
+              >
                 <span className={`nav-status-dot ${reportRunDotClass(item.runStatus)}`} />
                 <span className="left-nav__label">{item.title}</span>
               </li>

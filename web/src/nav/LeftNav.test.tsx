@@ -1,4 +1,4 @@
-import { render, screen, within } from '@testing-library/react'
+import { fireEvent, render, screen, within } from '@testing-library/react'
 
 import { FIXTURE_NAV_CATALOG } from './navCatalog'
 import { LeftNav } from './LeftNav'
@@ -25,6 +25,20 @@ describe('LeftNav', () => {
     render(<LeftNav catalog={FIXTURE_NAV_CATALOG} collapsed={false} onToggleCollapse={() => {}} />)
     expect(screen.getByTestId('nav-report-run-fixture-serial')).toHaveTextContent('serial')
     expect(screen.getByTestId('nav-report-run-async-poll-fail')).toHaveTextContent('async-poll')
+  })
+
+  it('opens scenario on double-click', () => {
+    const onOpenScenario = vi.fn()
+    render(
+      <LeftNav
+        catalog={FIXTURE_NAV_CATALOG}
+        collapsed={false}
+        onToggleCollapse={() => {}}
+        onOpenScenario={onOpenScenario}
+      />,
+    )
+    fireEvent.doubleClick(screen.getByTestId('nav-scenario-serial'))
+    expect(onOpenScenario).toHaveBeenCalledWith('serial')
   })
 
   it('hides pass-rate bars when collapsed', () => {

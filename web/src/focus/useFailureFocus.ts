@@ -1,7 +1,7 @@
 import { useMemo } from 'react'
 
 import type { Dag } from '../types/generated'
-import type { NodeExecutionDto, StoredRunEvent } from '../data/types'
+import type { NodeExecutionDto, RunDto, StoredRunEvent } from '../data/types'
 import { flattenPollTraces } from '../panels/pollTrace'
 import {
   extractRunLogEntries,
@@ -14,6 +14,7 @@ export interface RunFocusScenario {
   dag: Dag
   events: StoredRunEvent[]
   executions: NodeExecutionDto[]
+  run?: RunDto
 }
 
 export interface FailureFocusState {

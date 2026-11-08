@@ -13,23 +13,87 @@ import { FIXTURE_NAV_CATALOG, LeftNav } from '../nav'
 import '../nav/nav.css'
 import { ExecutionDetailPanel } from '../panels'
 import { clampBottomDrawerHeight, clampRightPanelWidth, leftNavWidthPx } from './layout'
+import { resolveWorkspaceForTab } from './resolveWorkspace'
 import { StatusBar } from './StatusBar'
 import { buildStatusBarModel } from './statusBarModel'
 import { shellTokens } from './tokens'
+import { WorkspaceTabBar } from './WorkspaceTabBar'
+import {
+  activeTabAfterClose,
+  closeWorkspaceTab,
+  openWorkspaceTab,
+  reportTabKey,
+  scenarioTabKey,
+  tabLabelForReport,
+  tabLabelForScenario,
+  type WorkspaceTab,
+} from './workspaceTabs'
 import './shell.css'
 
+const INITIAL_WORKSPACE_TAB: WorkspaceTab = {
+  key: scenarioTabKey('async-poll'),
+  kind: 'scenario',
+  refId: 'async-poll',
+  label: tabLabelForScenario('async-poll'),
+}
+
 export function AppShell() {
-  const failureFocus = useFailureFocus(ASYNC_POLL_FAIL_SCENARIO)
+  const [workspaceTabs, setWorkspaceTabs] = useState<WorkspaceTab[]>([INITIAL_WORKSPACE_TAB])
+  const [activeTabKey, setActiveTabKey] = useState<string>(INITIAL_WORKSPACE_TAB.key)
+
+  const activeWorkspace = useMemo(() => {
+    const active = workspaceTabs.find((tab) => tab.key === activeTabKey)
+    if (!active) {
+      return ASYNC_POLL_FAIL_SCENARIO
+    }
+    return resolveWorkspaceForTab(active, FIXTURE_NAV_CATALOG) ?? ASYNC_POLL_FAIL_SCENARIO
+  }, [workspaceTabs, activeTabKey])
+
+  const failureFocus = useFailureFocus(activeWorkspace)
   const statusBar = useMemo(
     () =>
       buildStatusBarModel({
         dag: failureFocus.dag,
         events: failureFocus.events,
-        run: ASYNC_POLL_FAIL_RUN,
+        run: activeWorkspace.run ?? ASYNC_POLL_FAIL_RUN,
         connections: { sqliteConnected: true, sseConnected: true },
       }),
-    [failureFocus.dag, failureFocus.events],
+    [failureFocus.dag, failureFocus.events, activeWorkspace.run],
   )
+
+  const openScenarioTab = useCallback((scenarioId: string) => {
+    const title =
+      FIXTURE_NAV_CATALOG.scenarios.find((item) => item.id === scenarioId)?.title ?? scenarioId
+    const tab: WorkspaceTab = {
+      key: scenarioTabKey(scenarioId),
+      kind: 'scenario',
+      refId: scenarioId,
+      label: tabLabelForScenario(title),
+    }
+    setWorkspaceTabs((prev) => openWorkspaceTab(prev, tab))
+    setActiveTabKey(tab.key)
+  }, [])
+
+  const openReportTab = useCallback((reportId: string) => {
+    const title = FIXTURE_NAV_CATALOG.reports.find((item) => item.id === reportId)?.title ?? reportId
+    const tab: WorkspaceTab = {
+      key: reportTabKey(reportId),
+      kind: 'report',
+      refId: reportId,
+      label: tabLabelForReport(title),
+    }
+    setWorkspaceTabs((prev) => openWorkspaceTab(prev, tab))
+    setActiveTabKey(tab.key)
+  }, [])
+
+  const closeTab = useCallback((key: string) => {
+    setWorkspaceTabs((prev) => {
+      const next = closeWorkspaceTab(prev, key)
+      setActiveTabKey((current) => activeTabAfterClose(next, key, current) ?? INITIAL_WORKSPACE_TAB.key)
+      return next.length > 0 ? next : [INITIAL_WORKSPACE_TAB]
+    })
+  }, [])
+
   const [navCollapsed, setNavCollapsed] = useState(false)
   const [rightWidth, setRightWidth] = useState<number>(shellTokens.rightPanelWidthPx)
   const [drawerHeight, setDrawerHeight] = useState<number>(shellTokens.bottomDrawerHeightPx)
@@ -93,17 +157,20 @@ export function AppShell() {
             onToggleCollapse={() => {
               setNavCollapsed((v) => !v)
             }}
+            onOpenScenario={openScenarioTab}
+            onOpenReport={openReportTab}
           />
         </nav>
 
         <div className="app-shell__center-col">
           <div className="app-shell__center-main">
             <section className="app-shell__center" aria-label="工作区">
-              <div className="app-shell__tabs" role="tablist">
-                <span role="tab" aria-selected>
-                  场景 async-poll
-                </span>
-              </div>
+              <WorkspaceTabBar
+                tabs={workspaceTabs}
+                activeKey={activeTabKey}
+                onSelect={setActiveTabKey}
+                onClose={closeTab}
+              />
               <main className="app-shell__canvas" data-testid="center-canvas">
                 <DagRunCanvas
                   dag={failureFocus.dag}
