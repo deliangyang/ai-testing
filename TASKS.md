@@ -61,7 +61,7 @@ M0 两周联合评审：P0-56。
 | P0-15 | 无环规则：Kahn 拓扑排序，失败时报告一条具体环路径 | `crates/gate` | P0-13 | 环 a→b→c→a 报告完整路径 | DONE |
 | P0-16 | 前驱引用规则：模板中 `${x.output...}` 的 x 必须是当前节点的祖先（传递闭包） | `crates/gate` | P0-10、P0-15 | 引用兄弟/后继节点均被拦截并定位到字段 | DONE |
 | P0-17 | 字段存在规则：被引用字段路径必须在上游 `response_schema` 中存在；上游无 schema 时降级为 warn | `crates/gate` | P0-16、P0-06 | 不存在字段报 error；无 schema 报 warn | DONE |
-| P0-18 | 轮询可判定规则：condition 路径可解析、op 与 expected 类型匹配、backoff 非空且单调非减、timeout ≥ backoff 首项 | `crates/gate` | P0-07、P0-13 | 4 类违规各一例 | TODO |
+| P0-18 | 轮询可判定规则：condition 路径可解析、op 与 expected 类型匹配、backoff 非空且单调非减、timeout ≥ backoff 首项 | `crates/gate` | P0-07、P0-13 | 4 类违规各一例 | DONE |
 | P0-19 | 完整性规则：必填字段、孤立节点（无边且非唯一节点）、cleanup 必须无出边、每个 http 节点至少被一个 assert 引用（warn） | `crates/gate` | P0-13 | 各违规一例 | TODO |
 | P0-20 | 坏 DAG 语料：`tests/fixtures/bad_dags/` ≥20 个（环/无效引用/轮询不可判定/孤立节点/缺字段…），每个文件头注明期望 issue code；全量拦截测试 | `crates/gate/tests` | P0-14 ~ P0-19 | 100% 被拦截且命中期望 code | TODO |
 
@@ -316,7 +316,7 @@ M0 两周联合评审：P0-56。
 | Q2 | CLI 二进制正式名称（文档中为 `mytool`） | P0-45 | 暂用 `mytool` | OPEN |
 | Q3 | 默认 LLM 提供方与模型 | P2-02 | OpenAI 兼容接口，base_url/model 可配置 | OPEN |
 | Q4 | db_query 首批需支持的数据库 | P3-10 | Postgres、MySQL、SQLite | OPEN |
-| Q5 | JSONPath 方言 | P0-34、P0-07 | RFC 9535 子集（serde_json_path） | OPEN |
+| Q5 | JSONPath 方言 | P0-34、P0-07 | 暂按 RFC 9535 的 singular query 子集（`$`、`.name`、`['name']`、`[n]`）自行解析（`model::parse_json_path`，与模板路径共用解析器），不引入 serde_json_path；若需要通配/过滤再议 | OPEN |
 | Q6 | 用于 spike 的 3 条「真实链路」由谁提供？ | P0-52 | 先用 mock-sut 构造等价链路 | OPEN |
 | Q7 | 代码托管远程仓库（GitHub / Cursor origin / 其他）？ | P0-03 | workflow 已按 GitHub Actions 写好并通过 YAML 语法校验，待推送后实跑 | OPEN |
 
@@ -346,3 +346,4 @@ M0 两周联合评审：P0-56。
 | 2026-11-08 | P0-15 | TODO→DONE | 拓扑排序与找环放在 `model::graph::DagGraph`（引擎 P0-28 复用，引擎不依赖 gate）；就绪节点按 id 字典序出队；环路径旋转为从最小 id 开始，并定位到环上第一条边；自环与悬空边在图中忽略，由结构规则报告 |
 | 2026-11-08 | P0-16 | TODO→DONE | 模板位置提取放在 `model::scope::node_refs`（引擎渲染复用）：覆盖 http/poll 请求各部分、条件与断言的 expected、db_query params、subworkflow inputs、cleanup 请求；subworkflow outputs 属子作用域，留给 P0-37；assert `target` 同样要求为祖先；`${input.output...}` 不算节点引用；模板语法错误报 `reference.invalid_template` |
 | 2026-11-08 | P0-17 | TODO→DONE | 约定节点输出结构：http/poll 为封闭对象 {status, headers, body, timing}，body 由 response_schema 描述；db_query 为 rows/row/value（schema 描述单行）；subworkflow 为 outputs 的键；assert 为 {results}；cleanup 无输出。schema 遍历（`gate::schema_path`）支持 properties/additionalProperties/items/prefixItems/本地 $ref/allOf/anyOf/oneOf。无 schema 时报 `reference.unverified_field`（warn）；只检查祖先目标，非法目标交给 ReferenceRule。poll/assert 条件里 JSONPath 的字段检查延后 |
+| 2026-11-08 | P0-18 | TODO→DONE | 新增 `DecidabilityRule`（规则名 decidability），同时作用于 poll 的 condition 和 assert 的每条 assertion：路径必须是 singular JSONPath，且在已知 schema 中存在（poll 查自身输出，assert 查祖先 target 的输出）；需要 expected 的操作符缺 expected、exists/not_exists 带 expected、gt/gte/lt/lte 非数字、len_eq 非非负整数、regex 无法编译（Rust regex 方言）、type_is 不在 7 种 JSON 类型内，均报错；含模板引用的 expected 留到运行时判断。poll 另查：backoff_ms 非空、单调非减（定位到第一个下降处）、timeout_ms ≥ backoff 首项、max_attempts ≠ 0。顺带修复 model：显式 `expected: null` 原先被反序列化为缺失，现保留为 null。输出结构辅助函数移到 `gate::output` 与 FieldRule 共用 |

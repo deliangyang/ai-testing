@@ -112,8 +112,17 @@ pub struct Condition {
     /// e.g. `$.body.status`
     pub path: String,
     pub op: Operator,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// An explicit `null` is a value to compare against, distinct from an absent key.
+    #[serde(
+        default,
+        deserialize_with = "present_value",
+        skip_serializing_if = "Option::is_none"
+    )]
     pub expected: Option<Value>,
+}
+
+fn present_value<'de, D: serde::Deserializer<'de>>(d: D) -> Result<Option<Value>, D::Error> {
+    Value::deserialize(d).map(Some)
 }
 
 /// `poll` node: repeat `request` until `condition` holds, waiting `backoff_ms[i]` between

@@ -32,6 +32,7 @@ sha2 = "0.10"
 schemars = "1"
 jsonschema = { version = "0.33", default-features = false }
 proptest = "1"
+regex = "1"
 yaml_serde = "0.10"
 thiserror = "2"
 time = { version = "0.3", features = ["formatting", "parsing", "macros"] }

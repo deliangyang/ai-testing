@@ -43,6 +43,31 @@ pub struct TemplateError {
     pub message: String,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
+#[error("invalid JSONPath at char {offset}: {message}")]
+pub struct JsonPathError {
+    pub offset: usize,
+    pub message: String,
+}
+
+/// Parses a condition path. Only RFC 9535 singular queries are accepted: `$` followed by
+/// `.name`, `['name']`/`["name"]` and non-negative `[index]` segments, so a path selects at
+/// most one value.
+pub fn parse_json_path(input: &str) -> Result<Vec<PathSeg>, JsonPathError> {
+    let mut parser = Parser::new(input);
+    let result = if parser.peek() == Some('$') {
+        parser.pos = 1;
+        let end = parser.chars.len();
+        parser.path(end)
+    } else {
+        parser.err(0, "JSONPath must start with '$'")
+    };
+    result.map_err(|e| JsonPathError {
+        offset: e.offset,
+        message: e.message,
+    })
+}
+
 /// A reference found while walking a JSON value, with the JSON pointer of the string holding it.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct LocatedRef {
@@ -586,5 +611,30 @@ mod tests {
         let err = refs_in_value(&json!({"h": ["ok", "${broken"]})).unwrap_err();
         assert_eq!(err.pointer, "/h/1");
         assert_eq!(err.source.offset, 0);
+    }
+
+    #[test]
+    fn parses_singular_json_paths() {
+        use PathSeg::Index;
+        assert_eq!(parse_json_path("$").unwrap(), vec![]);
+        assert_eq!(
+            parse_json_path("$.body.items[2]['a.b'][\"c\"]").unwrap(),
+            vec![key("body"), key("items"), Index(2), key("a.b"), key("c")]
+        );
+    }
+
+    #[test]
+    fn rejects_non_singular_or_malformed_json_paths() {
+        for (input, offset) in [
+            ("body.status", 0),
+            ("", 0),
+            ("$.body[*]", 7),
+            ("$..id", 2),
+            ("$.items[-1]", 8),
+            ("$.a[0", 5),
+        ] {
+            let err = parse_json_path(input).unwrap_err();
+            assert_eq!(err.offset, offset, "{input}: {err}");
+        }
     }
 }

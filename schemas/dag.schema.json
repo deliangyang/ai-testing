@@ -46,7 +46,9 @@
       "description": "A mechanically decidable check: JSONPath into a node output (`{status, headers, body}`),\nan operator and the expected value.",
       "type": "object",
       "properties": {
-        "expected": true,
+        "expected": {
+          "description": "An explicit `null` is a value to compare against, distinct from an absent key."
+        },
         "op": {
           "$ref": "#/$defs/Operator"
         },

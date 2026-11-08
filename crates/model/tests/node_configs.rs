@@ -173,6 +173,18 @@ timeout_ms: 30000"#;
         assert!(!cfg.condition.op.needs_expected());
         assert!(Operator::Eq.needs_expected());
     }
+
+    #[test]
+    fn explicit_null_expected_is_kept() {
+        let input = VALID.replace("expected: PAID", "expected: null");
+        let NodeKind::Poll(cfg) = single_node(&input).unwrap() else {
+            panic!("expected poll node")
+        };
+        assert_eq!(cfg.condition.expected, Some(serde_json::Value::Null));
+        let json = serde_json::to_value(&cfg.condition).unwrap();
+        assert_eq!(json["expected"], serde_json::Value::Null);
+        assert!(json.as_object().unwrap().contains_key("expected"));
+    }
 }
 
 mod assert {

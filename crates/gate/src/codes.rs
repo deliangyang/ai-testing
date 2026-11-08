@@ -14,3 +14,14 @@ pub const UNKNOWN_NODE: &str = "reference.unknown_node";
 pub const NOT_ANCESTOR: &str = "reference.not_ancestor";
 pub const UNKNOWN_FIELD: &str = "reference.unknown_field";
 pub const UNVERIFIED_FIELD: &str = "reference.unverified_field";
+
+pub const CONDITION_INVALID_PATH: &str = "condition.invalid_path";
+pub const CONDITION_UNKNOWN_FIELD: &str = "condition.unknown_field";
+pub const CONDITION_MISSING_EXPECTED: &str = "condition.missing_expected";
+pub const CONDITION_UNEXPECTED_EXPECTED: &str = "condition.unexpected_expected";
+pub const CONDITION_EXPECTED_TYPE: &str = "condition.expected_type";
+
+pub const POLL_EMPTY_BACKOFF: &str = "poll.empty_backoff";
+pub const POLL_BACKOFF_DECREASING: &str = "poll.backoff_decreasing";
+pub const POLL_TIMEOUT_TOO_SHORT: &str = "poll.timeout_too_short";
+pub const POLL_ZERO_MAX_ATTEMPTS: &str = "poll.zero_max_attempts";

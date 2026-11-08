@@ -13,4 +13,7 @@ pub use canonical::{canonical_json, content_hash, to_canonical_json, CanonicalEr
 pub use dag::{Dag, Edge, Node, NodeKind};
 pub use error::{Format, ModelError};
 pub use graph::DagGraph;
-pub use template::{refs_in_value, LocatedRef, PathSeg, Template, TemplateError, VarRef};
+pub use template::{
+    parse_json_path, refs_in_value, JsonPathError, LocatedRef, PathSeg, Template, TemplateError,
+    VarRef,
+};

@@ -5,6 +5,7 @@
 
 pub mod codes;
 pub mod issue;
+mod output;
 pub mod rules;
 pub mod schema_path;
 
@@ -40,6 +41,7 @@ impl Gate {
             .with_rule(rules::AcyclicRule)
             .with_rule(rules::ReferenceRule)
             .with_rule(rules::FieldRule)
+            .with_rule(rules::DecidabilityRule)
     }
 
     #[must_use]

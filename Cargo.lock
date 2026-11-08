@@ -360,6 +360,7 @@ name = "gate"
 version = "0.1.0"
 dependencies = [
  "model",
+ "regex",
  "serde",
  "serde_json",
 ]

@@ -1,17 +1,13 @@
-use model::nodes::QueryResultMode;
 use model::scope::node_refs;
-use model::{Dag, DagGraph, NodeKind, PathSeg, VarRef};
-use serde_json::{json, Value};
+use model::{DagGraph, VarRef};
 
 use crate::codes;
+use crate::output::{output_shape, path_reaches_body, render_path, OutputShape};
 use crate::schema_path::{lookup, Lookup};
 use crate::{Context, Issue, Rule};
 
-/// Referenced output fields must exist in the upstream node's declared output shape.
-///
-/// http/poll output is `{status, headers, body, timing}` with `body` described by
-/// `response_schema`; db_query output is `{rows}`, `{row}` or `{value}` with `response_schema`
-/// describing one row; subworkflow output keys are its `outputs`.
+/// Referenced output fields must exist in the upstream node's declared output shape
+/// (see [`crate::output`]).
 pub struct FieldRule;
 
 impl Rule for FieldRule {
@@ -32,11 +28,11 @@ impl Rule for FieldRule {
                 if !ancestors.contains(target.as_str()) {
                     continue;
                 }
-                let Some(shape) = output_shape(ctx.dag, target) else {
+                let Some(target_node) = ctx.dag.node(target) else {
                     continue;
                 };
                 let pointer = format!("/nodes/{i}{}", located.pointer);
-                let issue = match shape {
+                let issue = match output_shape(target_node) {
                     OutputShape::Schema(schema) => match lookup(&schema, path) {
                         Lookup::Found => None,
                         Lookup::Missing { segment, reason } => Some(Issue::error(
@@ -44,7 +40,10 @@ impl Rule for FieldRule {
                             format!(
                                 "{} does not exist on '{target}' output ({reason}, at '{}')",
                                 located.var,
-                                render_path(&path[..=segment.min(path.len().saturating_sub(1))])
+                                render_path(
+                                    "output",
+                                    &path[..=segment.min(path.len().saturating_sub(1))]
+                                )
                             ),
                         )),
                     },
@@ -62,81 +61,4 @@ impl Rule for FieldRule {
             }
         }
     }
-}
-
-enum OutputShape {
-    Schema(Value),
-    Unverified { reason: String },
-}
-
-fn output_shape(dag: &Dag, target: &str) -> Option<OutputShape> {
-    let node = dag.node(target)?;
-    let http_like = |schema: &Option<Value>| match schema {
-        Some(body) => OutputShape::Schema(http_output(body.clone())),
-        None => OutputShape::Unverified {
-            reason: format!("'{target}' declares no response_schema"),
-        },
-    };
-    Some(match &node.kind {
-        NodeKind::Http(cfg) => http_like(&cfg.response_schema),
-        NodeKind::Poll(cfg) => http_like(&cfg.response_schema),
-        NodeKind::DbQuery(cfg) => {
-            let row = cfg.response_schema.clone().unwrap_or(json!({}));
-            let (key, value) = match cfg.result {
-                QueryResultMode::Rows => ("rows", json!({"type": "array", "items": row})),
-                QueryResultMode::FirstRow => ("row", row),
-                QueryResultMode::Scalar => ("value", json!({})),
-            };
-            OutputShape::Schema(closed_object(vec![(key, value)]))
-        }
-        NodeKind::Subworkflow(cfg) => OutputShape::Schema(closed_object(
-            cfg.outputs
-                .keys()
-                .map(|k| (k.as_str(), json!({})))
-                .collect(),
-        )),
-        NodeKind::Assert(_) => OutputShape::Schema(closed_object(vec![("results", json!({}))])),
-        NodeKind::Cleanup(_) => OutputShape::Schema(closed_object(vec![])),
-    })
-}
-
-fn http_output(body: Value) -> Value {
-    closed_object(vec![
-        ("status", json!({"type": "integer"})),
-        (
-            "headers",
-            json!({"type": "object", "additionalProperties": {"type": "string"}}),
-        ),
-        ("body", body),
-        ("timing", json!({})),
-    ])
-}
-
-fn closed_object(props: Vec<(&str, Value)>) -> Value {
-    let properties: serde_json::Map<String, Value> =
-        props.into_iter().map(|(k, v)| (k.to_owned(), v)).collect();
-    json!({"type": "object", "properties": properties, "additionalProperties": false})
-}
-
-/// Without a schema only `status`/`headers`/`timing` are known; anything under `body` is not.
-fn path_reaches_body(path: &[PathSeg]) -> bool {
-    match path.first() {
-        Some(PathSeg::Key(k)) if k == "body" => path.len() > 1,
-        Some(PathSeg::Key(k)) => !matches!(k.as_str(), "status" | "headers" | "timing"),
-        _ => true,
-    }
-}
-
-fn render_path(path: &[PathSeg]) -> String {
-    let mut out = String::from("output");
-    for seg in path {
-        match seg {
-            PathSeg::Key(k) => {
-                out.push('.');
-                out.push_str(k);
-            }
-            PathSeg::Index(i) => out.push_str(&format!("[{i}]")),
-        }
-    }
-    out
 }
