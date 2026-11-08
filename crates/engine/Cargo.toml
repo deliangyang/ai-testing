@@ -10,6 +10,8 @@ publish.workspace = true
 [dependencies]
 common = { workspace = true }
 model = { workspace = true }
+reqwest = { workspace = true }
+rustls = { workspace = true }
 store = { workspace = true }
 classifier = { workspace = true }
 serde = { workspace = true }
@@ -21,6 +23,7 @@ yaml_serde = { workspace = true }
 
 [dev-dependencies]
 tempfile = { workspace = true }
+wiremock = { workspace = true }
 
 [lints]
 workspace = true

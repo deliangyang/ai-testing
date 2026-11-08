@@ -33,6 +33,8 @@ schemars = "1"
 jsonschema = { version = "0.33", default-features = false }
 proptest = "1"
 regex = "1"
+reqwest = { version = "0.13", default-features = false, features = ["rustls-no-provider"] }
+rustls = { version = "0.23", default-features = false, features = ["ring", "std", "tls12"] }
 rusqlite = { version = "0.41", features = ["bundled"] }
 tempfile = "3"
 yaml_serde = "0.10"
@@ -42,6 +44,7 @@ tokio = { version = "1", features = ["rt", "time", "sync", "macros"] }
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter", "fmt"] }
 uuid = { version = "1", features = ["v7"] }
+wiremock = "0.6"
 
 [workspace.lints.rust]
 unsafe_code = "forbid"
