@@ -31,6 +31,7 @@ fn ctx(base_url: &str) -> ExecContext {
             )
             .unwrap(),
         ),
+        ..ExecContext::default()
     }
 }
 

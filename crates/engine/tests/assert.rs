@@ -220,6 +220,7 @@ fn ctx() -> ExecContext {
             )
             .unwrap(),
         ),
+        ..ExecContext::default()
     }
 }
 

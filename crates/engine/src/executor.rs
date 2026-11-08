@@ -1,6 +1,7 @@
 //! The contract between the scheduler and node-type implementations.
 
 use std::collections::BTreeMap;
+use std::fmt;
 use std::future::Future;
 use std::pin::Pin;
 use std::sync::Arc;
@@ -11,25 +12,37 @@ use serde_json::Value;
 
 use crate::environment::Environment;
 use crate::render::VarContext;
+use crate::scheduler::NodeResult;
 
 pub type ExecFuture<'a> = Pin<Box<dyn Future<Output = Result<ExecOutput, ExecError>> + Send + 'a>>;
 
 /// A successful execution: the node output plus, for poll nodes, the iteration trace that is
 /// stored separately from the output.
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Default, Serialize, Deserialize)]
 pub struct ExecOutput {
     pub output: Value,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub trace: Option<Value>,
+    /// Results of a subworkflow's child nodes keyed by their frame-relative path.
+    #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+    pub children: BTreeMap<String, NodeResult>,
 }
 
 impl From<Value> for ExecOutput {
     fn from(output: Value) -> Self {
         Self {
             output,
-            trace: None,
+            ..Self::default()
         }
     }
+}
+
+/// One level of subworkflow nesting: the parent's subworkflow node and the child DAG it runs.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct Frame {
+    pub node: String,
+    pub dag: String,
+    pub version: u32,
 }
 
 /// What went wrong, as reported by an executor. Executors only describe the raw failure;
@@ -63,6 +76,9 @@ pub struct ExecError {
     /// Poll iterations up to the failure.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub trace: Option<Value>,
+    /// Child node results of a failed subworkflow.
+    #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+    pub children: BTreeMap<String, NodeResult>,
 }
 
 impl ExecError {
@@ -72,6 +88,7 @@ impl ExecError {
             message: message.into(),
             detail: None,
             trace: None,
+            children: BTreeMap::new(),
         }
     }
 
@@ -89,12 +106,29 @@ impl ExecError {
 }
 
 /// Everything a node may read while executing.
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Clone, Default)]
 pub struct ExecContext {
     pub run_id: String,
-    /// Outputs of the node's completed ancestors, and only those, keyed by node id.
+    /// Outputs of the node's completed ancestors, and only those, keyed by node id. Inside a
+    /// subworkflow this also holds the reserved `input` entry.
     pub outputs: BTreeMap<String, Value>,
     pub env: Arc<Environment>,
+    /// Subworkflow nesting, outermost first; empty at the top level.
+    pub frames: Vec<Frame>,
+    /// The executor running this DAG, used by subworkflow nodes to run their child DAG.
+    pub runner: Option<Arc<dyn NodeExecutor>>,
+}
+
+impl fmt::Debug for ExecContext {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("ExecContext")
+            .field("run_id", &self.run_id)
+            .field("outputs", &self.outputs)
+            .field("env", &self.env)
+            .field("frames", &self.frames)
+            .field("runner", &self.runner.is_some())
+            .finish()
+    }
 }
 
 impl ExecContext {

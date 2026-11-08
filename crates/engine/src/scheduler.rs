@@ -4,15 +4,15 @@ use std::collections::{BTreeMap, BTreeSet};
 use std::sync::Arc;
 
 use model::{to_canonical_json, Dag, DagGraph, Node, NodeKind};
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use tokio::task::JoinSet;
 
 use crate::environment::Environment;
-use crate::executor::{ExecContext, ExecError, ExecOutput, NodeExecutor};
+use crate::executor::{ExecContext, ExecError, ExecOutput, Frame, NodeExecutor};
 use crate::state::{InvalidTransition, NodeStatus};
 
-#[derive(Debug, Clone, PartialEq, Serialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct NodeResult {
     pub status: NodeStatus,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -99,6 +99,8 @@ pub struct Scheduler {
     executor: Arc<dyn NodeExecutor>,
     max_parallel: usize,
     env: Arc<Environment>,
+    frames: Vec<Frame>,
+    inputs: Option<Value>,
 }
 
 impl Scheduler {
@@ -108,12 +110,34 @@ impl Scheduler {
             executor,
             max_parallel: 1,
             env: Arc::new(Environment::default()),
+            frames: Vec::new(),
+            inputs: None,
         }
     }
 
     #[must_use]
     pub fn with_environment(mut self, env: Environment) -> Self {
         self.env = Arc::new(env);
+        self
+    }
+
+    #[must_use]
+    pub fn with_shared_environment(mut self, env: Arc<Environment>) -> Self {
+        self.env = env;
+        self
+    }
+
+    /// Runs as a child DAG nested under `frames`.
+    #[must_use]
+    pub fn with_frames(mut self, frames: Vec<Frame>) -> Self {
+        self.frames = frames;
+        self
+    }
+
+    /// Visible to every node as the reserved `input` entry (`${input.output.<name>}`).
+    #[must_use]
+    pub fn with_inputs(mut self, inputs: Value) -> Self {
+        self.inputs = Some(inputs);
         self
     }
 
@@ -183,14 +207,20 @@ impl Scheduler {
                         break;
                     };
                     let Some(node) = dag.node(id) else { continue };
+                    let mut outputs: BTreeMap<String, Value> = graph
+                        .ancestors(id)
+                        .into_iter()
+                        .filter_map(|a| Some((a.to_owned(), nodes.get(a)?.output.clone()?)))
+                        .collect();
+                    if let Some(inputs) = &self.inputs {
+                        outputs.insert(INPUT_NODE_ID.to_owned(), inputs.clone());
+                    }
                     let ctx = ExecContext {
                         run_id: run_id.to_owned(),
-                        outputs: graph
-                            .ancestors(id)
-                            .into_iter()
-                            .filter_map(|a| Some((a.to_owned(), nodes.get(a)?.output.clone()?)))
-                            .collect(),
+                        outputs,
                         env: Arc::clone(&self.env),
+                        frames: self.frames.clone(),
+                        runner: Some(Arc::clone(&self.executor)),
                     };
                     self.result(&mut nodes, id)?
                         .advance(id, NodeStatus::Running)?;
@@ -215,6 +245,9 @@ impl Scheduler {
                         entry.advance(&id, NodeStatus::Completed)?;
                         entry.output = Some(done.output);
                         entry.trace = done.trace;
+                        for (child, result) in done.children {
+                            nodes.insert(format!("{id}/{child}"), result);
+                        }
                         if phase == Phase::Cleanup {
                             continue;
                         }
@@ -238,7 +271,11 @@ impl Scheduler {
                         let entry = self.result(&mut nodes, &id)?;
                         entry.advance(&id, NodeStatus::Failed)?;
                         entry.trace = error.trace.take();
+                        let children = std::mem::take(&mut error.children);
                         entry.error = Some(error);
+                        for (child, result) in children {
+                            nodes.insert(format!("{id}/{child}"), result);
+                        }
                         for desc in graph.descendants(&id) {
                             if dag.node(desc).is_some_and(is_cleanup) {
                                 continue;
@@ -265,6 +302,9 @@ impl Scheduler {
             .ok_or_else(|| SchedulerError::ExecutorCrashed(format!("unknown node '{id}'")))
     }
 }
+
+/// Reserved id under which a child DAG sees its subworkflow inputs.
+pub const INPUT_NODE_ID: &str = "input";
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum Phase {

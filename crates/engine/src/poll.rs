@@ -67,6 +67,7 @@ impl PollExecutor {
                         return Ok(ExecOutput {
                             output,
                             trace: Some(Value::Array(trace)),
+                            ..ExecOutput::default()
                         });
                     }
                 }

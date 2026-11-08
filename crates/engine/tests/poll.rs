@@ -45,6 +45,7 @@ impl Harness {
             run_id: "run-1".into(),
             outputs: BTreeMap::from([("create".to_owned(), json!({"body": {"id": "o-1"}}))]),
             env: Arc::new(Environment::new("local", base_url, BTreeMap::new()).unwrap()),
+            ..ExecContext::default()
         };
         self.poll.execute(&node, ctx).await
     }
