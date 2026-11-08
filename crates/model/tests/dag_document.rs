@@ -28,7 +28,7 @@ nodes:
     sql: select 1
   - id: login
     type: subworkflow
-    dag: auth-login
+    dag: { id: auth-login }
   - id: cleanup
     type: cleanup
 edges:

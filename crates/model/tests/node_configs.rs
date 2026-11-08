@@ -255,3 +255,98 @@ mod assert {
         assert!(msg.contains("operator"), "{msg}");
     }
 }
+
+mod db_query {
+    use super::*;
+    use model::nodes::QueryResultMode;
+
+    #[test]
+    fn full_config_deserializes() {
+        let NodeKind::DbQuery(cfg) = single_node(
+            "id: vip\ntype: db_query\nconnection: crm-ro\nsql: select id from users where level = $1 and balance > $2\nparams: [VIP, \"${env:MIN_BALANCE}\"]\nresult: first_row",
+        )
+        .unwrap() else {
+            panic!("expected db_query node")
+        };
+        assert_eq!(cfg.connection, "crm-ro");
+        assert_eq!(cfg.params, vec![json!("VIP"), json!("${env:MIN_BALANCE}")]);
+        assert_eq!(cfg.result, QueryResultMode::FirstRow);
+    }
+
+    #[test]
+    fn result_mode_defaults_to_rows() {
+        let NodeKind::DbQuery(cfg) =
+            single_node("id: q\ntype: db_query\nconnection: c\nsql: select 1").unwrap()
+        else {
+            panic!("expected db_query node")
+        };
+        assert_eq!(cfg.result, QueryResultMode::Rows);
+        assert!(cfg.params.is_empty());
+    }
+
+    #[test]
+    fn missing_sql_is_rejected() {
+        let msg = error_message(single_node("id: q\ntype: db_query\nconnection: c"));
+        assert!(msg.contains("sql"), "{msg}");
+    }
+}
+
+mod subworkflow {
+    use super::*;
+
+    #[test]
+    fn bindings_deserialize() {
+        let NodeKind::Subworkflow(cfg) = single_node(
+            "id: login\ntype: subworkflow\ndag: { id: auth-login, version: 3 }\ninputs:\n  user: \"${env:USER}\"\n  retries: 2\noutputs:\n  token: \"${do_login.output.body.token}\"",
+        )
+        .unwrap() else {
+            panic!("expected subworkflow node")
+        };
+        assert_eq!(cfg.dag.id, "auth-login");
+        assert_eq!(cfg.dag.version, Some(3));
+        assert_eq!(cfg.inputs["user"], json!("${env:USER}"));
+        assert_eq!(cfg.inputs["retries"], json!(2));
+        assert_eq!(cfg.outputs["token"], "${do_login.output.body.token}");
+    }
+
+    #[test]
+    fn unpinned_version_is_none() {
+        let NodeKind::Subworkflow(cfg) =
+            single_node("id: s\ntype: subworkflow\ndag: { id: child }").unwrap()
+        else {
+            panic!("expected subworkflow node")
+        };
+        assert_eq!(cfg.dag.version, None);
+        assert!(cfg.inputs.is_empty() && cfg.outputs.is_empty());
+    }
+
+    #[test]
+    fn bare_string_dag_reference_is_rejected() {
+        let msg = error_message(single_node("id: s\ntype: subworkflow\ndag: child"));
+        assert!(msg.contains("dag"), "{msg}");
+    }
+}
+
+mod cleanup {
+    use super::*;
+
+    #[test]
+    fn requests_deserialize_in_order() {
+        let NodeKind::Cleanup(cfg) = single_node(
+            "id: cleanup\ntype: cleanup\nrequests:\n  - { method: DELETE, path: \"/orders/${create.output.body.id}\" }\n  - { method: POST, path: /reset }",
+        )
+        .unwrap() else {
+            panic!("expected cleanup node")
+        };
+        let methods: Vec<_> = cfg.requests.iter().map(|r| r.method).collect();
+        assert_eq!(methods, vec![HttpMethod::Delete, HttpMethod::Post]);
+    }
+
+    #[test]
+    fn empty_cleanup_is_allowed() {
+        let NodeKind::Cleanup(cfg) = single_node("id: c\ntype: cleanup").unwrap() else {
+            panic!("expected cleanup node")
+        };
+        assert!(cfg.requests.is_empty());
+    }
+}

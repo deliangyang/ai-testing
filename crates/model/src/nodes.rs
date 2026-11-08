@@ -135,19 +135,69 @@ pub struct AssertConfig {
     pub assertions: Vec<Condition>,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum QueryResultMode {
+    /// Output `{ rows: [...] }`.
+    #[default]
+    Rows,
+    /// Output `{ row: {...} }`; zero rows is a failure.
+    FirstRow,
+    /// Output `{ value: ... }` from the first column of the first row.
+    Scalar,
+}
+
+/// `db_query` node: parameterized SQL against a named connection.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct DbQueryConfig {
+    /// Name of a connection asset bound to the current environment.
     pub connection: String,
+    /// Uses the driver's positional placeholders; values never get interpolated into SQL text.
     pub sql: String,
+    /// Positional parameters; string leaves are templates.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub params: Vec<Value>,
+    #[serde(default, skip_serializing_if = "is_default")]
+    pub result: QueryResultMode,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub response_schema: Option<Value>,
 }
 
+/// Pin to a stored DAG. `version: None` resolves to the active version at run time.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct DagRef {
+    pub id: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub version: Option<u32>,
+}
+
+/// `subworkflow` node: runs a child DAG in its own variable scope.
+///
+/// The child sees only `inputs`, as the reserved node id `input` (`${input.output.<name>}`).
+/// The parent sees only `outputs`, as `${<this node>.output.<name>}`.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct SubworkflowConfig {
-    pub dag: String,
+    pub dag: DagRef,
+    /// Input name -> value; templates evaluated in the parent scope.
+    #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+    pub inputs: BTreeMap<String, Value>,
+    /// Output name -> template evaluated in the child scope, e.g. `${login.output.body.token}`.
+    #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+    pub outputs: BTreeMap<String, String>,
 }
 
+/// `cleanup` node: always runs when the DAG reaches a terminal state.
 #[derive(Debug, Clone, PartialEq, Default, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
-pub struct CleanupConfig {}
+pub struct CleanupConfig {
+    /// Executed in order; a failing request does not stop the remaining ones.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub requests: Vec<HttpRequest>,
+}
+
+fn is_default<T: Default + PartialEq>(value: &T) -> bool {
+    *value == T::default()
+}

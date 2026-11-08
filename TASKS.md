@@ -47,7 +47,7 @@ M0 两周联合评审：P0-56。
 | P0-06 | `http` 节点配置：method、path、query、headers、body 模板、`response_schema`（可选，JSON Schema） | `crates/model` | P0-05 | 样例 YAML 反序列化成功；非法 method 报错 | DONE |
 | P0-07 | `poll` 节点配置：被轮询请求、结构化 `condition`（path + op + expected，不允许自由表达式）、`backoff`（间隔序列，ms）、`timeout_ms`；缺 backoff/timeout 反序列化即失败 | `crates/model` | P0-06 | 缺字段用例失败；合法用例通过 | DONE |
 | P0-08 | `assert` 节点配置：`target`（引用上游输出）、`path`、`operator` 枚举（eq/ne/gt/gte/lt/lte/contains/exists/not_exists/regex/len_eq/type_is）、`expected` | `crates/model` | P0-05 | 每种 operator 均有反序列化用例 | DONE |
-| P0-09 | `db_query`/`subworkflow`/`cleanup` 配置类型（仅结构，执行在后续任务）：连接名+参数化 SQL+结果映射；`dag_ref{id,version_req}`+输入/输出 binding；cleanup 动作列表 | `crates/model` | P0-05 | 反序列化用例通过 | TODO |
+| P0-09 | `db_query`/`subworkflow`/`cleanup` 配置类型（仅结构，执行在后续任务）：连接名+参数化 SQL+结果映射；`dag_ref{id,version_req}`+输入/输出 binding；cleanup 动作列表 | `crates/model` | P0-05 | 反序列化用例通过 | DONE |
 | P0-10 | 变量引用解析器：`${node.output.a.b[0]}`、`${env:VAR}`、`${auth.name}`、`$${` 转义；输出 AST，可从任意模板中提取全部引用 | `crates/model` | P0-05 | 表驱动单测 ≥20 例，含嵌套数组、非法语法定位到字符偏移 | TODO |
 | P0-11 | 规范化 JSON（键排序、数字规范化、无多余空白）与内容哈希（sha256） | `crates/model` | P0-05 | 键顺序不同的等价对象哈希相同；属性测试（proptest） | TODO |
 | P0-12 | 由类型导出 JSON Schema（schemars）到 `schemas/dag.schema.json`；测试校验文件与代码同步 | `crates/model`、`schemas/` | P0-09 | 修改类型不更新 schema 时测试失败 | TODO |
@@ -57,7 +57,7 @@ M0 两周联合评审：P0-56。
 | ID | 任务 | 位置 | 依赖 | 验收标准 | 状态 |
 |---|---|---|---|---|---|
 | P0-13 | 闸门框架：`Rule` trait、`Issue{code,severity(error/warn),node_id,json_path,message}`、`validate(&Dag)->Report`；规则可注册、结果按 (node_id, code) 稳定排序 | `crates/gate` | P0-05 | 空 DAG 与合法 DAG 用例；输出顺序确定 | TODO |
-| P0-14 | 结构规则：节点 ID 唯一、边端点存在、禁止自环、禁止重复边 | `crates/gate` | P0-13 | 每条规则至少一个正例一个反例 | TODO |
+| P0-14 | 结构规则：节点 ID 唯一、边端点存在、禁止自环、禁止重复边、禁止使用保留 id（`input`/`env`/`auth`） | `crates/gate` | P0-13 | 每条规则至少一个正例一个反例 | TODO |
 | P0-15 | 无环规则：Kahn 拓扑排序，失败时报告一条具体环路径 | `crates/gate` | P0-13 | 环 a→b→c→a 报告完整路径 | TODO |
 | P0-16 | 前驱引用规则：模板中 `${x.output...}` 的 x 必须是当前节点的祖先（传递闭包） | `crates/gate` | P0-10、P0-15 | 引用兄弟/后继节点均被拦截并定位到字段 | TODO |
 | P0-17 | 字段存在规则：被引用字段路径必须在上游 `response_schema` 中存在；上游无 schema 时降级为 warn | `crates/gate` | P0-16、P0-06 | 不存在字段报 error；无 schema 报 warn | TODO |
@@ -337,3 +337,4 @@ M0 两周联合评审：P0-56。
 | 2026-11-08 | P0-06 | TODO→DONE | 新增可复用的 `HttpRequest`（供 poll 使用）；`response_schema` 描述的是响应 body；method 接受大写或小写；新增 `timeout_ms` 可选字段 |
 | 2026-11-08 | P0-07 | TODO→DONE | 字段名为 `request`/`condition`/`backoff_ms`/`timeout_ms`，另有可选 `max_attempts`、`response_schema`；`Condition{path, op, expected?}` 与 `Operator` 枚举供 assert 复用；路径为作用于 `{status, headers, body}` 的 JSONPath；backoff 为空数组的情况留给闸门规则 P0-18 处理 |
 | 2026-11-08 | P0-08 | TODO→DONE | 与任务描述的偏差：一个 assert 节点为 `target` + `assertions: [Condition]` 列表（而非单条 path/operator/expected），以支持逐条结果；运算符字段名为 `op`，与 poll 条件一致 |
+| 2026-11-08 | P0-09 | TODO→DONE | db_query 使用位置参数 `params` 和 `result: rows/first_row/scalar`；子工作流引用为 `dag: {id, version?}`（不填版本表示运行时取 active），子 DAG 通过保留节点 id `input` 读取输入（`${input.output.x}`），父 DAG 只能看到 `outputs` 映射；cleanup 在阶段 0 为按顺序执行的 HTTP 请求列表。保留 id `input`/`env`/`auth` 需由闸门规则禁止用作节点 id（并入 P0-14） |
