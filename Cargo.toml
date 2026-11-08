@@ -25,6 +25,17 @@ store = { path = "crates/store" }
 classifier = { path = "crates/classifier" }
 engine = { path = "crates/engine" }
 
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+serde_path_to_error = "0.1"
+yaml_serde = "0.10"
+thiserror = "2"
+time = { version = "0.3", features = ["formatting", "parsing", "macros"] }
+tokio = { version = "1", features = ["rt", "time", "sync", "macros"] }
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter", "fmt"] }
+uuid = { version = "1", features = ["v7"] }
+
 [workspace.lints.rust]
 unsafe_code = "forbid"
 
