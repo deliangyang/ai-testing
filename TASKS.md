@@ -57,7 +57,7 @@ M0 两周联合评审：P0-56。
 | ID | 任务 | 位置 | 依赖 | 验收标准 | 状态 |
 |---|---|---|---|---|---|
 | P0-13 | 闸门框架：`Rule` trait、`Issue{code,severity(error/warn),node_id,json_path,message}`、`validate(&Dag)->Report`；规则可注册、结果按 (node_id, code) 稳定排序 | `crates/gate` | P0-05 | 空 DAG 与合法 DAG 用例；输出顺序确定 | DONE |
-| P0-14 | 结构规则：节点 ID 唯一、边端点存在、禁止自环、禁止重复边、禁止使用保留 id（`input`/`env`/`auth`） | `crates/gate` | P0-13 | 每条规则至少一个正例一个反例 | TODO |
+| P0-14 | 结构规则：节点 ID 唯一、边端点存在、禁止自环、禁止重复边、禁止使用保留 id（`input`/`env`/`auth`） | `crates/gate` | P0-13 | 每条规则至少一个正例一个反例 | DONE |
 | P0-15 | 无环规则：Kahn 拓扑排序，失败时报告一条具体环路径 | `crates/gate` | P0-13 | 环 a→b→c→a 报告完整路径 | TODO |
 | P0-16 | 前驱引用规则：模板中 `${x.output...}` 的 x 必须是当前节点的祖先（传递闭包） | `crates/gate` | P0-10、P0-15 | 引用兄弟/后继节点均被拦截并定位到字段 | TODO |
 | P0-17 | 字段存在规则：被引用字段路径必须在上游 `response_schema` 中存在；上游无 schema 时降级为 warn | `crates/gate` | P0-16、P0-06 | 不存在字段报 error；无 schema 报 warn | TODO |
@@ -342,3 +342,4 @@ M0 两周联合评审：P0-56。
 | 2026-11-08 | P0-11 | TODO→DONE | 浮点数按 RFC 8785/ECMAScript 规则输出（基于标准库最短往返数字），不依赖 serde_json 内部格式化器，避免升级依赖导致哈希变化；workspace 开启 serde_json `float_roundtrip`，否则解析会差 1 ULP（属性测试发现）；键按 UTF-8 字节序排序（JCS 为 UTF-16，ASCII 键结果相同） |
 | 2026-11-08 | P0-12 | TODO→DONE | schemars 1.x，draft 2020-12；`Node` 的 schema 手写为 `oneOf`，每种节点一个封闭对象；更新命令 `UPDATE_SCHEMAS=1 cargo test -p model --test schema_sync`；额外用 jsonschema 校验样例文档，并验证 7 类错误 schema 与解析器同样拒绝 |
 | 2026-11-08 | P0-13 | TODO→DONE | 问题码为点分小写字符串（如 `structure.duplicate_node_id`），位置用 JSON Pointer；排序键为 (node_id, code, json_path, severity, message)，并去除完全重复的问题；DAG 级问题（无 node_id）排在最前；warn 不阻塞 `passed()` |
+| 2026-11-08 | P0-14 | TODO→DONE | 额外增加 `structure.invalid_node_id`：节点 id 必须匹配 `[A-Za-z_][A-Za-z0-9_-]*`，与模板引用语法一致；新增 `Gate::standard()` 注册全部内置规则；重复 id 定位到后出现的那一处 |

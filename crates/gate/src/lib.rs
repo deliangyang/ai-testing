@@ -3,7 +3,9 @@
 //! Rules are pure functions of the DAG document: no network, no clock, no model calls. The same
 //! input always yields the same, identically ordered report.
 
+pub mod codes;
 pub mod issue;
+pub mod rules;
 
 pub use issue::{Issue, Report, Severity};
 
@@ -28,6 +30,11 @@ pub struct Gate {
 impl Gate {
     pub fn new() -> Self {
         Self::default()
+    }
+
+    /// All built-in rules; this is the gate every save and activation goes through.
+    pub fn standard() -> Self {
+        Self::new().with_rule(rules::StructureRule)
     }
 
     #[must_use]
