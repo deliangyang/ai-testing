@@ -36,7 +36,7 @@ M0 两周联合评审：P0-56。
 |---|---|---|---|---|---|
 | P0-01 | 初始化 git 与 Cargo workspace：创建空 crate `common`/`model`/`gate`/`store`/`classifier`/`engine`/`cli`；`rust-toolchain.toml`、`.gitignore`、`.editorconfig`、`rustfmt.toml` | `/`、`crates/` | — | `cargo build --workspace` 通过；目录与 AGENTS.md「仓库布局」一致 | DONE |
 | P0-02 | 质量检查脚本 `scripts/check.ps1`（及 `check.sh`）：fmt --check、clippy `-D warnings`、test；内置架构守卫（见 AGENTS.md「红线」第 1、2 条） | `scripts/` | P0-01 | 干净仓库退出码 0；人为在 engine 中写 `tokio::time::sleep` 或依赖 llm 类 crate 时退出码非 0 | DONE |
-| P0-03 | CI 流水线 `.github/workflows/ci.yml`，Windows + Linux 矩阵调用检查脚本 | `.github/` | P0-02 | 推送后流水线绿 | TODO |
+| P0-03 | CI 流水线 `.github/workflows/ci.yml`，Windows + Linux 矩阵调用检查脚本 | `.github/` | P0-02 | 推送后流水线绿 | BLOCKED（Q7） |
 | P0-04 | `common` crate：错误约定（thiserror）、tracing 初始化、`Clock`/`Sleeper`/`IdGen` trait 及真实实现与固定实现（`FixedClock`、`ManualSleeper`、`SeqIdGen`） | `crates/common` | P0-01 | 单测覆盖固定实现可推进时间、顺序生成 ID | TODO |
 
 ### 0.2 DAG 模型（§4.1）
@@ -318,6 +318,7 @@ M0 两周联合评审：P0-56。
 | Q4 | db_query 首批需支持的数据库 | P3-10 | Postgres、MySQL、SQLite | OPEN |
 | Q5 | JSONPath 方言 | P0-34、P0-07 | RFC 9535 子集（serde_json_path） | OPEN |
 | Q6 | 用于 spike 的 3 条「真实链路」由谁提供？ | P0-52 | 先用 mock-sut 构造等价链路 | OPEN |
+| Q7 | 代码托管远程仓库（GitHub / Cursor origin / 其他）？ | P0-03 | workflow 已按 GitHub Actions 写好并通过 YAML 语法校验，待推送后实跑 | OPEN |
 
 ---
 
@@ -330,3 +331,4 @@ M0 两周联合评审：P0-56。
 | 2026-11-08 | — | 创建 | 根据 develop.md v1.0 拆分初版任务表 |
 | 2026-11-08 | P0-01 | TODO→DONE | 本地工具链为 Rust stable（x86_64-pc-windows-gnu）；rust-toolchain.toml 不固定 target，以便 CI 在 Linux 上使用默认 target |
 | 2026-11-08 | P0-02 | TODO→DONE | 新增 `.gitattributes` 强制 LF（逐字节一致测试依赖统一换行）；sleep 白名单为 `crates/common/src/clock.rs` 与 `crates/mock-sut/`；守卫已用人为注入的违规验证 |
+| 2026-11-08 | P0-03 | TODO→BLOCKED | 已提交 `.github/workflows/ci.yml`（ubuntu + windows 矩阵）；无远程仓库无法实跑，见 Q7 |
