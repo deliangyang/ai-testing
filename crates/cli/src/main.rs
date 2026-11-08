@@ -35,6 +35,13 @@ fn dispatch(cli: &Cli) -> anyhow::Result<u8> {
         Command::Dag(DagCommand::Save { file }) => dag::save(&cli.db, file),
         Command::Dag(DagCommand::Activate { id, version }) => dag::activate(&cli.db, id, *version),
         Command::Dag(DagCommand::List { format }) => dag::list(&cli.db, *format),
-        Command::Run(args) => run::run(&cli.db, args),
+        Command::Run(args) => match &args.action {
+            Some(args::RunAction::Show {
+                run_id,
+                node,
+                format,
+            }) => run::show(&cli.db, run_id, node.as_deref(), *format),
+            None => run::run(&cli.db, args),
+        },
     }
 }

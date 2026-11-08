@@ -53,6 +53,7 @@ fn run_help_lists_its_options() {
         "--env <ENV>",
         "--no-llm",
         "--report-json <REPORT_JSON>",
+        "show",
     ] {
         assert!(help.contains(opt), "missing {opt:?} in:\n{help}");
     }

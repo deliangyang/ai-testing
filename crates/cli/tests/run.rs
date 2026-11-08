@@ -58,11 +58,8 @@ impl Workspace {
     }
 
     fn run_status(&self, out: &Output) -> RunStatus {
-        let text = stdout(out);
-        let id = text
-            .lines()
-            .find_map(|l| l.strip_prefix("run ")?.split(' ').next())
-            .unwrap();
+        let id = run_id(out);
+        let id = id.as_str();
         let clock = FixedClock::new(Timestamp::from_unix_millis(0));
         let db = Db::open(self.db(), &clock).unwrap();
         RunRepository::new(db.conn(), &clock, &UuidV7Gen)
@@ -71,6 +68,14 @@ impl Workspace {
             .unwrap()
             .status
     }
+}
+
+fn run_id(output: &Output) -> String {
+    stdout(output)
+        .lines()
+        .find_map(|l| l.strip_prefix("run ")?.split(' ').next())
+        .unwrap_or_else(|| panic!("no run id in:\n{}", stdout(output)))
+        .to_owned()
 }
 
 fn stdout(output: &Output) -> String {
@@ -487,4 +492,131 @@ async fn process_secrets_are_masked_in_the_output() {
     assert!(text.contains("FAILED call [connection_error/"), "{text}");
     assert!(!text.contains("s3cr3t-value"), "{text}");
     assert!(text.contains("****"), "{text}");
+}
+
+const TIMEOUT_POLL: &str = r#"
+id: timeout-poll
+nodes:
+  - { id: create, type: http, method: POST, path: /orders }
+  - id: wait_paid
+    type: poll
+    request: { method: GET, path: "/orders/${create.output.body.id}" }
+    condition: { path: $.body.status, op: eq, expected: PAID }
+    backoff_ms: [20]
+    timeout_ms: 80
+    max_attempts: 20
+edges:
+  - { from: create, to: wait_paid }
+"#;
+
+#[tokio::test(flavor = "multi_thread")]
+async fn run_show_replays_request_response_and_assertions() {
+    let server = shop().await;
+    let ws = Workspace::new(&server.uri(), "");
+    let out = ws.run(&ws.file("serial.yaml", SERIAL), &[]).await;
+    assert_eq!(
+        out.status.code(),
+        Some(0),
+        "{}{}",
+        stdout(&out),
+        stderr(&out)
+    );
+    let id = run_id(&out);
+
+    let shown = ws.mytool(&["run", "show", &id]).await;
+    assert_eq!(
+        shown.status.code(),
+        Some(0),
+        "{}{}",
+        stdout(&shown),
+        stderr(&shown)
+    );
+    let text = stdout(&shown);
+    assert!(text.contains("of DAG 'serial' version 1"), "{text}");
+    assert!(text.contains("create: COMPLETED"), "{text}");
+    assert!(text.contains("request:"), "{text}");
+    assert!(text.contains("response:"), "{text}");
+    assert!(text.contains("check: COMPLETED"), "{text}");
+    assert!(text.contains("PASS $.status eq expected=200"), "{text}");
+
+    let only = ws.mytool(&["run", "show", &id, "--node", "check"]).await;
+    let only_text = stdout(&only);
+    assert!(only_text.contains("check: COMPLETED"), "{only_text}");
+    assert!(!only_text.contains("create:"), "{only_text}");
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn run_show_replays_a_timed_out_poll_trace() {
+    let server = shop().await;
+    Mock::given(method("GET"))
+        .and(path("/orders/o-1"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(json!({"status": "PENDING"})))
+        .mount(&server)
+        .await;
+    let ws = Workspace::new(&server.uri(), "");
+    let out = ws.run(&ws.file("timeout.yaml", TIMEOUT_POLL), &[]).await;
+    assert_eq!(
+        out.status.code(),
+        Some(1),
+        "{}{}",
+        stdout(&out),
+        stderr(&out)
+    );
+    let id = run_id(&out);
+
+    let json_out = ws
+        .mytool(&[
+            "run",
+            "show",
+            &id,
+            "--node",
+            "wait_paid",
+            "--format",
+            "json",
+        ])
+        .await;
+    assert_eq!(
+        json_out.status.code(),
+        Some(0),
+        "{}{}",
+        stdout(&json_out),
+        stderr(&json_out)
+    );
+    let doc: serde_json::Value = serde_json::from_str(&stdout(&json_out)).unwrap();
+    assert_eq!(doc["nodes"][0]["id"], "wait_paid");
+    assert_eq!(doc["nodes"][0]["status"], "FAILED");
+    assert_eq!(doc["nodes"][0]["failure"]["category"], "timeout");
+    let poll = doc["nodes"][0]["poll"].as_array().unwrap();
+    assert!(!poll.is_empty(), "{doc}");
+    for (i, entry) in poll.iter().enumerate() {
+        assert_eq!(entry["attempt"], i as u64 + 1, "{entry}");
+        assert!(entry["ts"].as_str().unwrap().contains('T'), "{entry}");
+        assert_eq!(entry["passed"], false);
+        assert_eq!(entry["actual"], "PENDING");
+        assert_eq!(entry["expected"], "PAID");
+    }
+
+    let text = stdout(
+        &ws.mytool(&["run", "show", &id, "--node", "wait_paid"])
+            .await,
+    );
+    assert!(text.contains(&format!("#{} FAIL", poll.len())), "{text}");
+    assert!(text.contains("ts="), "{text}");
+    assert!(text.contains("actual=\"PENDING\""), "{text}");
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn run_show_missing_run_or_node_exits_2() {
+    let server = shop().await;
+    let ws = Workspace::new(&server.uri(), "");
+    let missing = ws.mytool(&["run", "show", "no-such-run"]).await;
+    assert_eq!(missing.status.code(), Some(2));
+    assert!(stderr(&missing).contains("no-such-run"));
+
+    let out = ws.run(&ws.file("serial.yaml", SERIAL), &[]).await;
+    let ghost = ws
+        .mytool(&["run", "show", &run_id(&out), "--node", "ghost"])
+        .await;
+    assert_eq!(ghost.status.code(), Some(2));
+    assert!(stderr(&ghost).contains("ghost"));
 }

@@ -63,7 +63,7 @@ pub enum Command {
     /// Validate and manage DAG definitions.
     #[command(subcommand)]
     Dag(DagCommand),
-    /// Run a DAG against an environment.
+    /// Run a DAG against an environment, or inspect a recorded run.
     Run(RunArgs),
 }
 
@@ -98,16 +98,33 @@ pub enum DagCommand {
     },
 }
 
+#[derive(Debug, Subcommand)]
+pub enum RunAction {
+    /// Print recorded request, response, assertions and poll traces.
+    Show {
+        /// Run id printed by `mytool run`.
+        run_id: String,
+        /// Restrict output to this node (frame path, e.g. `login/session`).
+        #[arg(long)]
+        node: Option<String>,
+        #[arg(long, value_enum, default_value_t = OutputFormat::Text)]
+        format: OutputFormat,
+    },
+}
+
 #[derive(Debug, Args)]
 pub struct RunArgs {
+    #[command(subcommand)]
+    pub action: Option<RunAction>,
+
     /// Stored DAG id (its active version) or a DAG file. A file must pass the gate and is
-    /// recorded as a pending version first (ADR-005).
+    /// recorded as a pending version first (ADR-005). Required unless `show` is used.
     #[arg(long)]
-    pub dag: String,
+    pub dag: Option<String>,
 
     /// Environment name, loaded from `<env-root>/environments/<name>.yaml`.
     #[arg(long)]
-    pub env: String,
+    pub env: Option<String>,
 
     /// Directory holding the `environments/` folder.
     #[arg(long, default_value = ".")]

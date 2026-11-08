@@ -10,12 +10,15 @@ use engine::{
     NodeStatus, RuleClassifier, RunOutcome, RunRecorder, Scheduler, StoreRecorder,
     SubworkflowExecutor, SystemEnv,
 };
-use model::Dag;
-use serde_json::Value;
-use store::{DagRepository, NewRun, RunMode, RunStatus};
+use model::{to_canonical_json, Dag};
+use serde_json::{json, Value};
+use store::{
+    DagRepository, NewRun, NodeExecution, NodeExecutionRepository, RunMode, RunRepository,
+    RunStatus,
+};
 use tokio::sync::mpsc::UnboundedReceiver;
 
-use crate::args::RunArgs;
+use crate::args::{OutputFormat, RunArgs};
 use crate::dag::{print_issues, rejected, CREATED_BY};
 use crate::exit;
 use crate::input::{load_dag, Loaded};
@@ -36,12 +39,20 @@ struct Target {
 }
 
 async fn run_async(db_path: &Path, args: &RunArgs) -> anyhow::Result<u8> {
+    let dag = args
+        .dag
+        .as_deref()
+        .ok_or_else(|| anyhow!("--dag is required (or use `run show <run-id>`)"))?;
+    let env_name = args
+        .env
+        .as_deref()
+        .ok_or_else(|| anyhow!("--env is required"))?;
     let store = Store::open(db_path)?;
-    let target = match resolve(&store, &args.dag)? {
+    let target = match resolve(&store, dag)? {
         Ok(target) => target,
         Err(code) => return Ok(code),
     };
-    let env = Environment::load(&args.env_root, &args.env, &SystemEnv)?;
+    let env = Environment::load(&args.env_root, env_name, &SystemEnv)?;
     env.check_dag(&target.dag)?;
 
     let parallel = usize::from(args.parallel);
@@ -237,4 +248,168 @@ fn print_summary(run_id: &str, outcome: &RunOutcome, env: &Environment) -> anyho
         count(NodeStatus::Skipped)
     );
     Ok(())
+}
+
+/// Replay a recorded run's evidence.
+pub fn show(
+    db_path: &Path,
+    run_id: &str,
+    node: Option<&str>,
+    format: OutputFormat,
+) -> anyhow::Result<u8> {
+    let store = Store::open(db_path)?;
+    let db = store.lock()?;
+    let run = RunRepository::new(db.conn(), store.clock.as_ref(), &UuidV7Gen)
+        .get(run_id)?
+        .ok_or_else(|| anyhow!("run '{run_id}' not found"))?;
+    let mut rows =
+        NodeExecutionRepository::new(db.conn(), store.clock.as_ref()).list_for_run(run_id)?;
+    if let Some(id) = node {
+        rows.retain(|row| row.key.node_id == id);
+        if rows.is_empty() {
+            return Err(anyhow!(
+                "run '{run_id}' has no node '{id}' (frame paths are like 'login/session')"
+            ));
+        }
+    }
+    match format {
+        OutputFormat::Json => println!(
+            "{}",
+            to_canonical_json(&json!({
+                "run": {
+                    "id": run.id,
+                    "dag_id": run.dag_id,
+                    "dag_version": run.dag_version,
+                    "env": run.env_name,
+                    "status": run.status.to_string(),
+                    "started_at": run.started_at.map(|t| t.to_string()),
+                    "finished_at": run.finished_at.map(|t| t.to_string()),
+                },
+                "nodes": rows.iter().map(node_json).collect::<Vec<_>>(),
+            }))?
+        ),
+        OutputFormat::Text => {
+            println!(
+                "run {} of DAG '{}' version {} in environment '{}': {}",
+                run.id, run.dag_id, run.dag_version, run.env_name, run.status
+            );
+            for row in &rows {
+                print_node(row);
+            }
+        }
+    }
+    Ok(exit::SUCCESS)
+}
+
+fn node_json(row: &NodeExecution) -> Value {
+    json!({
+        "id": row.key.node_id,
+        "attempt": row.key.attempt,
+        "status": row.status,
+        "failure": row.failure.as_ref().map(|f| json!({
+            "category": f.category,
+            "error_code": f.error_code,
+        })),
+        "started_at": row.started_at.map(|t| t.to_string()),
+        "finished_at": row.finished_at.map(|t| t.to_string()),
+        "input": row.input_resolved,
+        "output": row.output,
+        "assertions": assertions_of(row),
+        "poll": row.poll_trace,
+    })
+}
+
+fn print_node(row: &NodeExecution) {
+    print!("  {}: {}", row.key.node_id, row.status);
+    if let Some(failure) = &row.failure {
+        print!(" [{}/{}]", failure.category, failure.error_code);
+    }
+    println!();
+    if let Some(input) = &row.input_resolved {
+        println!("    request:");
+        print_json("      ", input);
+    }
+    if let Some(output) = &row.output {
+        if assertions_of(row).is_none() {
+            println!("    response:");
+            print_json("      ", output);
+        }
+    }
+    if let Some(assertions) = assertions_of(row) {
+        println!("    assertions:");
+        if let Some(items) = assertions.as_array() {
+            for item in items {
+                print_assertion(item);
+            }
+        } else {
+            print_json("      ", &assertions);
+        }
+    }
+    if let Some(trace) = &row.poll_trace {
+        println!("    poll:");
+        if let Some(items) = trace.as_array() {
+            for item in items {
+                print_poll(item);
+            }
+        } else {
+            print_json("      ", trace);
+        }
+    }
+}
+
+fn assertions_of(row: &NodeExecution) -> Option<Value> {
+    let output = row.output.as_ref()?;
+    output
+        .get("results")
+        .cloned()
+        .or_else(|| output.get("detail")?.get("results").cloned())
+}
+
+fn print_assertion(item: &Value) {
+    let passed = item.get("passed").and_then(Value::as_bool).unwrap_or(false);
+    let mark = if passed { "PASS" } else { "FAIL" };
+    let path = item.get("path").and_then(Value::as_str).unwrap_or("?");
+    let op = item.get("operator").and_then(Value::as_str).unwrap_or("?");
+    print!("      {mark} {path} {op}");
+    if let Some(expected) = item.get("expected") {
+        print!(" expected={expected}");
+    }
+    if let Some(actual) = item.get("actual") {
+        print!(" actual={actual}");
+    }
+    if let Some(message) = item.get("message").and_then(Value::as_str) {
+        print!(" ({message})");
+    }
+    println!();
+}
+
+fn print_poll(item: &Value) {
+    let attempt = item.get("attempt").unwrap_or(&Value::Null);
+    let passed = item.get("passed").and_then(Value::as_bool).unwrap_or(false);
+    let mark = if passed { "PASS" } else { "FAIL" };
+    let ts = item.get("ts").and_then(Value::as_str).unwrap_or("");
+    print!("      #{attempt} {mark}");
+    if !ts.is_empty() {
+        print!(" ts={ts}");
+    }
+    if let Some(actual) = item.get("actual") {
+        print!(" actual={actual}");
+    }
+    if let Some(expected) = item.get("expected") {
+        print!(" expected={expected}");
+    }
+    if let Some(diff) = item.get("diff").and_then(Value::as_str) {
+        print!(" {diff}");
+    }
+    if let Some(error) = item.get("error") {
+        print!(" error={error}");
+    }
+    println!();
+}
+
+fn print_json(indent: &str, value: &Value) {
+    let rendered = serde_json::to_string_pretty(value).unwrap_or_else(|_| value.to_string());
+    for line in rendered.lines() {
+        println!("{indent}{line}");
+    }
 }
