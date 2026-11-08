@@ -12,6 +12,9 @@ name = "mytool"
 path = "src/main.rs"
 
 [dependencies]
+anyhow = { workspace = true }
+clap = { workspace = true }
+common = { workspace = true }
 model = { workspace = true }
 gate = { workspace = true }
 store = { workspace = true }

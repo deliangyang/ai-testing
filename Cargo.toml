@@ -25,6 +25,8 @@ store = { path = "crates/store" }
 classifier = { path = "crates/classifier" }
 engine = { path = "crates/engine" }
 
+anyhow = "1"
+clap = { version = "4", features = ["derive", "env"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = { version = "1", features = ["float_roundtrip"] }
 serde_path_to_error = "0.1"
