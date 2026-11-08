@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 
 import { DagEditCanvas } from '../canvas'
-import { SERIAL_DAG } from '../data/fixtures/serial'
+import { SERIAL_DAG, SERIAL_EXECUTIONS } from '../data/fixtures/serial'
+import { ExecutionDetailPanel } from '../panels'
 import { clampBottomDrawerHeight, clampRightPanelWidth, leftNavWidthPx } from './layout'
 import { shellTokens } from './tokens'
 import './shell.css'
@@ -118,7 +119,10 @@ export function AppShell() {
               data-testid="right-panel"
               style={{ width: `${String(rightWidth)}px` }}
             >
-              <p>右面板：属性 / 详情 / 校验</p>
+              <ExecutionDetailPanel
+                nodeId="pay"
+                execution={SERIAL_EXECUTIONS.find((e) => e.node_id === 'pay') ?? null}
+              />
             </aside>
           </div>
 

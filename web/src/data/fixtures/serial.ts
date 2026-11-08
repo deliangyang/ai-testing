@@ -85,7 +85,11 @@ export const SERIAL_EXECUTIONS: NodeExecutionDto[] = [
       method: 'POST',
       path: '/orders/o-fixture/pay',
     },
-    output: { status: 200, body: { paid: true } },
+    output: {
+      status: 200,
+      body: { paid: true },
+      timing: { duration_ms: 42 },
+    },
     poll_trace: null,
     failure: null,
     started_at: '2026-11-08T14:01:00.500+08:00',
