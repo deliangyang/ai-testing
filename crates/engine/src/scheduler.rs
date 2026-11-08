@@ -1,18 +1,22 @@
-//! Serial topological scheduler.
+//! Topological scheduler with bounded parallelism.
 
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 use std::sync::Arc;
 
-use model::{Dag, DagGraph};
+use model::{to_canonical_json, Dag, DagGraph};
+use serde::Serialize;
 use serde_json::Value;
+use tokio::task::JoinSet;
 
 use crate::executor::{ExecContext, ExecError, NodeExecutor};
 use crate::state::{InvalidTransition, NodeStatus};
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Serialize)]
 pub struct NodeResult {
     pub status: NodeStatus,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub output: Option<Value>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub error: Option<ExecError>,
 }
 
@@ -39,7 +43,8 @@ impl NodeResult {
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct RunOutcome {
-    /// Node ids in the order they were started.
+    /// Node ids in the order they were started. With parallelism above 1 this depends on
+    /// completion timing, so it is diagnostic only and excluded from [`Self::report`].
     pub started: Vec<String>,
     /// Final state of every node, keyed by id.
     pub nodes: BTreeMap<String, NodeResult>,
@@ -50,6 +55,13 @@ impl RunOutcome {
         self.nodes
             .values()
             .all(|n| n.status == NodeStatus::Completed)
+    }
+
+    /// Canonical JSON of the per-node results; identical for any parallelism and completion
+    /// order as long as executors are deterministic.
+    pub fn report(&self) -> String {
+        // Serializing plain data into a Value cannot fail.
+        to_canonical_json(&self.nodes).unwrap_or_default()
     }
 }
 
@@ -63,20 +75,36 @@ pub enum SchedulerError {
         node: String,
         source: InvalidTransition,
     },
+    /// An executor panicked or was aborted; that is a bug in the executor.
+    #[error("executor task failed: {0}")]
+    ExecutorCrashed(String),
 }
 
-/// Runs nodes one at a time in topological order: level by level (see
-/// [`DagGraph::topo_levels`]), by node id within a level.
+/// Runs a DAG in topological order with at most `max_parallel` nodes in flight.
 ///
-/// A node starts only when all its predecessors completed; nodes downstream of a failure stay
+/// A node becomes `READY` once all its predecessors completed and is started in
+/// (level, node id) order, levels as in [`DagGraph::topo_levels`]. With `max_parallel == 1`
+/// this is a strict serial order. Nodes downstream of a failure are never started and stay
 /// `PENDING`.
 pub struct Scheduler {
     executor: Arc<dyn NodeExecutor>,
+    max_parallel: usize,
 }
 
 impl Scheduler {
+    /// Serial by default.
     pub fn new(executor: Arc<dyn NodeExecutor>) -> Self {
-        Self { executor }
+        Self {
+            executor,
+            max_parallel: 1,
+        }
+    }
+
+    /// Values below 1 are treated as 1.
+    #[must_use]
+    pub fn with_max_parallel(mut self, max_parallel: usize) -> Self {
+        self.max_parallel = max_parallel.max(1);
+        self
     }
 
     pub async fn run(&self, run_id: &str, dag: &Dag) -> Result<RunOutcome, SchedulerError> {
@@ -84,52 +112,96 @@ impl Scheduler {
         let levels = graph.topo_levels().map_err(|cycle| {
             SchedulerError::Cycle(cycle.into_iter().map(str::to_owned).collect())
         })?;
-
-        let mut nodes: BTreeMap<String, NodeResult> = levels
+        let level_of: BTreeMap<&str, usize> = levels
             .iter()
-            .flatten()
+            .enumerate()
+            .flat_map(|(level, ids)| ids.iter().map(move |id| (*id, level)))
+            .collect();
+
+        let mut nodes: BTreeMap<String, NodeResult> = level_of
+            .keys()
             .map(|id| ((*id).to_owned(), NodeResult::pending()))
             .collect();
+        let mut waiting_on: BTreeMap<&str, usize> = level_of
+            .keys()
+            .map(|id| (*id, graph.predecessors(id).count()))
+            .collect();
+        let mut ready: BTreeSet<(usize, &str)> = BTreeSet::new();
+        for (id, _) in waiting_on.iter().filter(|(_, n)| **n == 0) {
+            ready.insert((0, id));
+        }
+        for &(_, id) in &ready {
+            self.result(&mut nodes, id)?
+                .advance(id, NodeStatus::Ready)?;
+        }
+
         let mut started = Vec::new();
+        let mut in_flight: JoinSet<(String, Result<Value, ExecError>)> = JoinSet::new();
+        loop {
+            while in_flight.len() < self.max_parallel {
+                let Some((_, id)) = ready.pop_first() else {
+                    break;
+                };
+                let Some(node) = dag.node(id) else { continue };
+                let ctx = ExecContext {
+                    run_id: run_id.to_owned(),
+                    outputs: graph
+                        .ancestors(id)
+                        .into_iter()
+                        .filter_map(|a| Some((a.to_owned(), nodes.get(a)?.output.clone()?)))
+                        .collect(),
+                };
+                self.result(&mut nodes, id)?
+                    .advance(id, NodeStatus::Running)?;
+                started.push(id.to_owned());
 
-        for id in levels.into_iter().flatten() {
-            let ready = graph
-                .predecessors(id)
-                .all(|p| nodes.get(p).map(|n| n.status) == Some(NodeStatus::Completed));
-            let Some(node) = dag.node(id) else { continue };
-            if !ready {
-                continue;
+                let executor = Arc::clone(&self.executor);
+                let node = node.clone();
+                in_flight.spawn(async move {
+                    let result = executor.execute(&node, ctx).await;
+                    (node.id, result)
+                });
             }
-            let ctx = ExecContext {
-                run_id: run_id.to_owned(),
-                outputs: graph
-                    .ancestors(id)
-                    .into_iter()
-                    .filter_map(|a| {
-                        let output = nodes.get(a)?.output.clone()?;
-                        Some((a.to_owned(), output))
-                    })
-                    .collect(),
-            };
 
-            let Some(result) = nodes.get_mut(id) else {
-                continue;
+            let Some(joined) = in_flight.join_next().await else {
+                break;
             };
-            result.advance(id, NodeStatus::Ready)?;
-            result.advance(id, NodeStatus::Running)?;
-            started.push(id.to_owned());
-
-            match self.executor.execute(node, ctx).await {
+            let (id, result) =
+                joined.map_err(|e| SchedulerError::ExecutorCrashed(e.to_string()))?;
+            match result {
                 Ok(output) => {
-                    result.advance(id, NodeStatus::Completed)?;
-                    result.output = Some(output);
+                    let entry = self.result(&mut nodes, &id)?;
+                    entry.advance(&id, NodeStatus::Completed)?;
+                    entry.output = Some(output);
+                    for succ in graph.successors(&id) {
+                        let Some(count) = waiting_on.get_mut(succ) else {
+                            continue;
+                        };
+                        *count -= 1;
+                        if *count == 0 {
+                            ready.insert((level_of.get(succ).copied().unwrap_or(0), succ));
+                            self.result(&mut nodes, succ)?
+                                .advance(succ, NodeStatus::Ready)?;
+                        }
+                    }
                 }
                 Err(error) => {
-                    result.advance(id, NodeStatus::Failed)?;
-                    result.error = Some(error);
+                    let entry = self.result(&mut nodes, &id)?;
+                    entry.advance(&id, NodeStatus::Failed)?;
+                    entry.error = Some(error);
                 }
             }
         }
         Ok(RunOutcome { started, nodes })
+    }
+
+    fn result<'n>(
+        &self,
+        nodes: &'n mut BTreeMap<String, NodeResult>,
+        id: &str,
+    ) -> Result<&'n mut NodeResult, SchedulerError> {
+        nodes
+            .get_mut(id)
+            .ok_or_else(|| SchedulerError::ExecutorCrashed(format!("unknown node '{id}'")))
     }
 }

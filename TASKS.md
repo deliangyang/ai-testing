@@ -83,7 +83,7 @@ M0 两周联合评审：P0-56。
 |---|---|---|---|---|---|
 | P0-27 | 节点状态机：PENDING/READY/RUNNING/POLLING/COMPLETED/FAILED/SKIPPED 及合法迁移 | `crates/engine` | P0-01 | 迁移矩阵全覆盖测试 | DONE |
 | P0-28 | `NodeExecutor` trait + 串行拓扑调度器（用 mock 执行器测试） | `crates/engine` | P0-27、P0-15 | 执行顺序符合拓扑序；同层按 node_id 字典序 | DONE |
-| P0-29 | 并行调度：无依赖后继同时发起，有界信号量控制并行度；**结果写入与报告顺序与完成时序无关** | `crates/engine` | P0-28 | c∥d 并行用例：并行度 1 与 4 的报告字节一致 | TODO |
+| P0-29 | 并行调度：无依赖后继同时发起，有界信号量控制并行度；**结果写入与报告顺序与完成时序无关** | `crates/engine` | P0-28 | c∥d 并行用例：并行度 1 与 4 的报告字节一致 | DONE |
 | P0-30 | 失败传播：节点 FAILED 后所有未执行后继标记 SKIPPED（cleanup 除外） | `crates/engine` | P0-28 | 菱形 DAG 用例 | TODO |
 | P0-31 | 环境配置加载：`environments/<name>.yaml`（base_url、变量、`${env:VAR}` 引用）；缺失变量报明确错误 | `crates/engine` | P0-10 | 单测 | TODO |
 | P0-32 | 运行时变量上下文与模板渲染：按引用 AST 解析上游输出/环境变量，产出 `input_resolved_json` | `crates/engine` | P0-10、P0-31 | 引用缺失时节点失败并带路径；解析结果可序列化 | TODO |
@@ -361,3 +361,4 @@ M0 两周联合评审：P0-56。
 | 2026-11-08 | P0-03 | DOING→DONE | ba52e8e 的 [CI](https://github.com/deliangyang/ai-testing/actions/runs/42462850786) 在 ubuntu-latest 和 windows-latest 上都通过，借助 rust-cache 每个平台约 1 分钟。首轮 Linux 失败暴露了 check.ps1 漏报的问题（见 P0-02-fix1）；check.sh 在 Actions 上会把失败步骤输出的末尾 60 行写成 annotation，不登录也能通过公开 API 读到。workflow 本身未改 |
 | 2026-11-08 | P0-27 | TODO→DONE | `NodeStatus` 从 store 移到 `model::status`，engine（`engine::state`）和 store 都重新导出它，避免两份状态机各自演化；store 的公开 API 不变。新增 `transition()`，返回 `InvalidTransition{from,to}`；serde 名称为全大写（PENDING…SKIPPED），并 derive JsonSchema。迁移规则沿用 P0-25：非终态允许原地停留（轮询每轮都会上报），终态不能再迁移。测试覆盖全部 49 种组合，期望表独立写出；另验证终态不可离开、从 PENDING 能到达所有状态、任一非终态都能走到终态，以及文本与 JSON 名称稳定 |
 | 2026-11-08 | P0-28 | TODO→DONE | `NodeExecutor::execute(&Node, ExecContext) -> ExecFuture`，用装箱 Future，与 Sleeper 的写法一致，不引入 async_trait。`ExecContext` 只包含该节点已完成祖先的输出，作用域由调度器保证。执行器失败返回 `ExecError{kind, message, detail}`，只描述原始错误，分类留给 P0-43/P0-44。`Scheduler::run` 串行执行，每个节点经过 PENDING→READY→RUNNING→COMPLETED/FAILED，每一步都走 `NodeStatus::transition` 校验。顺序：`同层`理解为 Kahn 算法的轮次。`topo_order`（每次挑最小的就绪 id）在 a→b 加独立 c 的情况下会得到 a,b,c，与按层的 a,c,b 不同，因此在 model 新增 `DagGraph::topo_levels()`，也方便与 P0-29 的并行波次对齐。失败节点的后继暂时保持 PENDING，SKIPPED 与 cleanup 例外由 P0-30 处理；有环时返回 `SchedulerError::Cycle`，一个节点都不执行 |
+| 2026-11-08 | P0-29 | TODO→DONE | 用 tokio `JoinSet` 加在途计数实现有界并行，效果等同信号量，但不额外引入 Semaphore。就绪队列为 `BTreeSet<(层号, id)>`，因此并行度 1 时与 P0-28 的串行按层顺序完全一致。节点入队即标 READY，发起执行时标 RUNNING。`RunOutcome::report()` 对 `BTreeMap<id, NodeResult>` 输出规范化 JSON，不包含发起顺序 `started`，测试验证并行度 1 与 4 的完成顺序不同，报告却字节一致。默认并行度为 1，传 0 时按 1 处理；执行器 panic 映射为 `SchedulerError::ExecutorCrashed`。tokio 从 dev 依赖改为正式依赖（`rt`/`sync` 已在 workspace 中启用）。测试用 `yield_now` 控制完成时序，不用 sleep |
