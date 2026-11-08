@@ -124,10 +124,10 @@ M0 两周联合评审：P0-56。
 | P0-51 | `mock-sut` crate：axum 模拟被测系统（下单、支付、异步回调延迟可配、带 seed 的抖动、可注入故障：拒绝连接/500/改字段） | `crates/mock-sut` | P0-01 | 可独立启动；集成测试可内嵌启动 | DONE |
 | P0-52 | 三条样例链路：纯串行、并行分支 c∥d、异步轮询（等支付回调）；含环境文件 | `examples/` | P0-51、P0-20 | 三条均通过 `dag validate` | DONE |
 | P0-53 | 确定性 golden 测试：同一 DAG 两次 `--no-llm` 运行，确定性报告逐字节一致；断言 cli 依赖树中无 LLM crate | `crates/cli/tests` | P0-49、P0-52 | 测试通过并纳入检查脚本 | DONE |
-| P0-54 | 轮询稳定性脚本：异步链路连续 10 次执行并统计通过率与抖动来源 | `scripts/` | P0-52 | 输出统计表 | TODO |
-| P0-55 | 分类器覆盖率评估：用 mock-sut 故障注入收集样本，统计 `unknown` 占比 | `scripts/`、`docs/reviews/` | P0-44、P0-51 | 报告 unknown 占比与待补规则 | TODO |
-| P0-56 | M0 联合评审报告（§7.3 三个问题），结论与后续调整写入 `docs/reviews/m0.md` | `docs/reviews/` | P0-54、P0-55、P0-20、P1-13 | 三个问题均有数据结论 | TODO |
-| P0-57 | **阶段 0 验收**：逐条核对阶段验收标准并记录证据 | `docs/reviews/phase0.md` | P0-53、P0-50、P0-38、P0-39 | 验收通过 | TODO |
+| P0-54 | 轮询稳定性脚本：异步链路连续 10 次执行并统计通过率与抖动来源 | `scripts/` | P0-52 | 输出统计表 | DONE |
+| P0-55 | 分类器覆盖率评估：用 mock-sut 故障注入收集样本，统计 `unknown` 占比 | `scripts/`、`docs/reviews/` | P0-44、P0-51 | 报告 unknown 占比与待补规则 | DONE |
+| P0-56 | M0 联合评审报告（§7.3 三个问题），结论与后续调整写入 `docs/reviews/m0.md` | `docs/reviews/` | P0-54、P0-55、P0-20、P1-13 | 三个问题均有数据结论 | BLOCKED |
+| P0-57 | **阶段 0 验收**：逐条核对阶段验收标准并记录证据 | `docs/reviews/phase0.md` | P0-53、P0-50、P0-38、P0-39 | 验收通过 | DONE |
 
 ---
 
@@ -321,6 +321,7 @@ M0 两周联合评审：P0-56。
 | Q5 | JSONPath 方言 | P0-34、P0-07 | 暂按 RFC 9535 的 singular query 子集（`$`、`.name`、`['name']`、`[n]`）自行解析（`model::parse_json_path`，与模板路径共用解析器），不引入 serde_json_path；若需要通配/过滤再议 | OPEN |
 | Q6 | 用于 spike 的 3 条「真实链路」由谁提供？ | P0-52 | 先用 mock-sut 构造等价链路 | OPEN |
 | Q7 | 代码托管远程仓库（GitHub / Cursor origin / 其他）？ | P0-03 | GitHub：`git@github.com:deliangyang/ai-testing.git`（2026-11-08 人类答复） | RESOLVED |
+| Q8 | M0 §7.3 Q2（失败→证据 ≤2 点击）能否在阶段 0 验收？ | P0-56 | 否；等 P1-13 后补数据到 `docs/reviews/m0.md` | OPEN |
 
 ---
 
@@ -365,6 +366,10 @@ M0 两周联合评审：P0-56。
 | 2026-11-08 | P0-51 | TODO→DONE | 新增 `crates/mock-sut`：axum 小店 API（`POST /orders`、`POST /orders/:id/pay`、`GET /orders/:id` 异步转 PAID、`GET /stock/:sku`、`GET /price/:sku`）。`pay_delay` + 按 seed/order_id 确定性 jitter；`Faults` 支持 internal_error / corrupt_create_field / corrupt_status_field / refuse_listen（配合 `connection_refused_base_url()`）。`MockSutBuilder::spawn` 内嵌监听；`cargo run -p mock-sut` 独立启动。集成测试覆盖正常流与故障注入 |
 | 2026-11-08 | P0-52 | TODO→DONE | `examples/serial.yaml`、`parallel.yaml`、`async-poll.yaml` 与 `examples/environments/local.yaml`（默认 mock-sut `8787`）。`cli` 测试 `spike_examples_pass_gate` 对三条样例跑 `dag validate` |
 | 2026-11-08 | P0-53 | TODO→DONE | `crates/cli/tests/golden.rs`：三条 `examples/*.yaml` 在 mock-sut 上各跑两次，`deterministic` 规范化 JSON 逐字节一致；`cli_dependency_tree_excludes_llm_crates` 用 `cargo tree -p cli` 断言无 llm-gateway/generator/autonomy |
+| 2026-11-08 | P0-54 | TODO→DONE | `scripts/poll-stability.ps1`（及 `.sh` 包装）+ `scripts/lib/aitest-run.ps1`：对 `examples/async-poll.yaml` 连跑 10 次，输出通过率与 poll 深度表；样例结果 `docs/reviews/poll-stability.md` |
+| 2026-11-08 | P0-55 | TODO→DONE | `scripts/classifier-coverage.ps1`：mock-sut 四类故障 + 连接拒绝，写 `docs/reviews/classifier-coverage.md`（当前 4 样本 unknown 0%） |
+| 2026-11-08 | P0-56 | TODO→BLOCKED | `docs/reviews/m0.md` 已写 Q1/Q3；Q2 依赖 P1-13，登记待决 Q8 |
+| 2026-11-08 | P0-57 | TODO→DONE | `docs/reviews/phase0.md` 逐条引用测试/脚本证据；阶段 1 可启动（P0-56 不阻塞阶段门，见 develop §7.3 与 Q8） |
 | 2026-11-08 | P0-27 | TODO→DONE | `NodeStatus` 从 store 移到 `model::status`，engine（`engine::state`）和 store 都重新导出它，避免两份状态机各自演化；store 的公开 API 不变。新增 `transition()`，返回 `InvalidTransition{from,to}`；serde 名称为全大写（PENDING…SKIPPED），并 derive JsonSchema。迁移规则沿用 P0-25：非终态允许原地停留（轮询每轮都会上报），终态不能再迁移。测试覆盖全部 49 种组合，期望表独立写出；另验证终态不可离开、从 PENDING 能到达所有状态、任一非终态都能走到终态，以及文本与 JSON 名称稳定 |
 | 2026-11-08 | P0-28 | TODO→DONE | `NodeExecutor::execute(&Node, ExecContext) -> ExecFuture`，用装箱 Future，与 Sleeper 的写法一致，不引入 async_trait。`ExecContext` 只包含该节点已完成祖先的输出，作用域由调度器保证。执行器失败返回 `ExecError{kind, message, detail}`，只描述原始错误，分类留给 P0-43/P0-44。`Scheduler::run` 串行执行，每个节点经过 PENDING→READY→RUNNING→COMPLETED/FAILED，每一步都走 `NodeStatus::transition` 校验。顺序：`同层`理解为 Kahn 算法的轮次。`topo_order`（每次挑最小的就绪 id）在 a→b 加独立 c 的情况下会得到 a,b,c，与按层的 a,c,b 不同，因此在 model 新增 `DagGraph::topo_levels()`，也方便与 P0-29 的并行波次对齐。失败节点的后继暂时保持 PENDING，SKIPPED 与 cleanup 例外由 P0-30 处理；有环时返回 `SchedulerError::Cycle`，一个节点都不执行 |
 | 2026-11-08 | P0-29 | TODO→DONE | 用 tokio `JoinSet` 加在途计数实现有界并行，效果等同信号量，但不额外引入 Semaphore。就绪队列为 `BTreeSet<(层号, id)>`，因此并行度 1 时与 P0-28 的串行按层顺序完全一致。节点入队即标 READY，发起执行时标 RUNNING。`RunOutcome::report()` 对 `BTreeMap<id, NodeResult>` 输出规范化 JSON，不包含发起顺序 `started`，测试验证并行度 1 与 4 的完成顺序不同，报告却字节一致。默认并行度为 1，传 0 时按 1 处理；执行器 panic 映射为 `SchedulerError::ExecutorCrashed`。tokio 从 dev 依赖改为正式依赖（`rt`/`sync` 已在 workspace 中启用）。测试用 `yield_now` 控制完成时序，不用 sleep |
