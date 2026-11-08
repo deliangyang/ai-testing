@@ -76,9 +76,18 @@ sleep_guard() {
   return $ok
 }
 
+web_npm() {
+  [ -f web/package.json ] || return 0
+  (cd web && npm run "$1" --silent)
+}
+
 want fmt && run_step "cargo fmt" cargo fmt --all -- --check
+want fmt && run_step "web: prettier" web_npm format:check
 want clippy && run_step "cargo clippy" cargo clippy --workspace --all-targets -- -D warnings
+want clippy && run_step "web: eslint" web_npm lint
 want test && run_step "cargo test" cargo test --workspace
+want test && run_step "web: vitest" web_npm test
+want test && run_step "web: build" web_npm build
 if want guards; then
   run_step "guard: deterministic crates must not depend on LLM crates" dependency_guard
   run_step "guard: no bare sleep outside Sleeper" sleep_guard

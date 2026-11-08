@@ -59,6 +59,22 @@ function Test-DependencyGuard {
     return $ok
 }
 
+function Invoke-WebNpm {
+    param([string]$Script)
+    $web = Join-Path $repoRoot 'web'
+    if (-not (Test-Path (Join-Path $web 'package.json'))) {
+        return $true
+    }
+    Push-Location $web
+    try {
+        npm run $Script --silent | Out-Host
+        return ($LASTEXITCODE -eq 0)
+    }
+    finally {
+        Pop-Location
+    }
+}
+
 function Test-SleepGuard {
     $ok = $true
     $files = Get-ChildItem -Path 'crates' -Recurse -Filter '*.rs' -File -ErrorAction SilentlyContinue
@@ -78,12 +94,16 @@ function Test-SleepGuard {
 
 if ($Only -contains 'fmt') {
     Invoke-Step 'cargo fmt' { Invoke-Native { cargo fmt --all -- --check } }
+    Invoke-Step 'web: prettier' { Invoke-WebNpm 'format:check' }
 }
 if ($Only -contains 'clippy') {
     Invoke-Step 'cargo clippy' { Invoke-Native { cargo clippy --workspace --all-targets -- -D warnings } }
+    Invoke-Step 'web: eslint' { Invoke-WebNpm 'lint' }
 }
 if ($Only -contains 'test') {
     Invoke-Step 'cargo test' { Invoke-Native { cargo test --workspace } }
+    Invoke-Step 'web: vitest' { Invoke-WebNpm 'test' }
+    Invoke-Step 'web: build' { Invoke-WebNpm 'build' }
 }
 if ($Only -contains 'guards') {
     Invoke-Step 'guard: deterministic crates must not depend on LLM crates' { Test-DependencyGuard }
