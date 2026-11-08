@@ -193,6 +193,7 @@ dependencies = [
 name = "classifier"
 version = "0.1.0"
 dependencies = [
+ "regex",
  "schemars",
  "serde",
  "serde_json",
