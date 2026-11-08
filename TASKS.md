@@ -166,7 +166,7 @@ M0 两周联合评审：P0-56。
 | P1-26 | 布局持久化：迁移新增 `ui_layouts`、`workspace_presets` 表；按场景记住缩放/位置/面板宽度/抽屉状态 | `crates/store`、`crates/server`、`web/` | P1-07、P1-03 | 重开后布局恢复 | TODO |
 | P1-27 | 快捷键（§5.3 第 5 条）与全局搜索 Ctrl/Cmd+K、`?` 快捷键面板 | `web/src` | P1-17 | 组件测试 | TODO |
 | P1-28 | 工作区预设：编排者/执行调试者/看报告者，一键切换 | `web/src` | P1-26 | 组件测试 | TODO |
-| P1-29 | Playwright E2E：轮询超时失败从「变红」到右面板看到完整证据 ≤2 次点击 | `web/e2e` | P1-13、P1-04 | E2E 通过并纳入 CI | TODO |
+| P1-29 | Playwright E2E：轮询超时失败从「变红」到右面板看到完整证据 ≤2 次点击 | `web/e2e` | P1-13、P1-04 | E2E 通过并纳入 CI | DONE |
 | P1-30 | nsh 技术 spike：验证加载 web 组件、`native_module` 调用 engine/store、`nsh test` 无界面测试；结论写 ADR | `app/`、`docs/decisions/` | P1-09 | ADR 给出可行/不可行与替代方案 | TODO |
 | P1-31 | nsh 外壳集成：以 `native_module` 实现 `DataSource`，复用全部 web 组件 | `app/` | P1-30 | `nsh test` 跑通核心用例 | TODO |
 | P1-32 | **阶段 1 验收** | `docs/reviews/phase1.md` | P1-29、P1-25、P1-24、P1-31 | 验收通过 | TODO |
@@ -387,6 +387,7 @@ M0 两周联合评审：P0-56。
 | 2026-11-08 | P1-15 | TODO→DONE | `StatusBar` + `buildStatusBarModel`（SSE/SQLite、n/N·并行·轮询中、环境、耗时）；`asyncPollFail` run fixture；`statusBarModel.test.ts` |
 | 2026-11-08 | P1-16 | TODO→DONE | `web/src/nav`：`LeftNav` 场景状态点+通过率条、计划 ✓/⚠/✗、报告列表；`FIXTURE_NAV_CATALOG`；接入 `AppShell` |
 | 2026-11-08 | P1-17 | TODO→DONE | `WorkspaceTabBar` + `resolveWorkspaceForTab`；左导航双击打开场景/报告标签；`AppShell.tabs.test.tsx` |
+| 2026-11-09 | P1-29 | TODO→DONE | `e2e/failure-evidence.spec.ts`；CI `web-e2e` job |
 | 2026-11-09 | P1-25 | TODO→DONE | `DagReportReplayView` 摘要条+时间轴；报告标签接入 `AppShell`；`reportPrevious` 对比 fixture |
 | 2026-11-09 | P1-24 | TODO→DONE | `DagValidationPanel` + fixture `validateDag` 规则；编辑台实时校验；`e2e/gate-validation.spec.ts` |
 | 2026-11-09 | P1-23 | TODO→DONE | `TemplateField` 高亮 + datalist；`dagAncestors` 仅祖先 output 建议 |
