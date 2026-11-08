@@ -56,6 +56,13 @@ export function AppShell() {
   }, [workspaceTabs, activeTabKey])
 
   const [runControl, dispatchRunControl] = useReducer(runControlReducer, initialRunControlState)
+  const [partialRerunNode, setPartialRerunNode] = useState<string | null>(null)
+
+  const activeTab = useMemo(
+    () => workspaceTabs.find((tab) => tab.key === activeTabKey),
+    [workspaceTabs, activeTabKey],
+  )
+  const replayMode = activeTab?.kind === 'report'
 
   useEffect(() => {
     const failed = activeWorkspace.run?.status === 'FAILED'
@@ -95,6 +102,16 @@ export function AppShell() {
   const handleRerunFailed = useCallback(() => {
     dispatchRun({ type: 'start_run' })
   }, [dispatchRun])
+
+  const handleRerunFromNode = useCallback(
+    (nodeId: string) => {
+      setPartialRerunNode(nodeId)
+      dispatchRun({ type: 'start_run' })
+    },
+    [dispatchRun],
+  )
+
+  const sourceRunId = activeWorkspace.run?.id
 
   const openScenarioTab = useCallback((scenarioId: string) => {
     const title =
@@ -220,6 +237,10 @@ export function AppShell() {
                   dag={failureFocus.dag}
                   events={failureFocus.events}
                   focusNodeId={failureFocus.failedNodeId}
+                  replayMode={replayMode}
+                  sourceRunId={sourceRunId}
+                  partialRerunNode={partialRerunNode}
+                  onRerunFromNode={handleRerunFromNode}
                 />
               </main>
             </section>

@@ -143,3 +143,63 @@
     border-radius: 3px;
     transition: width 0.2s ease;
 }
+
+.dag-run-ctx-menu {
+    position: fixed;
+    z-index: 40;
+    min-width: 10rem;
+    padding: 0.25rem 0;
+    border-radius: 6px;
+    border: 1px solid #3d4556;
+    background: #1a1d26;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.45);
+}
+
+.dag-run-ctx-menu__item {
+    display: block;
+    width: 100%;
+    padding: 0.4rem 0.75rem;
+    border: none;
+    background: transparent;
+    color: #e8eaed;
+    font-size: 0.8125rem;
+    text-align: left;
+    cursor: pointer;
+}
+
+.dag-run-ctx-menu__item:hover {
+    background: #252a36;
+}
+
+.dag-run-replay-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.35rem 0.6rem;
+    border-radius: 6px;
+    border: 1px solid #3d4556;
+    background: rgba(18, 20, 26, 0.92);
+    font-size: 0.75rem;
+    color: #c4c8d0;
+}
+
+.dag-run-replay-actions__btn {
+    font-size: 0.75rem;
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    border: 1px solid #5b8def;
+    background: #1e2a3d;
+    color: #e8eaed;
+    cursor: pointer;
+}
+
+.dag-run-replay-actions__btn:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+    border-color: #3d4556;
+    background: #1a1d26;
+}
+
+.dag-run-replay-actions__btn:not(:disabled):hover {
+    background: #243652;
+}

@@ -1,5 +1,7 @@
-import { render, screen } from '@testing-library/react'
+import { fireEvent, render, screen } from '@testing-library/react'
+import { vi } from 'vitest'
 
+import { ASYNC_POLL_FAIL_EVENTS } from '../data/fixtures/asyncPollFail'
 import { ASYNC_POLL_DAG } from '../data/fixtures/asyncPoll'
 import { ASYNC_POLL_RUN_EVENTS } from '../data/fixtures/asyncPollRun'
 import { PARALLEL_DAG } from '../data/fixtures/parallel'
@@ -25,6 +27,36 @@ describe('DagRunCanvas', () => {
     expect(price).toHaveClass('dag-node-card--pulse')
     expect(stock).toHaveAttribute('data-status', 'RUNNING')
     expect(price).toHaveAttribute('data-status', 'RUNNING')
+  })
+
+  it('context menu calls onRerunFromNode', () => {
+    const onRerunFromNode = vi.fn()
+    render(
+      <DagRunCanvas
+        dag={ASYNC_POLL_DAG}
+        events={ASYNC_POLL_FAIL_EVENTS}
+        sourceRunId="run-async-poll-fail"
+        onRerunFromNode={onRerunFromNode}
+      />,
+    )
+    const node = screen.getByTestId('dag-run-node-wait_paid')
+    fireEvent.contextMenu(node)
+    fireEvent.click(screen.getByTestId('run-node-ctx-rerun'))
+    expect(onRerunFromNode).toHaveBeenCalledWith('wait_paid')
+  })
+
+  it('shows replay actions bar in replay mode', () => {
+    render(
+      <DagRunCanvas
+        dag={ASYNC_POLL_DAG}
+        events={ASYNC_POLL_FAIL_EVENTS}
+        replayMode
+        sourceRunId="run-async-poll-fail"
+        onRerunFromNode={vi.fn()}
+      />,
+    )
+    expect(screen.getByTestId('run-replay-actions')).toBeVisible()
+    expect(screen.getByTestId('replay-source-run')).toHaveTextContent('run-async-poll-fail')
   })
 
   it('shows poll status line during async-poll replay', () => {

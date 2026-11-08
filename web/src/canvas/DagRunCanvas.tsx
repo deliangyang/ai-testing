@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from 'react'
+import { useCallback, useEffect, useMemo, useState, type MouseEvent as DomMouseEvent } from 'react'
 import {
   Background,
   Controls,
@@ -6,7 +6,9 @@ import {
   Panel,
   ReactFlow,
   ReactFlowProvider,
+  useOnSelectionChange,
   useReactFlow,
+  type Node,
   type NodeTypes,
 } from '@xyflow/react'
 
@@ -14,7 +16,9 @@ import type { Dag } from '../types/generated'
 import type { StoredRunEvent } from '../data/types'
 import { buildDagRunGraph, DAG_RUN_NODE_TYPE } from './buildDagRunGraph'
 import { DagRunNodeCard } from './DagRunNodeCard'
+import { RunNodeContextMenu } from './RunNodeContextMenu'
 import { RunProgressBar } from './RunProgressBar'
+import { RunReplayActions } from './RunReplayActions'
 import { applyRunEvents, runProgressLabel } from './runReplay'
 import { canvasTokens } from './tokens'
 import './canvas.css'
@@ -56,17 +60,62 @@ function FitViewControl() {
   )
 }
 
+function SelectionBridge({
+  onChange,
+}: {
+  onChange: (nodeId: string | null) => void
+}) {
+  useOnSelectionChange({
+    onChange: ({ nodes }) => {
+      onChange(nodes[0]?.id ?? null)
+    },
+  })
+  return null
+}
+
 function DagRunCanvasInner({
   dag,
   events,
   replaySeq,
   focusNodeId,
+  replayMode,
+  sourceRunId,
+  onRerunFromNode,
 }: {
   dag: Dag
   events: StoredRunEvent[]
   replaySeq?: number
   focusNodeId?: string | null
+  replayMode?: boolean
+  sourceRunId?: string
+  onRerunFromNode?: (nodeId: string) => void
 }) {
+  const [contextMenu, setContextMenu] = useState<{ nodeId: string; x: number; y: number } | null>(
+    null,
+  )
+  const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null)
+
+  const handleRerun = useCallback(
+    (nodeId: string) => {
+      onRerunFromNode?.(nodeId)
+    },
+    [onRerunFromNode],
+  )
+
+  const onNodeContextMenu = useCallback(
+    (event: DomMouseEvent, node: Node) => {
+      if (!onRerunFromNode) {
+        return
+      }
+      event.preventDefault()
+      setContextMenu({ nodeId: node.id, x: event.clientX, y: event.clientY })
+    },
+    [onRerunFromNode],
+  )
+
+  const onNodeClick = useCallback((_: DomMouseEvent, node: Node) => {
+    setSelectedNodeId(node.id)
+  }, [])
   const view = useMemo(
     () => applyRunEvents(dag, events, replaySeq),
     [dag, events, replaySeq],
@@ -87,9 +136,12 @@ function DagRunCanvasInner({
       nodesDraggable={false}
       nodesConnectable={false}
       elementsSelectable
+      onNodeContextMenu={onNodeContextMenu}
+      onNodeClick={onNodeClick}
       proOptions={{ hideAttribution: true }}
       color={canvasTokens.edgeStroke}
     >
+      <SelectionBridge onChange={setSelectedNodeId} />
       <Background gap={16} color="#2a2f3a" />
       <Controls showInteractive={false} />
       <MiniMap
@@ -104,7 +156,27 @@ function DagRunCanvasInner({
       <Panel position="top-right">
         <FitViewControl />
       </Panel>
+      {replayMode ? (
+        <Panel position="bottom-center">
+          <RunReplayActions
+            selectedNodeId={selectedNodeId}
+            sourceRunId={sourceRunId}
+            onRerunFromNode={onRerunFromNode}
+          />
+        </Panel>
+      ) : null}
       <FocusNodeEffect nodeId={focusNodeId} />
+      {contextMenu ? (
+        <RunNodeContextMenu
+          nodeId={contextMenu.nodeId}
+          x={contextMenu.x}
+          y={contextMenu.y}
+          onRerun={handleRerun}
+          onClose={() => {
+            setContextMenu(null)
+          }}
+        />
+      ) : null}
     </ReactFlow>
   )
 }
@@ -114,14 +186,32 @@ export interface DagRunCanvasProps {
   events: StoredRunEvent[]
   replaySeq?: number
   focusNodeId?: string | null
+  /** 报告回放：展示「重跑此节点及下游」条 */
+  replayMode?: boolean
+  /** 部分重跑所依据的已存档 run id */
+  sourceRunId?: string
+  onRerunFromNode?: (nodeId: string) => void
+  /** 最近一次触发的部分重跑节点（供测试与状态展示） */
+  partialRerunNode?: string | null
 }
 
-export function DagRunCanvas({ dag, events, replaySeq, focusNodeId }: DagRunCanvasProps) {
+export function DagRunCanvas({
+  dag,
+  events,
+  replaySeq,
+  focusNodeId,
+  replayMode,
+  sourceRunId,
+  onRerunFromNode,
+  partialRerunNode,
+}: DagRunCanvasProps) {
   return (
     <div
       className="dag-edit-canvas"
       data-testid="dag-run-canvas"
       data-focus-node={focusNodeId ?? undefined}
+      data-partial-rerun-node={partialRerunNode ?? undefined}
+      data-partial-rerun-from-run={partialRerunNode ? sourceRunId : undefined}
       aria-label="DAG 执行态画布"
     >
       <ReactFlowProvider>
@@ -130,6 +220,9 @@ export function DagRunCanvas({ dag, events, replaySeq, focusNodeId }: DagRunCanv
           events={events}
           replaySeq={replaySeq}
           focusNodeId={focusNodeId}
+          replayMode={replayMode}
+          sourceRunId={sourceRunId}
+          onRerunFromNode={onRerunFromNode}
         />
       </ReactFlowProvider>
     </div>

@@ -157,7 +157,7 @@ M0 两周联合评审：P0-56。
 | P1-17 | 中央标签页：多场景/报告标签，双击导航项打开 | `web/src/shell` | P1-16 | 组件测试 | DONE |
 | P1-18 | 顶栏运行控制：运行/停止/重跑失败、运行模式切换、环境切换器（含连通性状态点） | `web/src/shell` | P1-05 | E2E 用例 | DONE |
 | P1-19 | 引擎：从指定节点起跑，复用已存档上游输出，仅重跑该节点及下游；CLI `run --from-run <id> --from-node <id>` | `crates/engine`、`crates/cli` | P0-40 | 单测：上游节点不再发请求 | DONE |
-| P1-20 | UI 节点级重跑：右键「从此节点重跑」、回放视图「重跑此节点及下游」 | `web/src/canvas` | P1-19、P1-05 | E2E 用例 | TODO |
+| P1-20 | UI 节点级重跑：右键「从此节点重跑」、回放视图「重跑此节点及下游」 | `web/src/canvas` | P1-19、P1-05 | E2E 用例 | DONE |
 | P1-21 | 编辑视图交互：增删节点、连线、右键菜单、自动布局按钮 | `web/src/canvas` | P1-09 | 组件测试 | TODO |
 | P1-22 | 右面板属性表单：http/poll/assert 三类节点编辑，保存为 pending 新版本 | `web/src/panels` | P1-21、P1-05 | E2E：编辑后保存生成新版本 | TODO |
 | P1-23 | Body/路径模板变量高亮与补全，列出上游可用变量 | `web/src/panels` | P1-22 | 只补全祖先节点变量 | TODO |
@@ -387,6 +387,7 @@ M0 两周联合评审：P0-56。
 | 2026-11-08 | P1-15 | TODO→DONE | `StatusBar` + `buildStatusBarModel`（SSE/SQLite、n/N·并行·轮询中、环境、耗时）；`asyncPollFail` run fixture；`statusBarModel.test.ts` |
 | 2026-11-08 | P1-16 | TODO→DONE | `web/src/nav`：`LeftNav` 场景状态点+通过率条、计划 ✓/⚠/✗、报告列表；`FIXTURE_NAV_CATALOG`；接入 `AppShell` |
 | 2026-11-08 | P1-17 | TODO→DONE | `WorkspaceTabBar` + `resolveWorkspaceForTab`；左导航双击打开场景/报告标签；`AppShell.tabs.test.tsx` |
+| 2026-11-09 | P1-20 | TODO→DONE | `RunNodeContextMenu`/`RunReplayActions`；`DagRunCanvas` 右键与报告回放条；AppShell 接线 `partialRerunNode`；`e2e/partial-rerun.spec.ts` |
 | 2026-11-08 | P1-19 | TODO→DONE | `Scheduler::with_partial_rerun` + `PartialRerun`；祖先须为 COMPLETED 且带 output；CLI `--from-run`/`--from-node` 从源 run 加载 seed 与 dag/env；`engine/tests/partial_rerun.rs` |
 | 2026-11-08 | P1-18 | TODO→DONE | `TopBar`/`RunControlBar`/`EnvironmentSelect`；`playwright.config.ts` + `e2e/run-controls.spec.ts`；Vitest 排除 `e2e/` |
 | 2026-11-08 | P0-27 | TODO→DONE | `NodeStatus` 从 store 移到 `model::status`，engine（`engine::state`）和 store 都重新导出它，避免两份状态机各自演化；store 的公开 API 不变。新增 `transition()`，返回 `InvalidTransition{from,to}`；serde 名称为全大写（PENDING…SKIPPED），并 derive JsonSchema。迁移规则沿用 P0-25：非终态允许原地停留（轮询每轮都会上报），终态不能再迁移。测试覆盖全部 49 种组合，期望表独立写出；另验证终态不可离开、从 PENDING 能到达所有状态、任一非终态都能走到终态，以及文本与 JSON 名称稳定 |
