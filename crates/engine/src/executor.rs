@@ -12,6 +12,7 @@ use serde_json::Value;
 
 use crate::cancel::CancelToken;
 use crate::environment::Environment;
+use crate::record::RunRecorder;
 use crate::render::VarContext;
 use crate::scheduler::NodeResult;
 
@@ -123,6 +124,8 @@ pub struct ExecContext {
     pub runner: Option<Arc<dyn NodeExecutor>>,
     /// The run's cancellation token; subworkflow nodes hand it to their child DAG.
     pub cancel: CancelToken,
+    /// Where the run's evidence goes; subworkflow nodes hand it to their child DAG.
+    pub recorder: Option<Arc<dyn RunRecorder>>,
 }
 
 impl fmt::Debug for ExecContext {
@@ -134,6 +137,7 @@ impl fmt::Debug for ExecContext {
             .field("frames", &self.frames)
             .field("runner", &self.runner.is_some())
             .field("cancel", &self.cancel)
+            .field("recorder", &self.recorder.is_some())
             .finish()
     }
 }

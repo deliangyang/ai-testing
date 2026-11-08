@@ -19,6 +19,7 @@ use model::scope::node_refs;
 use model::template::Part;
 use model::{Dag, Template, TemplateError, VarRef};
 use serde::Deserialize;
+use serde_json::Value;
 
 /// Name under which `base_url` is exposed to `${env:...}` references.
 pub const BASE_URL_VAR: &str = "BASE_URL";
@@ -306,6 +307,23 @@ impl Environment {
         self.from_process.contains(name)
     }
 
+    /// `value` with every occurrence of a process-environment value inside its strings replaced
+    /// by `****`, for evidence that leaves the engine (store, reports, logs).
+    pub fn mask(&self, value: &Value) -> Value {
+        let mut secrets: Vec<&str> = self
+            .from_process
+            .iter()
+            .filter_map(|name| self.var(name))
+            .filter(|v| !v.is_empty())
+            .collect();
+        if secrets.is_empty() {
+            return value.clone();
+        }
+        // Longest first, so a secret containing another is replaced whole.
+        secrets.sort_by(|a, b| b.len().cmp(&a.len()).then(a.cmp(b)));
+        mask_value(value, &secrets)
+    }
+
     /// Fails listing every `${env:NAME}` in the DAG's own-scope templates that this environment
     /// does not define. Malformed templates are the gate's concern and are ignored here.
     pub fn check_dag(&self, dag: &Dag) -> Result<(), EnvError> {
@@ -355,6 +373,23 @@ impl fmt::Debug for Environment {
             .field("name", &self.name)
             .field("variables", &masked)
             .finish()
+    }
+}
+
+fn mask_value(value: &Value, secrets: &[&str]) -> Value {
+    match value {
+        Value::String(s) => Value::String(
+            secrets
+                .iter()
+                .fold(s.clone(), |s, secret| s.replace(secret, "****")),
+        ),
+        Value::Array(items) => Value::Array(items.iter().map(|v| mask_value(v, secrets)).collect()),
+        Value::Object(map) => Value::Object(
+            map.iter()
+                .map(|(k, v)| (k.clone(), mask_value(v, secrets)))
+                .collect(),
+        ),
+        other => other.clone(),
     }
 }
 

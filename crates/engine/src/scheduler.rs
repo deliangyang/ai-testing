@@ -12,6 +12,7 @@ use tokio::task::JoinSet;
 use crate::cancel::CancelToken;
 use crate::environment::Environment;
 use crate::executor::{ExecContext, ExecError, ExecErrorKind, ExecOutput, Frame, NodeExecutor};
+use crate::record::{NodeRecord, RecordError, RunRecorder};
 use crate::state::{InvalidTransition, NodeStatus};
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -97,6 +98,9 @@ pub enum SchedulerError {
     /// An executor panicked or was aborted; that is a bug in the executor.
     #[error("executor task failed: {0}")]
     ExecutorCrashed(String),
+    /// The run finished but its evidence is incomplete.
+    #[error(transparent)]
+    Record(#[from] RecordError),
 }
 
 /// Runs a DAG in topological order with at most `max_parallel` nodes in flight.
@@ -121,6 +125,7 @@ pub struct Scheduler {
     frames: Vec<Frame>,
     inputs: Option<Value>,
     cancel: CancelToken,
+    recorder: Option<Arc<dyn RunRecorder>>,
 }
 
 impl Scheduler {
@@ -133,7 +138,16 @@ impl Scheduler {
             frames: Vec::new(),
             inputs: None,
             cancel: CancelToken::new(),
+            recorder: None,
         }
+    }
+
+    /// Reports node evidence, masked with the environment, to `recorder`. A recording failure
+    /// does not stop the run (cleanup must still happen) but makes [`Self::run`] fail.
+    #[must_use]
+    pub fn with_recorder(mut self, recorder: Option<Arc<dyn RunRecorder>>) -> Self {
+        self.recorder = recorder;
+        self
     }
 
     #[must_use]
@@ -210,6 +224,14 @@ impl Scheduler {
                 .advance(id, NodeStatus::Ready)?;
         }
 
+        let mut journal = Journal {
+            recorder: self.recorder.clone(),
+            run_id: run_id.to_owned(),
+            prefix: self.frames.iter().map(|f| format!("{}/", f.node)).collect(),
+            env: Arc::clone(&self.env),
+            error: None,
+            finished: Vec::new(),
+        };
         let mut started = Vec::new();
         let mut cancelled = false;
         let mut in_flight: JoinSet<(String, Result<ExecOutput, ExecError>)> = JoinSet::new();
@@ -239,9 +261,11 @@ impl Scheduler {
                             matches!(entry.status, NodeStatus::Pending | NodeStatus::Ready);
                         if unstarted && !is_cleanup(node) {
                             entry.advance(id, NodeStatus::Skipped)?;
+                            journal.finished.push(id.clone());
                         }
                     }
                 }
+                journal.flush(&nodes).await;
                 while in_flight.len() < limit {
                     let Some((_, id)) = ready.pop_first() else {
                         break;
@@ -262,10 +286,15 @@ impl Scheduler {
                         frames: self.frames.clone(),
                         runner: Some(Arc::clone(&self.executor)),
                         cancel: self.cancel.clone(),
+                        recorder: self.recorder.clone(),
                     };
                     self.result(&mut nodes, id)?
                         .advance(id, NodeStatus::Running)?;
                     started.push(id.to_owned());
+                    if journal.recorder.is_some() {
+                        let input = ctx.vars().resolve_node(node).ok();
+                        journal.started(id, input).await;
+                    }
 
                     let executor = Arc::clone(&self.executor);
                     let node = node.clone();
@@ -309,6 +338,7 @@ impl Scheduler {
                         entry.advance(&id, NodeStatus::Completed)?;
                         entry.output = Some(done.output);
                         entry.trace = done.trace;
+                        journal.finished.push(id.clone());
                         for (child, result) in done.children {
                             nodes.insert(format!("{id}/{child}"), result);
                         }
@@ -337,6 +367,7 @@ impl Scheduler {
                         entry.trace = error.trace.take();
                         let children = std::mem::take(&mut error.children);
                         entry.error = Some(error);
+                        journal.finished.push(id.clone());
                         for (child, result) in children {
                             nodes.insert(format!("{id}/{child}"), result);
                         }
@@ -347,6 +378,7 @@ impl Scheduler {
                         entry.trace = error.trace.take();
                         let children = std::mem::take(&mut error.children);
                         entry.error = Some(error);
+                        journal.finished.push(id.clone());
                         for (child, result) in children {
                             nodes.insert(format!("{id}/{child}"), result);
                         }
@@ -357,11 +389,17 @@ impl Scheduler {
                             let entry = self.result(&mut nodes, desc)?;
                             if entry.status == NodeStatus::Pending {
                                 entry.advance(desc, NodeStatus::Skipped)?;
+                                journal.finished.push(desc.to_owned());
                             }
                         }
                     }
                 }
+                journal.flush(&nodes).await;
             }
+        }
+        journal.flush(&nodes).await;
+        if let Some(error) = journal.error {
+            return Err(error.into());
         }
         Ok(RunOutcome {
             started,
@@ -378,6 +416,76 @@ impl Scheduler {
         nodes
             .get_mut(id)
             .ok_or_else(|| SchedulerError::ExecutorCrashed(format!("unknown node '{id}'")))
+    }
+}
+
+/// Forwards one scheduler's evidence to the recorder, masked and under the frame path.
+struct Journal {
+    recorder: Option<Arc<dyn RunRecorder>>,
+    run_id: String,
+    /// `<subworkflow node>/` per enclosing frame.
+    prefix: String,
+    env: Arc<Environment>,
+    /// The first recording failure; later records are dropped.
+    error: Option<RecordError>,
+    /// This DAG's nodes that became terminal and are not recorded yet.
+    finished: Vec<String>,
+}
+
+impl Journal {
+    async fn started(&mut self, id: &str, input: Option<Value>) {
+        let record = NodeRecord::Started {
+            node: format!("{}{id}", self.prefix),
+            input: input.map(|v| self.env.mask(&v)),
+        };
+        self.send(record).await;
+    }
+
+    async fn flush(&mut self, nodes: &BTreeMap<String, NodeResult>) {
+        for id in std::mem::take(&mut self.finished) {
+            let Some(result) = nodes.get(&id) else {
+                continue;
+            };
+            let record = NodeRecord::Finished {
+                node: format!("{}{id}", self.prefix),
+                result: self.mask(result),
+            };
+            self.send(record).await;
+        }
+    }
+
+    fn mask(&self, result: &NodeResult) -> NodeResult {
+        let mask = |v: &Value| self.env.mask(v);
+        NodeResult {
+            status: result.status,
+            output: result.output.as_ref().map(mask),
+            error: result.error.as_ref().map(|e| ExecError {
+                message: match mask(&Value::String(e.message.clone())) {
+                    Value::String(s) => s,
+                    _ => e.message.clone(),
+                },
+                detail: e.detail.as_ref().map(mask),
+                trace: e.trace.as_ref().map(mask),
+                ..ExecError::new(e.kind, String::new())
+            }),
+            trace: result.trace.as_ref().map(mask),
+        }
+    }
+
+    async fn send(&mut self, record: NodeRecord) {
+        let Some(recorder) = self.recorder.clone() else {
+            return;
+        };
+        if self.error.is_some() {
+            return;
+        }
+        let run_id = self.run_id.clone();
+        let outcome = tokio::task::spawn_blocking(move || recorder.record(&run_id, &record)).await;
+        match outcome {
+            Ok(Ok(())) => {}
+            Ok(Err(e)) => self.error = Some(e),
+            Err(e) => self.error = Some(RecordError(e.to_string())),
+        }
     }
 }
 

@@ -9,6 +9,7 @@ pub mod executor;
 pub mod http;
 pub mod jsonpath;
 pub mod poll;
+pub mod record;
 pub mod render;
 pub mod scheduler;
 pub mod state;
@@ -24,6 +25,10 @@ pub use executor::{
 };
 pub use http::{HttpClientError, HttpExecutor};
 pub use poll::PollExecutor;
+pub use record::{
+    load_results, FailureClassifier, NodeRecord, RecordError, RunRecorder, StoreRecorder,
+    Unclassified,
+};
 pub use render::{RenderError, RenderFailure, VarContext};
 pub use scheduler::{NodeResult, RunOutcome, Scheduler, SchedulerError, INPUT_NODE_ID};
 pub use state::{InvalidTransition, NodeStatus};
