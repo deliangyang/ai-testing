@@ -7,8 +7,8 @@ use common::{FixedClock, SeqIdGen, Timestamp};
 use engine::NodeStatus::{Completed, Failed, Skipped};
 use engine::{
     load_results, CancelToken, DagSource, Environment, ExecContext, ExecError, ExecErrorKind,
-    ExecFuture, ExecOutput, NodeExecutor, NodeRecord, RecordError, RunOutcome, RunRecorder,
-    Scheduler, SchedulerError, StoreRecorder, SubworkflowExecutor, Unclassified,
+    ExecFuture, ExecOutput, NodeExecutor, NodeRecord, RecordError, RuleClassifier, RunOutcome,
+    RunRecorder, Scheduler, SchedulerError, StoreRecorder, SubworkflowExecutor,
 };
 use model::nodes::DagRef;
 use model::{Dag, Node, NodeKind};
@@ -98,7 +98,8 @@ impl Fixture {
         let recorder = Arc::new(StoreRecorder::new(
             Arc::clone(&db),
             clock.clone(),
-            Arc::new(Unclassified),
+            Arc::new(SeqIdGen::new("rec")),
+            Arc::new(RuleClassifier::new().unwrap()),
         ));
         Self {
             db,
@@ -111,15 +112,12 @@ impl Fixture {
     async fn run(&self, scheduler: Scheduler, dag: &Dag) -> (String, RunOutcome) {
         let run = self
             .recorder
-            .begin_run(
-                &NewRun {
-                    dag_id: dag.id.clone(),
-                    dag_version: 1,
-                    env_name: "test".into(),
-                    mode: RunMode::Ci,
-                },
-                &self.ids,
-            )
+            .begin_run(&NewRun {
+                dag_id: dag.id.clone(),
+                dag_version: 1,
+                env_name: "test".into(),
+                mode: RunMode::Ci,
+            })
             .unwrap();
         let recorder: Arc<dyn RunRecorder> = self.recorder.clone();
         let outcome = scheduler
@@ -127,9 +125,7 @@ impl Fixture {
             .run(&run.id, dag)
             .await
             .unwrap();
-        self.recorder
-            .finish_run(&run.id, &outcome, &self.ids)
-            .unwrap();
+        self.recorder.finish_run(&run.id, &outcome).unwrap();
         (run.id, outcome)
     }
 
@@ -219,11 +215,12 @@ async fn rows_hold_resolved_input_trace_and_classification() {
     let b = f.row(&run_id, "b");
     assert_eq!(b.status, Failed);
     assert_eq!(b.input_resolved.as_ref().unwrap()["path"], "/b/a");
+    // The scripted error carries no assertion results, so no rule applies.
     assert_eq!(
         b.failure,
         Some(Failure {
             category: "unknown".into(),
-            error_code: "UNCLASSIFIED".into()
+            error_code: "UNKNOWN".into()
         })
     );
     assert_eq!(b.poll_trace, Some(json!([{"attempt": 1, "passed": false}])));

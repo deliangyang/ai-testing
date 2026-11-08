@@ -12,8 +12,8 @@ use std::sync::{Arc, Mutex, MutexGuard};
 use common::{Clock, IdGen};
 use serde_json::Value;
 use store::{
-    Db, ExecutionKey, Failure, NewRun, NodeExecutionRepository, NodeUpdate, RunRecord,
-    RunRepository, RunStatus, StoreError,
+    Db, ExecutionKey, Failure, FailureRecordRepository, NewFailure, NewRun,
+    NodeExecutionRepository, NodeUpdate, RunRecord, RunRepository, RunStatus, StoreError,
 };
 
 use crate::executor::{ExecError, ExecErrorKind};
@@ -53,26 +53,16 @@ pub trait FailureClassifier: Send + Sync {
     fn classify(&self, error: &ExecError) -> Failure;
 }
 
-/// Placeholder until the rule-based classifier is wired in: everything is `unknown`.
-#[derive(Debug, Clone, Copy, Default)]
-pub struct Unclassified;
-
-impl FailureClassifier for Unclassified {
-    fn classify(&self, _error: &ExecError) -> Failure {
-        Failure {
-            category: "unknown".to_owned(),
-            error_code: "UNCLASSIFIED".to_owned(),
-        }
-    }
-}
-
 /// Writes run evidence to SQLite.
 ///
 /// `output_json` holds the node output for `COMPLETED` rows and the serialized [`ExecError`]
-/// for rows that ended with an error (`FAILED`, or `SKIPPED` after an interruption).
+/// for rows that ended with an error (`FAILED`, or `SKIPPED` after an interruption). Every
+/// `FAILED` row is classified and gets a matching `failure_records` row in the same
+/// transaction.
 pub struct StoreRecorder {
     db: Arc<Mutex<Db>>,
     clock: Arc<dyn Clock>,
+    ids: Arc<dyn IdGen>,
     classifier: Arc<dyn FailureClassifier>,
 }
 
@@ -80,32 +70,29 @@ impl StoreRecorder {
     pub fn new(
         db: Arc<Mutex<Db>>,
         clock: Arc<dyn Clock>,
+        ids: Arc<dyn IdGen>,
         classifier: Arc<dyn FailureClassifier>,
     ) -> Self {
         Self {
             db,
             clock,
+            ids,
             classifier,
         }
     }
 
     /// Creates the `dag_runs` row and moves it to `RUNNING`.
-    pub fn begin_run(&self, run: &NewRun, ids: &dyn IdGen) -> Result<RunRecord, RecordError> {
+    pub fn begin_run(&self, run: &NewRun) -> Result<RunRecord, RecordError> {
         let db = self.lock()?;
-        let runs = RunRepository::new(db.conn(), self.clock.as_ref(), ids);
+        let runs = RunRepository::new(db.conn(), self.clock.as_ref(), self.ids.as_ref());
         let created = runs.create(run)?;
         Ok(runs.transition(&created.id, RunStatus::Running)?)
     }
 
     /// Moves the run to its final status.
-    pub fn finish_run(
-        &self,
-        run_id: &str,
-        outcome: &RunOutcome,
-        ids: &dyn IdGen,
-    ) -> Result<RunRecord, RecordError> {
+    pub fn finish_run(&self, run_id: &str, outcome: &RunOutcome) -> Result<RunRecord, RecordError> {
         let db = self.lock()?;
-        let runs = RunRepository::new(db.conn(), self.clock.as_ref(), ids);
+        let runs = RunRepository::new(db.conn(), self.clock.as_ref(), self.ids.as_ref());
         Ok(runs.transition(run_id, outcome.status())?)
     }
 
@@ -127,30 +114,43 @@ impl RunRecorder for StoreRecorder {
             }
             NodeRecord::Finished { node, result } => {
                 let key = ExecutionKey::new(run_id, node.as_str(), FIRST_ATTEMPT);
-                if repo.get(&key)?.is_none() {
-                    repo.insert(&key, NodeStatus::Pending, None)?;
-                }
                 let output = match (&result.error, result.status) {
                     (_, NodeStatus::Completed) => result.output.clone(),
                     (Some(error), _) => Some(error_json(error)?),
                     (None, _) => None,
                 };
-                let failure = (result.status == NodeStatus::Failed).then(|| match &result.error {
-                    Some(error) => self.classifier.classify(error),
-                    None => self.classifier.classify(&ExecError::new(
-                        ExecErrorKind::Internal,
-                        "failed without an error",
-                    )),
-                });
+                let missing = ExecError::new(ExecErrorKind::Internal, "failed without an error");
+                let error = result.error.as_ref().unwrap_or(&missing);
+                let failure =
+                    (result.status == NodeStatus::Failed).then(|| self.classifier.classify(error));
+
+                let tx = db
+                    .conn()
+                    .unchecked_transaction()
+                    .map_err(StoreError::from)?;
+                if repo.get(&key)?.is_none() {
+                    repo.insert(&key, NodeStatus::Pending, None)?;
+                }
                 repo.update(
                     &key,
                     &NodeUpdate {
                         status: result.status,
                         output,
                         poll_trace: result.trace.clone(),
-                        failure,
+                        failure: failure.clone(),
                     },
                 )?;
+                if let Some(failure) = failure {
+                    FailureRecordRepository::new(db.conn(), self.clock.as_ref(), self.ids.as_ref())
+                        .insert(&NewFailure {
+                            run_id: run_id.to_owned(),
+                            node_id: Some(node.clone()),
+                            failure_category: failure.category,
+                            error_code: Some(failure.error_code),
+                            raw_message: error.message.clone(),
+                        })?;
+                }
+                tx.commit().map_err(StoreError::from)?;
             }
         }
         Ok(())

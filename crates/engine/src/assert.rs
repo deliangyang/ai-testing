@@ -1,9 +1,10 @@
 //! `assert` nodes: every assertion is evaluated and reported, passing or not.
 //!
 //! Output `{results: [ConditionResult...]}`. If any assertion fails the node fails with
-//! [`ExecErrorKind::Assertion`] and the same `{results}` as error detail.
+//! [`ExecErrorKind::Assertion`] and the same `{results}` as error detail, plus
+//! `response: {status, body_excerpt}` when the target is an HTTP output.
 
-use model::{Node, NodeKind};
+use model::{to_canonical_json, Node, NodeKind};
 use serde_json::{json, Value};
 
 use crate::condition::{evaluate, ConditionResult};
@@ -49,22 +50,41 @@ impl NodeExecutor for AssertExecutor {
             }
 
             let failed: Vec<&ConditionResult> = results.iter().filter(|r| !r.passed).collect();
-            let output = json!({ "results": results });
-            match failed.first() {
-                None => Ok(output.into()),
-                Some(first) => Err(ExecError::new(
-                    ExecErrorKind::Assertion,
-                    format!(
-                        "{} of {} assertions failed; first: {}",
-                        failed.len(),
-                        results.len(),
-                        describe(first)
-                    ),
+            let message = failed.first().map(|first| {
+                format!(
+                    "{} of {} assertions failed; first: {}",
+                    failed.len(),
+                    results.len(),
+                    describe(first)
                 )
-                .with_detail(output)),
+            });
+            let mut output = json!({ "results": results });
+            match message {
+                None => Ok(output.into()),
+                Some(message) => {
+                    if let Some(response) = response_summary(target) {
+                        output["response"] = response;
+                    }
+                    Err(ExecError::new(ExecErrorKind::Assertion, message).with_detail(output))
+                }
             }
         })
     }
+}
+
+/// Characters of the target body kept in a failure detail.
+pub const BODY_EXCERPT_CHARS: usize = 512;
+
+/// `{status, body_excerpt}` of an HTTP-shaped target, for classifying the failure.
+fn response_summary(target: &Value) -> Option<Value> {
+    let status = target.get("status")?.as_u64()?;
+    let body = match target.get("body") {
+        None | Some(Value::Null) => String::new(),
+        Some(Value::String(s)) => s.clone(),
+        Some(other) => to_canonical_json(other).unwrap_or_default(),
+    };
+    let excerpt: String = body.chars().take(BODY_EXCERPT_CHARS).collect();
+    Some(json!({"status": status, "body_excerpt": excerpt}))
 }
 
 fn describe(result: &ConditionResult) -> String {
