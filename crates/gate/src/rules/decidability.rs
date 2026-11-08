@@ -8,9 +8,7 @@ use crate::schema_path::{lookup, Lookup};
 use crate::{Context, Issue, Rule};
 
 /// JSON types accepted by `type_is`.
-pub const TYPE_NAMES: [&str; 7] = [
-    "null", "boolean", "integer", "number", "string", "array", "object",
-];
+pub const TYPE_NAMES: [&str; 7] = Operator::TYPE_NAMES;
 
 /// Poll nodes and assertions must be mechanically decidable: every condition path is a
 /// singular JSONPath that exists on the checked output, `expected` fits the operator, and a

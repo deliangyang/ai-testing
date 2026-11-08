@@ -98,6 +98,12 @@ pub enum Operator {
 }
 
 impl Operator {
+    /// Accepted `expected` values of `type_is`. A number with no fractional part is both an
+    /// `integer` and a `number`.
+    pub const TYPE_NAMES: [&'static str; 7] = [
+        "null", "boolean", "integer", "number", "string", "array", "object",
+    ];
+
     /// `exists` / `not_exists` take no `expected` value; every other operator requires one.
     pub fn needs_expected(self) -> bool {
         !matches!(self, Operator::Exists | Operator::NotExists)

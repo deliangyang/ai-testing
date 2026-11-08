@@ -344,6 +344,7 @@ dependencies = [
  "classifier",
  "common",
  "model",
+ "regex",
  "reqwest",
  "rustls",
  "serde",
