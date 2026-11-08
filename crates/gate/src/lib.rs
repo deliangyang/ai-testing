@@ -37,6 +37,7 @@ impl Gate {
         Self::new()
             .with_rule(rules::StructureRule)
             .with_rule(rules::AcyclicRule)
+            .with_rule(rules::ReferenceRule)
     }
 
     #[must_use]

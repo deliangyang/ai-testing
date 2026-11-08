@@ -69,6 +69,20 @@ impl<'a> DagGraph<'a> {
             .flat_map(move |&i| adjacency[i].iter().map(move |&j| self.ids[j]))
     }
 
+    /// All transitive predecessors of `id` (excluding `id` unless it lies on a cycle).
+    pub fn ancestors(&self, id: &str) -> BTreeSet<&'a str> {
+        let mut seen = BTreeSet::new();
+        let mut stack: Vec<usize> = self.index.get(id).into_iter().copied().collect();
+        while let Some(i) = stack.pop() {
+            for &p in &self.pred[i] {
+                if seen.insert(p) {
+                    stack.push(p);
+                }
+            }
+        }
+        seen.into_iter().map(|i| self.ids[i]).collect()
+    }
+
     /// Kahn's algorithm; among ready nodes the smallest id goes first, so the order is unique.
     ///
     /// On failure returns one cycle as `[a, b, c]` meaning `a -> b -> c -> a`, rotated so the
@@ -182,6 +196,21 @@ mod tests {
     fn finds_cycle_downstream_of_acyclic_part() {
         let d = dag(&["s", "p", "q"], &[("s", "p"), ("p", "q"), ("q", "p")]);
         assert_eq!(DagGraph::new(&d).topo_order().unwrap_err(), vec!["p", "q"]);
+    }
+
+    #[test]
+    fn ancestors_are_transitive() {
+        let d = dag(
+            &["a", "b", "c", "d", "x"],
+            &[("a", "b"), ("b", "c"), ("d", "c"), ("x", "d")],
+        );
+        let g = DagGraph::new(&d);
+        assert_eq!(
+            g.ancestors("c").into_iter().collect::<Vec<_>>(),
+            vec!["a", "b", "d", "x"]
+        );
+        assert!(g.ancestors("a").is_empty());
+        assert!(g.ancestors("ghost").is_empty());
     }
 
     #[test]
