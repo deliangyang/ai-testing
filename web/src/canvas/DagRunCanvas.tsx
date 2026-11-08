@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useEffect, useMemo } from 'react'
 import {
   Background,
   Controls,
@@ -25,6 +25,22 @@ const nodeTypes: NodeTypes = {
   [DAG_RUN_NODE_TYPE]: DagRunNodeCard,
 }
 
+function FocusNodeEffect({ nodeId }: { nodeId?: string | null }) {
+  const { fitView } = useReactFlow()
+  useEffect(() => {
+    if (!nodeId) {
+      return
+    }
+    const handle = window.requestAnimationFrame(() => {
+      void fitView({ nodes: [{ id: nodeId }], padding: 0.35, duration: 200 })
+    })
+    return () => {
+      window.cancelAnimationFrame(handle)
+    }
+  }, [nodeId, fitView])
+  return null
+}
+
 function FitViewControl() {
   const { fitView } = useReactFlow()
   return (
@@ -44,10 +60,12 @@ function DagRunCanvasInner({
   dag,
   events,
   replaySeq,
+  focusNodeId,
 }: {
   dag: Dag
   events: StoredRunEvent[]
   replaySeq?: number
+  focusNodeId?: string | null
 }) {
   const view = useMemo(
     () => applyRunEvents(dag, events, replaySeq),
@@ -64,7 +82,7 @@ function DagRunCanvasInner({
       nodes={nodes}
       edges={edges}
       nodeTypes={nodeTypes}
-      fitView
+      fitView={!focusNodeId}
       fitViewOptions={{ padding: 0.2 }}
       nodesDraggable={false}
       nodesConnectable={false}
@@ -86,6 +104,7 @@ function DagRunCanvasInner({
       <Panel position="top-right">
         <FitViewControl />
       </Panel>
+      <FocusNodeEffect nodeId={focusNodeId} />
     </ReactFlow>
   )
 }
@@ -94,13 +113,24 @@ export interface DagRunCanvasProps {
   dag: Dag
   events: StoredRunEvent[]
   replaySeq?: number
+  focusNodeId?: string | null
 }
 
-export function DagRunCanvas({ dag, events, replaySeq }: DagRunCanvasProps) {
+export function DagRunCanvas({ dag, events, replaySeq, focusNodeId }: DagRunCanvasProps) {
   return (
-    <div className="dag-edit-canvas" data-testid="dag-run-canvas" aria-label="DAG 执行态画布">
+    <div
+      className="dag-edit-canvas"
+      data-testid="dag-run-canvas"
+      data-focus-node={focusNodeId ?? undefined}
+      aria-label="DAG 执行态画布"
+    >
       <ReactFlowProvider>
-        <DagRunCanvasInner dag={dag} events={events} replaySeq={replaySeq} />
+        <DagRunCanvasInner
+          dag={dag}
+          events={events}
+          replaySeq={replaySeq}
+          focusNodeId={focusNodeId}
+        />
       </ReactFlowProvider>
     </div>
   )

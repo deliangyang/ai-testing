@@ -1,0 +1,62 @@
+.run-log-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+}
+
+.run-log-list__title {
+    margin: 0;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: #9aa3b2;
+}
+
+.run-log-list__filter {
+    color: #e8c96a;
+    font-weight: 500;
+}
+
+.run-log-list__empty {
+    margin: 0;
+    color: #9aa3b2;
+    font-size: 0.75rem;
+}
+
+.run-log-list__items {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+}
+
+.run-log-list__item {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+    font-size: 0.72rem;
+    padding: 0.3rem 0.4rem;
+    border-radius: 4px;
+    border: 1px solid #2a2f3a;
+    background: #151820;
+}
+
+.run-log-list__item--error {
+    border-color: #5c3030;
+}
+
+.run-log-list__level {
+    text-transform: uppercase;
+    color: #9aa3b2;
+    min-width: 2.5rem;
+}
+
+.run-log-list__node {
+    color: #5b8def;
+}
+
+.run-log-list__message {
+    flex: 1;
+    color: #e8eaed;
+}

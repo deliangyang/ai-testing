@@ -1,14 +1,17 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 
-import { DagEditCanvas } from '../canvas'
-import { POLL_TIMEOUT_EXECUTION } from '../data/fixtures/pollTimeout'
-import { SERIAL_DAG } from '../data/fixtures/serial'
-import { ExecutionDetailPanel, PollTraceTable, flattenPollTraces } from '../panels'
+import { DagRunCanvas } from '../canvas'
+import { ASYNC_POLL_FAIL_SCENARIO } from '../data/fixtures/asyncPollFail'
+import { RunLogList } from '../drawer/RunLogList'
+import '../drawer/drawer.css'
+import { useFailureFocus } from '../focus'
+import { ExecutionDetailPanel, PollTraceTable } from '../panels'
 import { clampBottomDrawerHeight, clampRightPanelWidth, leftNavWidthPx } from './layout'
 import { shellTokens } from './tokens'
 import './shell.css'
 
 export function AppShell() {
+  const failureFocus = useFailureFocus(ASYNC_POLL_FAIL_SCENARIO)
   const [navCollapsed, setNavCollapsed] = useState(false)
   const [rightWidth, setRightWidth] = useState<number>(shellTokens.rightPanelWidthPx)
   const [drawerHeight, setDrawerHeight] = useState<number>(shellTokens.bottomDrawerHeightPx)
@@ -98,11 +101,15 @@ export function AppShell() {
             <section className="app-shell__center" aria-label="工作区">
               <div className="app-shell__tabs" role="tablist">
                 <span role="tab" aria-selected>
-                  场景 serial
+                  场景 async-poll
                 </span>
               </div>
               <main className="app-shell__canvas" data-testid="center-canvas">
-                <DagEditCanvas dag={SERIAL_DAG} />
+                <DagRunCanvas
+                  dag={failureFocus.dag}
+                  events={failureFocus.events}
+                  focusNodeId={failureFocus.failedNodeId}
+                />
               </main>
             </section>
 
@@ -120,7 +127,10 @@ export function AppShell() {
               data-testid="right-panel"
               style={{ width: `${String(rightWidth)}px` }}
             >
-              <ExecutionDetailPanel nodeId="wait_paid" execution={POLL_TIMEOUT_EXECUTION} />
+              <ExecutionDetailPanel
+                nodeId={failureFocus.failedNodeId ?? ''}
+                execution={failureFocus.execution}
+              />
             </aside>
           </div>
 
@@ -155,7 +165,11 @@ export function AppShell() {
             </div>
             {!drawerCollapsed ? (
               <div className="app-shell__drawer-body">
-                <PollTraceTable rows={flattenPollTraces([POLL_TIMEOUT_EXECUTION])} />
+                <RunLogList
+                  entries={failureFocus.filteredLogs}
+                  focusNodeId={failureFocus.failedNodeId}
+                />
+                <PollTraceTable rows={failureFocus.pollRows} />
               </div>
             ) : null}
           </section>
