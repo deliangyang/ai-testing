@@ -1,4 +1,5 @@
 export { ExecutionDetailPanel } from './ExecutionDetailPanel'
+export { NodePropertyPanel } from './NodePropertyPanel'
 export { PollTraceTable } from './PollTraceTable'
 export { PollTraceTimeline } from './PollTraceTimeline'
 export { extractAssertionRows } from './assertionResults'

@@ -1,4 +1,5 @@
 export { AppShell } from './AppShell'
+export { DagEditWorkbench } from './DagEditWorkbench'
 export { StatusBar } from './StatusBar'
 export { buildStatusBarModel } from './statusBarModel'
 export { clampBottomDrawerHeight, clampRightPanelWidth, leftNavWidthPx } from './layout'

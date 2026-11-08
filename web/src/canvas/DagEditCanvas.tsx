@@ -61,9 +61,11 @@ function AutoLayoutControl({ onLayout }: { onLayout: () => void }) {
 function DagEditCanvasInner({
   dag,
   onDagChange,
+  onSelectedNodeIdChange,
 }: {
   dag: Dag
   onDagChange: (dag: Dag) => void
+  onSelectedNodeIdChange?: (nodeId: string | null) => void
 }) {
   const { fitView } = useReactFlow()
   const [layoutPass, setLayoutPass] = useState(0)
@@ -151,6 +153,12 @@ function DagEditCanvasInner({
         event.preventDefault()
         openNodeMenu(node.id, event.clientX, event.clientY)
       }}
+      onNodeClick={(_, node) => {
+        onSelectedNodeIdChange?.(node.id)
+      }}
+      onPaneClick={() => {
+        onSelectedNodeIdChange?.(null)
+      }}
       fitView={layoutPass === 0}
       fitViewOptions={{ padding: 0.2 }}
       nodesDraggable
@@ -193,9 +201,11 @@ function DagEditCanvasInner({
 export interface DagEditCanvasProps {
   dag: Dag
   onDagChange?: (dag: Dag) => void
+  onSelectedNodeIdChange?: (nodeId: string | null) => void
 }
 
-function DagEditCanvasControlled({ dag, onDagChange }: DagEditCanvasProps) {
+function DagEditCanvasControlled(props: DagEditCanvasProps) {
+  const { dag, onDagChange } = props
   const [draft, setDraft] = useState(dag)
   useEffect(() => {
     setDraft(dag)
@@ -212,7 +222,11 @@ function DagEditCanvasControlled({ dag, onDagChange }: DagEditCanvasProps) {
       aria-label="DAG 编辑画布"
     >
       <ReactFlowProvider>
-        <DagEditCanvasInner dag={draft} onDagChange={change} />
+        <DagEditCanvasInner
+          dag={draft}
+          onDagChange={change}
+          onSelectedNodeIdChange={props.onSelectedNodeIdChange}
+        />
       </ReactFlowProvider>
     </div>
   )
