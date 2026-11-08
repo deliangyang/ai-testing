@@ -58,7 +58,7 @@ M0 两周联合评审：P0-56。
 |---|---|---|---|---|---|
 | P0-13 | 闸门框架：`Rule` trait、`Issue{code,severity(error/warn),node_id,json_path,message}`、`validate(&Dag)->Report`；规则可注册、结果按 (node_id, code) 稳定排序 | `crates/gate` | P0-05 | 空 DAG 与合法 DAG 用例；输出顺序确定 | DONE |
 | P0-14 | 结构规则：节点 ID 唯一、边端点存在、禁止自环、禁止重复边、禁止使用保留 id（`input`/`env`/`auth`） | `crates/gate` | P0-13 | 每条规则至少一个正例一个反例 | DONE |
-| P0-15 | 无环规则：Kahn 拓扑排序，失败时报告一条具体环路径 | `crates/gate` | P0-13 | 环 a→b→c→a 报告完整路径 | TODO |
+| P0-15 | 无环规则：Kahn 拓扑排序，失败时报告一条具体环路径 | `crates/gate` | P0-13 | 环 a→b→c→a 报告完整路径 | DONE |
 | P0-16 | 前驱引用规则：模板中 `${x.output...}` 的 x 必须是当前节点的祖先（传递闭包） | `crates/gate` | P0-10、P0-15 | 引用兄弟/后继节点均被拦截并定位到字段 | TODO |
 | P0-17 | 字段存在规则：被引用字段路径必须在上游 `response_schema` 中存在；上游无 schema 时降级为 warn | `crates/gate` | P0-16、P0-06 | 不存在字段报 error；无 schema 报 warn | TODO |
 | P0-18 | 轮询可判定规则：condition 路径可解析、op 与 expected 类型匹配、backoff 非空且单调非减、timeout ≥ backoff 首项 | `crates/gate` | P0-07、P0-13 | 4 类违规各一例 | TODO |
@@ -343,3 +343,4 @@ M0 两周联合评审：P0-56。
 | 2026-11-08 | P0-12 | TODO→DONE | schemars 1.x，draft 2020-12；`Node` 的 schema 手写为 `oneOf`，每种节点一个封闭对象；更新命令 `UPDATE_SCHEMAS=1 cargo test -p model --test schema_sync`；额外用 jsonschema 校验样例文档，并验证 7 类错误 schema 与解析器同样拒绝 |
 | 2026-11-08 | P0-13 | TODO→DONE | 问题码为点分小写字符串（如 `structure.duplicate_node_id`），位置用 JSON Pointer；排序键为 (node_id, code, json_path, severity, message)，并去除完全重复的问题；DAG 级问题（无 node_id）排在最前；warn 不阻塞 `passed()` |
 | 2026-11-08 | P0-14 | TODO→DONE | 额外增加 `structure.invalid_node_id`：节点 id 必须匹配 `[A-Za-z_][A-Za-z0-9_-]*`，与模板引用语法一致；新增 `Gate::standard()` 注册全部内置规则；重复 id 定位到后出现的那一处 |
+| 2026-11-08 | P0-15 | TODO→DONE | 拓扑排序与找环放在 `model::graph::DagGraph`（引擎 P0-28 复用，引擎不依赖 gate）；就绪节点按 id 字典序出队；环路径旋转为从最小 id 开始，并定位到环上第一条边；自环与悬空边在图中忽略，由结构规则报告 |

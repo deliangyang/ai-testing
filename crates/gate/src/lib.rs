@@ -34,7 +34,9 @@ impl Gate {
 
     /// All built-in rules; this is the gate every save and activation goes through.
     pub fn standard() -> Self {
-        Self::new().with_rule(rules::StructureRule)
+        Self::new()
+            .with_rule(rules::StructureRule)
+            .with_rule(rules::AcyclicRule)
     }
 
     #[must_use]
