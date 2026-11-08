@@ -248,7 +248,7 @@ struct Resolving;
 
 impl NodeExecutor for Resolving {
     fn execute<'a>(&'a self, node: &'a Node, ctx: ExecContext) -> ExecFuture<'a> {
-        Box::pin(async move { Ok(ctx.vars().resolve_node(node)?) })
+        Box::pin(async move { Ok(ctx.vars().resolve_node(node)?.into()) })
     }
 }
 

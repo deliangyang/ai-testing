@@ -12,7 +12,25 @@ use serde_json::Value;
 use crate::environment::Environment;
 use crate::render::VarContext;
 
-pub type ExecFuture<'a> = Pin<Box<dyn Future<Output = Result<Value, ExecError>> + Send + 'a>>;
+pub type ExecFuture<'a> = Pin<Box<dyn Future<Output = Result<ExecOutput, ExecError>> + Send + 'a>>;
+
+/// A successful execution: the node output plus, for poll nodes, the iteration trace that is
+/// stored separately from the output.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct ExecOutput {
+    pub output: Value,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub trace: Option<Value>,
+}
+
+impl From<Value> for ExecOutput {
+    fn from(output: Value) -> Self {
+        Self {
+            output,
+            trace: None,
+        }
+    }
+}
 
 /// What went wrong, as reported by an executor. Executors only describe the raw failure;
 /// mapping it to a failure category and error code is the classifier's job.
@@ -42,6 +60,9 @@ pub struct ExecError {
     /// Structured evidence for the classifier and the report (e.g. HTTP status, diff).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub detail: Option<Value>,
+    /// Poll iterations up to the failure.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub trace: Option<Value>,
 }
 
 impl ExecError {
@@ -50,12 +71,19 @@ impl ExecError {
             kind,
             message: message.into(),
             detail: None,
+            trace: None,
         }
     }
 
     #[must_use]
     pub fn with_detail(mut self, detail: Value) -> Self {
         self.detail = Some(detail);
+        self
+    }
+
+    #[must_use]
+    pub fn with_trace(mut self, trace: Value) -> Self {
+        self.trace = Some(trace);
         self
     }
 }

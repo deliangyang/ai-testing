@@ -51,7 +51,7 @@ impl NodeExecutor for AssertExecutor {
             let failed: Vec<&ConditionResult> = results.iter().filter(|r| !r.passed).collect();
             let output = json!({ "results": results });
             match failed.first() {
-                None => Ok(output),
+                None => Ok(output.into()),
                 Some(first) => Err(ExecError::new(
                     ExecErrorKind::Assertion,
                     format!(

@@ -51,7 +51,7 @@ impl NodeExecutor for Steered {
                 return Err(ExecError::new(ExecErrorKind::Assertion, "boom"));
             }
             let seen: Vec<&String> = ctx.outputs.keys().collect();
-            Ok(json!({"node": node.id, "seen": seen}))
+            Ok(json!({"node": node.id, "seen": seen}).into())
         })
     }
 }

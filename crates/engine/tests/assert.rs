@@ -246,7 +246,7 @@ async fn assert_node_passes_with_rendered_expectations() {
             {"path": "$.body.id", "op": "exists"}
         ]),
     );
-    let output = AssertExecutor.execute(&node, ctx()).await.unwrap();
+    let output = AssertExecutor.execute(&node, ctx()).await.unwrap().output;
     let results = output["results"].as_array().unwrap();
     assert_eq!(results.len(), 4);
     assert!(results.iter().all(|r| r["passed"] == json!(true)));

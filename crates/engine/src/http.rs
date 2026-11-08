@@ -168,7 +168,7 @@ impl NodeExecutor for HttpExecutor {
     fn execute<'a>(&'a self, node: &'a Node, ctx: ExecContext) -> ExecFuture<'a> {
         Box::pin(async move {
             match &node.kind {
-                NodeKind::Http(cfg) => self.send(&cfg.request(), &ctx, "").await,
+                NodeKind::Http(cfg) => self.send(&cfg.request(), &ctx, "").await.map(Into::into),
                 other => Err(ExecError::new(
                     ExecErrorKind::Unsupported,
                     format!("HTTP executor cannot run '{}' nodes", other.type_name()),

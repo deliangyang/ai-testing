@@ -51,7 +51,7 @@ impl NodeExecutor for MockExecutor {
                 format!("{} failed", node.id),
             ))
         } else {
-            Ok(json!({"from": node.id}))
+            Ok(json!({"from": node.id}).into())
         };
         Box::pin(async move { result })
     }

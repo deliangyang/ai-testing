@@ -45,7 +45,10 @@ fn node(value: Value) -> Node {
 }
 
 async fn run(server_uri: &str, config: Value) -> Result<Value, ExecError> {
-    executor().execute(&node(config), ctx(server_uri)).await
+    executor()
+        .execute(&node(config), ctx(server_uri))
+        .await
+        .map(|done| done.output)
 }
 
 #[tokio::test]

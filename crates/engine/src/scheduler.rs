@@ -9,7 +9,7 @@ use serde_json::Value;
 use tokio::task::JoinSet;
 
 use crate::environment::Environment;
-use crate::executor::{ExecContext, ExecError, NodeExecutor};
+use crate::executor::{ExecContext, ExecError, ExecOutput, NodeExecutor};
 use crate::state::{InvalidTransition, NodeStatus};
 
 #[derive(Debug, Clone, PartialEq, Serialize)]
@@ -19,6 +19,9 @@ pub struct NodeResult {
     pub output: Option<Value>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub error: Option<ExecError>,
+    /// Poll iteration trace, whether the node completed or failed.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub trace: Option<Value>,
 }
 
 impl NodeResult {
@@ -27,6 +30,7 @@ impl NodeResult {
             status: NodeStatus::Pending,
             output: None,
             error: None,
+            trace: None,
         }
     }
 
@@ -145,7 +149,7 @@ impl Scheduler {
         }
 
         let mut started = Vec::new();
-        let mut in_flight: JoinSet<(String, Result<Value, ExecError>)> = JoinSet::new();
+        let mut in_flight: JoinSet<(String, Result<ExecOutput, ExecError>)> = JoinSet::new();
         loop {
             while in_flight.len() < self.max_parallel {
                 let Some((_, id)) = ready.pop_first() else {
@@ -179,10 +183,11 @@ impl Scheduler {
             let (id, result) =
                 joined.map_err(|e| SchedulerError::ExecutorCrashed(e.to_string()))?;
             match result {
-                Ok(output) => {
+                Ok(done) => {
                     let entry = self.result(&mut nodes, &id)?;
                     entry.advance(&id, NodeStatus::Completed)?;
-                    entry.output = Some(output);
+                    entry.output = Some(done.output);
+                    entry.trace = done.trace;
                     for succ in graph.successors(&id) {
                         let Some(count) = waiting_on.get_mut(succ) else {
                             continue;
@@ -198,9 +203,10 @@ impl Scheduler {
                         }
                     }
                 }
-                Err(error) => {
+                Err(mut error) => {
                     let entry = self.result(&mut nodes, &id)?;
                     entry.advance(&id, NodeStatus::Failed)?;
+                    entry.trace = error.trace.take();
                     entry.error = Some(error);
                     for desc in graph.descendants(&id) {
                         if dag.node(desc).is_some_and(is_cleanup) {
