@@ -13,6 +13,9 @@ nodes:
     path: /orders
   - id: wait_paid
     type: poll
+    request: { method: GET, path: /orders/1 }
+    condition: { path: $.body.status, op: eq, expected: PAID }
+    backoff_ms: [500, 1000]
     timeout_ms: 30000
   - id: check
     type: assert

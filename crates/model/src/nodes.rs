@@ -75,10 +75,55 @@ impl HttpConfig {
     }
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum Operator {
+    Eq,
+    Ne,
+    Gt,
+    Gte,
+    Lt,
+    Lte,
+    Contains,
+    Exists,
+    NotExists,
+    Regex,
+    LenEq,
+    TypeIs,
+}
+
+impl Operator {
+    /// `exists` / `not_exists` take no `expected` value; every other operator requires one.
+    pub fn needs_expected(self) -> bool {
+        !matches!(self, Operator::Exists | Operator::NotExists)
+    }
+}
+
+/// A mechanically decidable check: JSONPath into a node output (`{status, headers, body}`),
+/// an operator and the expected value.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct Condition {
+    /// e.g. `$.body.status`
+    pub path: String,
+    pub op: Operator,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub expected: Option<Value>,
+}
+
+/// `poll` node: repeat `request` until `condition` holds, waiting `backoff_ms[i]` between
+/// attempts (the last interval repeats) and failing once `timeout_ms` has elapsed.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct PollConfig {
+    pub request: HttpRequest,
+    pub condition: Condition,
+    pub backoff_ms: Vec<u64>,
     pub timeout_ms: u64,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub max_attempts: Option<u32>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub response_schema: Option<Value>,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]

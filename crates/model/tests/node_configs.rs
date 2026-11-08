@@ -103,3 +103,74 @@ response_schema:
         assert!(msg.contains("headers"), "{msg}");
     }
 }
+
+mod poll {
+    use super::*;
+    use model::nodes::Operator;
+
+    const VALID: &str = r#"id: wait_paid
+type: poll
+request: { method: GET, path: "/orders/${create.output.body.id}" }
+condition: { path: $.body.status, op: eq, expected: PAID }
+backoff_ms: [500, 1000, 2000]
+timeout_ms: 30000"#;
+
+    fn without(field: &str) -> String {
+        VALID
+            .lines()
+            .filter(|l| !l.starts_with(&format!("{field}:")))
+            .collect::<Vec<_>>()
+            .join("\n")
+    }
+
+    #[test]
+    fn valid_config_deserializes() {
+        let NodeKind::Poll(cfg) = single_node(VALID).unwrap() else {
+            panic!("expected poll node")
+        };
+        assert_eq!(cfg.request.method, HttpMethod::Get);
+        assert_eq!(cfg.request.path, "/orders/${create.output.body.id}");
+        assert_eq!(cfg.condition.path, "$.body.status");
+        assert_eq!(cfg.condition.op, Operator::Eq);
+        assert_eq!(cfg.condition.expected, Some(json!("PAID")));
+        assert_eq!(cfg.backoff_ms, vec![500, 1000, 2000]);
+        assert_eq!(cfg.timeout_ms, 30000);
+        assert_eq!(cfg.max_attempts, None);
+    }
+
+    #[test]
+    fn each_required_field_is_enforced() {
+        for field in ["request", "condition", "backoff_ms", "timeout_ms"] {
+            let msg = error_message(single_node(&without(field)));
+            assert!(msg.contains(field), "missing {field}: {msg}");
+        }
+    }
+
+    #[test]
+    fn free_form_condition_expression_is_rejected() {
+        let input = VALID.replace(
+            "condition: { path: $.body.status, op: eq, expected: PAID }",
+            "condition: \"body.status == 'PAID'\"",
+        );
+        let msg = error_message(single_node(&input));
+        assert!(msg.contains("condition"), "{msg}");
+    }
+
+    #[test]
+    fn unknown_operator_is_rejected() {
+        let input = VALID.replace("op: eq", "op: approx");
+        let msg = error_message(single_node(&input));
+        assert!(msg.contains("approx"), "{msg}");
+    }
+
+    #[test]
+    fn exists_needs_no_expected_value() {
+        let input = VALID.replace("op: eq, expected: PAID", "op: exists");
+        let NodeKind::Poll(cfg) = single_node(&input).unwrap() else {
+            panic!("expected poll node")
+        };
+        assert_eq!(cfg.condition.expected, None);
+        assert!(!cfg.condition.op.needs_expected());
+        assert!(Operator::Eq.needs_expected());
+    }
+}

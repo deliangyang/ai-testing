@@ -45,7 +45,7 @@ M0 两周联合评审：P0-56。
 |---|---|---|---|---|---|
 | P0-05 | DAG 顶层类型：`Dag{id,version,nodes,edges,meta}`、`Node{id,name,kind}`、`Edge{from,to}`、`NodeKind` 枚举（六种），serde JSON/YAML 双向 | `crates/model` | P0-01 | JSON↔YAML round-trip 测试；未知节点类型反序列化报错并带路径 | DONE |
 | P0-06 | `http` 节点配置：method、path、query、headers、body 模板、`response_schema`（可选，JSON Schema） | `crates/model` | P0-05 | 样例 YAML 反序列化成功；非法 method 报错 | DONE |
-| P0-07 | `poll` 节点配置：被轮询请求、结构化 `condition`（path + op + expected，不允许自由表达式）、`backoff`（间隔序列，ms）、`timeout_ms`；缺 backoff/timeout 反序列化即失败 | `crates/model` | P0-06 | 缺字段用例失败；合法用例通过 | TODO |
+| P0-07 | `poll` 节点配置：被轮询请求、结构化 `condition`（path + op + expected，不允许自由表达式）、`backoff`（间隔序列，ms）、`timeout_ms`；缺 backoff/timeout 反序列化即失败 | `crates/model` | P0-06 | 缺字段用例失败；合法用例通过 | DONE |
 | P0-08 | `assert` 节点配置：`target`（引用上游输出）、`path`、`operator` 枚举（eq/ne/gt/gte/lt/lte/contains/exists/not_exists/regex/len_eq/type_is）、`expected` | `crates/model` | P0-05 | 每种 operator 均有反序列化用例 | TODO |
 | P0-09 | `db_query`/`subworkflow`/`cleanup` 配置类型（仅结构，执行在后续任务）：连接名+参数化 SQL+结果映射；`dag_ref{id,version_req}`+输入/输出 binding；cleanup 动作列表 | `crates/model` | P0-05 | 反序列化用例通过 | TODO |
 | P0-10 | 变量引用解析器：`${node.output.a.b[0]}`、`${env:VAR}`、`${auth.name}`、`$${` 转义；输出 AST，可从任意模板中提取全部引用 | `crates/model` | P0-05 | 表驱动单测 ≥20 例，含嵌套数组、非法语法定位到字符偏移 | TODO |
@@ -335,3 +335,4 @@ M0 两周联合评审：P0-56。
 | 2026-11-08 | P0-04 | TODO→DONE | `Timestamp` 为毫秒精度 UTC，序列化为 RFC 3339；`ManualSleeper` 采用虚拟时间（立即返回并推进配对的 `FixedClock`）；ID 生产实现用 UUID v7（按时间有序）。本地 GNU 工具链需要 MinGW（WinLibs gcc 16.2）提供 dlltool |
 | 2026-11-08 | P0-05 | TODO→DONE | 节点为扁平对象 `{id, name?, type, ...配置}`；经中间结构反序列化，使各类型配置仍可 `deny_unknown_fields`；YAML 库选用 `yaml_serde`（YAML 组织维护的 serde_yaml 后继）；六类节点配置暂为最小字段，由 P0-06~P0-09 补全 |
 | 2026-11-08 | P0-06 | TODO→DONE | 新增可复用的 `HttpRequest`（供 poll 使用）；`response_schema` 描述的是响应 body；method 接受大写或小写；新增 `timeout_ms` 可选字段 |
+| 2026-11-08 | P0-07 | TODO→DONE | 字段名为 `request`/`condition`/`backoff_ms`/`timeout_ms`，另有可选 `max_attempts`、`response_schema`；`Condition{path, op, expected?}` 与 `Operator` 枚举供 assert 复用；路径为作用于 `{status, headers, body}` 的 JSONPath；backoff 为空数组的情况留给闸门规则 P0-18 处理 |
