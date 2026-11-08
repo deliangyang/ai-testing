@@ -6,8 +6,8 @@ use std::sync::Arc;
 use anyhow::{anyhow, Context as _};
 use common::{TokioSleeper, UuidV7Gen};
 use engine::{
-    event_channel, CancelToken, EngineEvent, Environment, HttpExecutor, LogLevel, NodeRouter,
-    NodeStatus, RuleClassifier, RunOutcome, RunRecorder, Scheduler, StoreRecorder,
+    event_channel, load_results, CancelToken, EngineEvent, Environment, HttpExecutor, LogLevel,
+    NodeRouter, NodeStatus, RuleClassifier, RunOutcome, RunRecorder, Scheduler, StoreRecorder,
     SubworkflowExecutor, SystemEnv,
 };
 use model::{to_canonical_json, Dag};
@@ -39,19 +39,54 @@ struct Target {
 }
 
 async fn run_async(db_path: &Path, args: &RunArgs) -> anyhow::Result<u8> {
-    let dag = args
-        .dag
-        .as_deref()
-        .ok_or_else(|| anyhow!("--dag is required (or use `run show <run-id>`)"))?;
-    let env_name = args
-        .env
-        .as_deref()
-        .ok_or_else(|| anyhow!("--env is required"))?;
     let store = Store::open(db_path)?;
-    let target = match resolve(&store, dag)? {
+    let partial = partial_seed(&store, args)?;
+    let (dag_ref, env_name) = if let Some(seed_meta) = &partial {
+        let source = &seed_meta.source;
+        (
+            args.dag.as_deref().unwrap_or(source.dag_id.as_str()),
+            args.env.as_deref().unwrap_or(source.env_name.as_str()),
+        )
+    } else {
+        (
+            args.dag
+                .as_deref()
+                .ok_or_else(|| anyhow!("--dag is required (or use `run show <run-id>`)"))?,
+            args.env
+                .as_deref()
+                .ok_or_else(|| anyhow!("--env is required"))?,
+        )
+    };
+    let target = match resolve(&store, dag_ref)? {
         Ok(target) => target,
         Err(code) => return Ok(code),
     };
+    if let Some(seed_meta) = &partial {
+        let source = &seed_meta.source;
+        let from_node = &seed_meta.from_node;
+        if target.dag.id != source.dag_id {
+            return Err(anyhow!(
+                "DAG '{}' does not match source run '{}' (dag '{}')",
+                target.dag.id,
+                source.id,
+                source.dag_id
+            ));
+        }
+        if target.version != source.dag_version {
+            return Err(anyhow!(
+                "DAG version {} does not match source run '{}' (version {})",
+                target.version,
+                source.id,
+                source.dag_version
+            ));
+        }
+        if target.dag.node(from_node).is_none() {
+            return Err(anyhow!(
+                "node '{from_node}' is not in DAG '{}'",
+                target.dag.id
+            ));
+        }
+    }
     let env = Environment::load(&args.env_root, env_name, &SystemEnv)?;
     env.check_dag(&target.dag)?;
 
@@ -87,14 +122,18 @@ async fn run_async(db_path: &Path, args: &RunArgs) -> anyhow::Result<u8> {
     let interrupt = tokio::spawn(cancel_on_ctrl_c(cancel.clone()));
     let env = Arc::new(env);
     let sink_recorder: Arc<dyn RunRecorder> = recorder.clone();
-    let result = Scheduler::new(Arc::new(router))
+    let mut scheduler = Scheduler::new(Arc::new(router))
         .with_shared_environment(Arc::clone(&env))
         .with_max_parallel(parallel)
         .with_events(Some(sink))
         .with_recorder(Some(sink_recorder))
-        .with_cancel(cancel)
-        .run(&run.id, &target.dag)
-        .await;
+        .with_cancel(cancel);
+    if let Some(seed_meta) = partial {
+        let db = store.lock()?;
+        let seed = load_results(&db, store.clock.as_ref(), &seed_meta.source.id)?;
+        scheduler = scheduler.with_partial_rerun(seed_meta.from_node, seed);
+    }
+    let result = scheduler.run(&run.id, &target.dag).await;
     interrupt.abort();
     printer.await.context("progress printer failed")?;
 
@@ -114,6 +153,28 @@ async fn run_async(db_path: &Path, args: &RunArgs) -> anyhow::Result<u8> {
         RunStatus::Cancelled => exit::CANCELLED,
         _ => exit::RUN_FAILED,
     })
+}
+
+struct PartialSeed {
+    source: store::RunRecord,
+    from_node: String,
+}
+
+fn partial_seed(store: &Store, args: &RunArgs) -> anyhow::Result<Option<PartialSeed>> {
+    match (&args.from_run, &args.from_node) {
+        (None, None) => Ok(None),
+        (Some(run_id), Some(from_node)) => {
+            let db = store.lock()?;
+            let source = RunRepository::new(db.conn(), store.clock.as_ref(), &UuidV7Gen)
+                .get(run_id)?
+                .ok_or_else(|| anyhow!("run '{run_id}' not found"))?;
+            Ok(Some(PartialSeed {
+                source,
+                from_node: from_node.clone(),
+            }))
+        }
+        _ => Err(anyhow!("--from-run and --from-node must be used together")),
+    }
 }
 
 /// `Err` carries the exit code when the DAG cannot be run.

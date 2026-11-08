@@ -156,7 +156,7 @@ M0 两周联合评审：P0-56。
 | P1-16 | 左导航：场景库（最近状态点 + 通过率迷你条）、计划库（校验徽标）、报告列表 | `web/src/nav` | P1-03、P1-07 | 组件测试 | DONE |
 | P1-17 | 中央标签页：多场景/报告标签，双击导航项打开 | `web/src/shell` | P1-16 | 组件测试 | DONE |
 | P1-18 | 顶栏运行控制：运行/停止/重跑失败、运行模式切换、环境切换器（含连通性状态点） | `web/src/shell` | P1-05 | E2E 用例 | DONE |
-| P1-19 | 引擎：从指定节点起跑，复用已存档上游输出，仅重跑该节点及下游；CLI `run --from-run <id> --from-node <id>` | `crates/engine`、`crates/cli` | P0-40 | 单测：上游节点不再发请求 | TODO |
+| P1-19 | 引擎：从指定节点起跑，复用已存档上游输出，仅重跑该节点及下游；CLI `run --from-run <id> --from-node <id>` | `crates/engine`、`crates/cli` | P0-40 | 单测：上游节点不再发请求 | DONE |
 | P1-20 | UI 节点级重跑：右键「从此节点重跑」、回放视图「重跑此节点及下游」 | `web/src/canvas` | P1-19、P1-05 | E2E 用例 | TODO |
 | P1-21 | 编辑视图交互：增删节点、连线、右键菜单、自动布局按钮 | `web/src/canvas` | P1-09 | 组件测试 | TODO |
 | P1-22 | 右面板属性表单：http/poll/assert 三类节点编辑，保存为 pending 新版本 | `web/src/panels` | P1-21、P1-05 | E2E：编辑后保存生成新版本 | TODO |
@@ -387,6 +387,7 @@ M0 两周联合评审：P0-56。
 | 2026-11-08 | P1-15 | TODO→DONE | `StatusBar` + `buildStatusBarModel`（SSE/SQLite、n/N·并行·轮询中、环境、耗时）；`asyncPollFail` run fixture；`statusBarModel.test.ts` |
 | 2026-11-08 | P1-16 | TODO→DONE | `web/src/nav`：`LeftNav` 场景状态点+通过率条、计划 ✓/⚠/✗、报告列表；`FIXTURE_NAV_CATALOG`；接入 `AppShell` |
 | 2026-11-08 | P1-17 | TODO→DONE | `WorkspaceTabBar` + `resolveWorkspaceForTab`；左导航双击打开场景/报告标签；`AppShell.tabs.test.tsx` |
+| 2026-11-08 | P1-19 | TODO→DONE | `Scheduler::with_partial_rerun` + `PartialRerun`；祖先须为 COMPLETED 且带 output；CLI `--from-run`/`--from-node` 从源 run 加载 seed 与 dag/env；`engine/tests/partial_rerun.rs` |
 | 2026-11-08 | P1-18 | TODO→DONE | `TopBar`/`RunControlBar`/`EnvironmentSelect`；`playwright.config.ts` + `e2e/run-controls.spec.ts`；Vitest 排除 `e2e/` |
 | 2026-11-08 | P0-27 | TODO→DONE | `NodeStatus` 从 store 移到 `model::status`，engine（`engine::state`）和 store 都重新导出它，避免两份状态机各自演化；store 的公开 API 不变。新增 `transition()`，返回 `InvalidTransition{from,to}`；serde 名称为全大写（PENDING…SKIPPED），并 derive JsonSchema。迁移规则沿用 P0-25：非终态允许原地停留（轮询每轮都会上报），终态不能再迁移。测试覆盖全部 49 种组合，期望表独立写出；另验证终态不可离开、从 PENDING 能到达所有状态、任一非终态都能走到终态，以及文本与 JSON 名称稳定 |
 | 2026-11-08 | P0-28 | TODO→DONE | `NodeExecutor::execute(&Node, ExecContext) -> ExecFuture`，用装箱 Future，与 Sleeper 的写法一致，不引入 async_trait。`ExecContext` 只包含该节点已完成祖先的输出，作用域由调度器保证。执行器失败返回 `ExecError{kind, message, detail}`，只描述原始错误，分类留给 P0-43/P0-44。`Scheduler::run` 串行执行，每个节点经过 PENDING→READY→RUNNING→COMPLETED/FAILED，每一步都走 `NodeStatus::transition` 校验。顺序：`同层`理解为 Kahn 算法的轮次。`topo_order`（每次挑最小的就绪 id）在 a→b 加独立 c 的情况下会得到 a,b,c，与按层的 a,c,b 不同，因此在 model 新增 `DagGraph::topo_levels()`，也方便与 P0-29 的并行波次对齐。失败节点的后继暂时保持 PENDING，SKIPPED 与 cleanup 例外由 P0-30 处理；有环时返回 `SchedulerError::Cycle`，一个节点都不执行 |

@@ -141,6 +141,15 @@ pub struct RunArgs {
     /// Write the canonical run report to this file.
     #[arg(long)]
     pub report_json: Option<PathBuf>,
+
+    /// Reuse node outputs from this recorded run and only execute `--from-node` and its
+    /// descendants. Implies the DAG and environment of that run unless overridden.
+    #[arg(long, requires = "from_node")]
+    pub from_run: Option<String>,
+
+    /// Entry node for a partial rerun; requires `--from-run`.
+    #[arg(long, requires = "from_run")]
+    pub from_node: Option<String>,
 }
 
 #[cfg(test)]

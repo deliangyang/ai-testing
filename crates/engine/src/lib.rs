@@ -35,6 +35,8 @@ pub use record::{
 };
 pub use render::{RenderError, RenderFailure, VarContext};
 pub use router::NodeRouter;
-pub use scheduler::{NodeResult, RunOutcome, Scheduler, SchedulerError, INPUT_NODE_ID};
+pub use scheduler::{
+    NodeResult, PartialRerun, RunOutcome, Scheduler, SchedulerError, INPUT_NODE_ID,
+};
 pub use state::{InvalidTransition, NodeStatus};
 pub use subworkflow::{DagSource, StoreDagSource, SubworkflowExecutor};

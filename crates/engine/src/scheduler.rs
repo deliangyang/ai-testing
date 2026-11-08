@@ -86,6 +86,13 @@ impl RunOutcome {
     }
 }
 
+/// Re-run one node and its descendants using outputs archived from an earlier run.
+#[derive(Debug, Clone, PartialEq)]
+pub struct PartialRerun {
+    pub from_node: String,
+    pub seed: BTreeMap<String, NodeResult>,
+}
+
 #[derive(Debug, Clone, PartialEq, thiserror::Error)]
 pub enum SchedulerError {
     /// Gate-approved DAGs are acyclic; this means an unchecked DAG reached the engine.
@@ -102,6 +109,10 @@ pub enum SchedulerError {
     /// The run finished but its evidence is incomplete.
     #[error(transparent)]
     Record(#[from] RecordError),
+    #[error("partial rerun: node '{0}' is not in the DAG")]
+    UnknownFromNode(String),
+    #[error("partial rerun: ancestor '{node}' has no completed output in the source run")]
+    MissingAncestorOutput { node: String },
 }
 
 /// Runs a DAG in topological order with at most `max_parallel` nodes in flight.
@@ -128,6 +139,7 @@ pub struct Scheduler {
     cancel: CancelToken,
     recorder: Option<Arc<dyn RunRecorder>>,
     events: Option<EventSink>,
+    partial: Option<PartialRerun>,
 }
 
 impl Scheduler {
@@ -142,7 +154,24 @@ impl Scheduler {
             cancel: CancelToken::new(),
             recorder: None,
             events: None,
+            partial: None,
         }
+    }
+
+    /// Only `from_node` and its descendants are executed; every other node keeps the
+    /// corresponding entry from `seed`, which must hold a completed output for each ancestor
+    /// of `from_node`.
+    #[must_use]
+    pub fn with_partial_rerun(
+        mut self,
+        from_node: impl Into<String>,
+        seed: BTreeMap<String, NodeResult>,
+    ) -> Self {
+        self.partial = Some(PartialRerun {
+            from_node: from_node.into(),
+            seed,
+        });
+        self
     }
 
     /// Streams [`EngineEvent`]s; a top-level run ends with `RunFinished`.
@@ -214,10 +243,14 @@ impl Scheduler {
             .keys()
             .map(|id| ((*id).to_owned(), NodeResult::pending()))
             .collect();
-        let mut waiting_on: BTreeMap<&str, usize> = level_of
-            .keys()
-            .map(|id| (*id, graph.predecessors(id).count()))
-            .collect();
+        let mut waiting_on: BTreeMap<&str, usize> = BTreeMap::new();
+        if let Some(partial) = &self.partial {
+            apply_partial_rerun(dag, &graph, partial, &level_of, &mut nodes, &mut waiting_on)?;
+        } else {
+            for id in level_of.keys() {
+                waiting_on.insert(id, graph.predecessors(id).count());
+            }
+        }
         let cleanup: Vec<(usize, &str)> = level_of
             .iter()
             .filter(|(id, _)| dag.node(id).is_some_and(is_cleanup))
@@ -563,4 +596,55 @@ enum Phase {
 
 fn is_cleanup(node: &Node) -> bool {
     matches!(node.kind, NodeKind::Cleanup(_))
+}
+
+fn apply_partial_rerun<'a>(
+    dag: &Dag,
+    graph: &DagGraph,
+    partial: &PartialRerun,
+    level_of: &BTreeMap<&'a str, usize>,
+    nodes: &mut BTreeMap<String, NodeResult>,
+    waiting_on: &mut BTreeMap<&'a str, usize>,
+) -> Result<(), SchedulerError> {
+    if dag.node(&partial.from_node).is_none() {
+        return Err(SchedulerError::UnknownFromNode(partial.from_node.clone()));
+    }
+    let mut rerun = graph.descendants(&partial.from_node);
+    rerun.insert(partial.from_node.as_str());
+
+    for anc in graph.ancestors(&partial.from_node) {
+        if rerun.contains(anc) {
+            continue;
+        }
+        let Some(result) = partial.seed.get(anc) else {
+            return Err(SchedulerError::MissingAncestorOutput {
+                node: (*anc).to_owned(),
+            });
+        };
+        if result.status != NodeStatus::Completed || result.output.is_none() {
+            return Err(SchedulerError::MissingAncestorOutput {
+                node: (*anc).to_owned(),
+            });
+        }
+    }
+
+    for id in level_of.keys() {
+        if rerun.contains(*id) {
+            nodes.insert((*id).to_owned(), NodeResult::pending());
+        } else if let Some(result) = partial.seed.get(*id) {
+            nodes.insert((*id).to_owned(), result.clone());
+        }
+    }
+
+    for id in level_of.keys() {
+        let pending = nodes[*id].status == NodeStatus::Pending;
+        let count = graph
+            .predecessors(id)
+            .filter(|p| !nodes[*p].status.is_terminal())
+            .count();
+        if pending {
+            waiting_on.insert(*id, count);
+        }
+    }
+    Ok(())
 }
