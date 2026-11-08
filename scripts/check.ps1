@@ -34,7 +34,9 @@ function Invoke-Step([string]$Name, [scriptblock]$Body) {
 }
 
 function Invoke-Native([scriptblock]$Command) {
-    & $Command
+    # Output must not reach the pipeline: it would become part of the return value, and a
+    # non-empty array is truthy even when the command failed.
+    & $Command | Out-Host
     return ($LASTEXITCODE -eq 0)
 }
 

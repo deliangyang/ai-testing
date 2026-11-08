@@ -165,7 +165,10 @@ fn list_filters_and_orders_newest_first() {
             .map(|r| r.id)
             .collect()
     };
-    assert_eq!(ids(RunQuery::default()), vec![c.clone(), b.clone(), a.clone()]);
+    assert_eq!(
+        ids(RunQuery::default()),
+        vec![c.clone(), b.clone(), a.clone()]
+    );
     assert_eq!(
         ids(RunQuery {
             dag_id: Some("orders".into()),
