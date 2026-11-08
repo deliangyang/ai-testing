@@ -16,6 +16,13 @@ pub enum StoreError {
     #[error("migration V{version:03} is pending but V{applied:03} is already applied")]
     OutOfOrder { version: u32, applied: u32 },
 
+    #[error("{entity} cannot go from {from} to {to}")]
+    InvalidTransition {
+        entity: String,
+        from: String,
+        to: String,
+    },
+
     #[error("not found: {0}")]
     NotFound(String),
 
