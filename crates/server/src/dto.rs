@@ -1,10 +1,26 @@
 use common::clock::Timestamp;
+use gate::Report;
 use model::NodeStatus;
 use serde::Serialize;
 use serde_json::Value;
 use store::{
     DagRecord, DagStatus, DagVersionInfo, Failure, NodeExecution, RunMode, RunRecord, RunStatus,
 };
+
+#[derive(Debug, Clone, Serialize)]
+pub struct GateResponse {
+    pub passed: bool,
+    pub issues: Vec<gate::Issue>,
+}
+
+impl From<Report> for GateResponse {
+    fn from(report: Report) -> Self {
+        Self {
+            passed: report.passed(),
+            issues: report.issues,
+        }
+    }
+}
 
 #[derive(Debug, Clone, Serialize)]
 pub struct DagVersionDto {

@@ -15,6 +15,8 @@ use tracing_subscriber::EnvFilter;
 struct Args {
     #[arg(long, env = "AITEST_DB", default_value = "aitest.db")]
     db: PathBuf,
+    #[arg(long, default_value = ".")]
+    env_root: PathBuf,
     #[arg(long, default_value = "127.0.0.1:8790")]
     listen: SocketAddr,
 }
@@ -26,12 +28,14 @@ async fn main() -> anyhow::Result<()> {
         .init();
 
     let args = Args::parse();
-    let state = AppState::new(
+    let state = AppState::open(
         args.db,
+        args.env_root,
         Arc::new(SystemClock),
         Arc::new(UuidV7Gen),
         Arc::new(RunEventHub::new()),
-    );
+    )
+    .context("open store")?;
     let app = server::router(state).layer(TraceLayer::new_for_http());
     let listener = tokio::net::TcpListener::bind(args.listen)
         .await

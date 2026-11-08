@@ -10,41 +10,54 @@ use engine::{EngineEvent, NodeStatus};
 use http_body_util::BodyExt;
 use model::Dag;
 use server::{router, AppState, RunEventHub};
-use store::{DagRepository, Db, NewRun, RunMode, RunRepository, RunStatus};
+use store::{DagRepository, NewRun, RunMode, RunRepository, RunStatus};
 use tower::ServiceExt;
 
 fn seed_run(tmp: &tempfile::TempDir) -> (AppState, String) {
     let clock = Arc::new(FixedClock::new(Timestamp::from_unix_millis(1_000)));
     let hub = Arc::new(RunEventHub::new());
-    let state = AppState::new(
+    let state = AppState::open(
         tmp.path().join("t.db"),
+        tmp.path().to_path_buf(),
         clock.clone(),
         Arc::new(UuidV7Gen),
         hub.clone(),
-    );
+    )
+    .unwrap();
     let dag: Dag = serde_json::from_value(serde_json::json!({
         "id": "sse-fixture",
         "nodes": [{"id": "a", "type": "http", "method": "GET", "path": "/"}],
         "edges": []
     }))
     .unwrap();
-    let db = Db::open(state.db_path.clone(), clock.as_ref()).unwrap();
-    let saved = DagRepository::new(db.conn(), clock.as_ref())
-        .save(&dag, "test")
+    let saved = state
+        .with_locked_db(|db| DagRepository::new(db.conn(), clock.as_ref()).save(&dag, "test"))
         .unwrap();
-    DagRepository::new(db.conn(), clock.as_ref())
-        .activate("sse-fixture", saved.info.version, None)
-        .unwrap();
-    let run_repo = RunRepository::new(db.conn(), clock.as_ref(), &UuidV7Gen);
-    let run = run_repo
-        .create(&NewRun {
-            dag_id: "sse-fixture".into(),
-            dag_version: saved.info.version,
-            env_name: "local".into(),
-            mode: RunMode::Manual,
+    state
+        .with_locked_db(|db| {
+            DagRepository::new(db.conn(), clock.as_ref()).activate(
+                "sse-fixture",
+                saved.info.version,
+                None,
+            )
         })
         .unwrap();
-    run_repo.transition(&run.id, RunStatus::Running).unwrap();
+    let run = state
+        .with_locked_db(|db| {
+            RunRepository::new(db.conn(), clock.as_ref(), &UuidV7Gen).create(&NewRun {
+                dag_id: "sse-fixture".into(),
+                dag_version: saved.info.version,
+                env_name: "local".into(),
+                mode: RunMode::Manual,
+            })
+        })
+        .unwrap();
+    state
+        .with_locked_db(|db| {
+            RunRepository::new(db.conn(), clock.as_ref(), &UuidV7Gen)
+                .transition(&run.id, RunStatus::Running)
+        })
+        .unwrap();
     hub.push(
         &run.id,
         EngineEvent::NodeStateChanged {

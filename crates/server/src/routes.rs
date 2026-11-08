@@ -1,5 +1,5 @@
 use axum::extract::{Path, Query, State};
-use axum::routing::get;
+use axum::routing::{get, post};
 use axum::{Json, Router};
 use serde::Deserialize;
 use store::{DagRepository, NodeExecutionRepository, RunQuery, RunRepository};
@@ -8,18 +8,25 @@ use crate::dto::{DagDetailDto, DagVersionDto, NodeExecutionDto, RunDto};
 use crate::error::{ApiError, ApiResult};
 use crate::sse::run_event_stream;
 use crate::state::AppState;
+use crate::write::{activate_dag, cancel_run, save_dag, start_run, validate_dag};
 
 pub fn router(state: AppState) -> Router {
     Router::new()
         .route("/health", get(health))
-        .route("/api/dags", get(list_dags))
+        .route("/api/dags", get(list_dags).post(save_dag))
+        .route("/api/dags/validate", post(validate_dag))
         .route("/api/dags/{dag_id}/active", get(get_active_dag))
         .route(
             "/api/dags/{dag_id}/versions/{version}",
             get(get_dag_version),
         )
-        .route("/api/runs", get(list_runs))
+        .route(
+            "/api/dags/{dag_id}/versions/{version}/activate",
+            post(activate_dag),
+        )
+        .route("/api/runs", get(list_runs).post(start_run))
         .route("/api/runs/{run_id}", get(get_run))
+        .route("/api/runs/{run_id}/cancel", post(cancel_run))
         .route("/api/runs/{run_id}/executions", get(list_executions))
         .route("/api/runs/{run_id}/events", get(run_event_stream))
         .with_state(state)
@@ -32,10 +39,7 @@ async fn health() -> &'static str {
 async fn list_dags(State(state): State<AppState>) -> ApiResult<Json<Vec<DagVersionDto>>> {
     let state = state.clone();
     let rows = tokio::task::spawn_blocking(move || {
-        state.with_db(|db| {
-            let repo = DagRepository::new(db.conn(), state.clock.as_ref());
-            repo.list()
-        })
+        state.with_locked_db(|db| DagRepository::new(db.conn(), state.clock.as_ref()).list())
     })
     .await
     .map_err(|e| ApiError::Internal(e.to_string()))??;
@@ -49,10 +53,7 @@ async fn get_active_dag(
     let state = state.clone();
     let id = dag_id.clone();
     let record = tokio::task::spawn_blocking(move || {
-        state.with_db(|db| {
-            let repo = DagRepository::new(db.conn(), state.clock.as_ref());
-            repo.active(&id)
-        })
+        state.with_locked_db(|db| DagRepository::new(db.conn(), state.clock.as_ref()).active(&id))
     })
     .await
     .map_err(|e| ApiError::Internal(e.to_string()))??
@@ -69,9 +70,8 @@ async fn get_dag_version(
     let state = state.clone();
     let id = dag_id.clone();
     let record = tokio::task::spawn_blocking(move || {
-        state.with_db(|db| {
-            let repo = DagRepository::new(db.conn(), state.clock.as_ref());
-            repo.get(&id, version)
+        state.with_locked_db(|db| {
+            DagRepository::new(db.conn(), state.clock.as_ref()).get(&id, version)
         })
     })
     .await
@@ -100,9 +100,8 @@ async fn list_runs(
         limit: q.limit,
     };
     let rows = tokio::task::spawn_blocking(move || {
-        state.with_db(|db| {
-            let repo = RunRepository::new(db.conn(), state.clock.as_ref(), state.ids.as_ref());
-            repo.list(&query)
+        state.with_locked_db(|db| {
+            RunRepository::new(db.conn(), state.clock.as_ref(), state.ids.as_ref()).list(&query)
         })
     })
     .await
@@ -122,9 +121,8 @@ async fn get_run(
     let state = state.clone();
     let id = run_id.clone();
     let record = tokio::task::spawn_blocking(move || {
-        state.with_db(|db| {
-            let repo = RunRepository::new(db.conn(), state.clock.as_ref(), state.ids.as_ref());
-            repo.get(&id)
+        state.with_locked_db(|db| {
+            RunRepository::new(db.conn(), state.clock.as_ref(), state.ids.as_ref()).get(&id)
         })
     })
     .await
@@ -139,7 +137,7 @@ async fn list_executions(
 ) -> ApiResult<Json<Vec<NodeExecutionDto>>> {
     let state = state.clone();
     let rows = tokio::task::spawn_blocking(move || {
-        state.with_db(|db| {
+        state.with_locked_db(|db| {
             let runs = RunRepository::new(db.conn(), state.clock.as_ref(), state.ids.as_ref());
             if runs.get(&run_id)?.is_none() {
                 return Err(store::StoreError::NotFound(format!("run '{run_id}'")));

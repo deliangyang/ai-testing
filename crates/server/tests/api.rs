@@ -11,7 +11,7 @@ use server::{router, AppState, RunEventHub};
 use store::{
     DagRepository, ExecutionKey, NodeExecutionRepository, NodeUpdate, RunRepository, RunStatus,
 };
-use store::{Db, NewRun, RunMode};
+use store::{NewRun, RunMode};
 use tower::ServiceExt;
 
 fn sample_dag() -> Dag {
@@ -27,45 +27,61 @@ fn sample_dag() -> Dag {
 
 fn app(tmp: &tempfile::TempDir) -> axum::Router {
     let clock = Arc::new(FixedClock::new(Timestamp::from_unix_millis(1_000)));
-    let state = AppState::new(
+    let state = AppState::open(
         tmp.path().join("t.db"),
+        tmp.path().to_path_buf(),
         clock.clone(),
         Arc::new(UuidV7Gen),
         Arc::new(RunEventHub::new()),
-    );
-    let db = Db::open(state.db_path.clone(), clock.as_ref()).unwrap();
-    let saved = DagRepository::new(db.conn(), clock.as_ref())
-        .save(&sample_dag(), "test")
-        .unwrap();
-    DagRepository::new(db.conn(), clock.as_ref())
-        .activate("api-fixture", saved.info.version, None)
-        .unwrap();
-    let run_repo = RunRepository::new(db.conn(), clock.as_ref(), &UuidV7Gen);
-    let run = run_repo
-        .create(&NewRun {
-            dag_id: "api-fixture".into(),
-            dag_version: saved.info.version,
-            env_name: "local".into(),
-            mode: RunMode::Manual,
+    )
+    .unwrap();
+    let saved = state
+        .with_locked_db(|db| {
+            DagRepository::new(db.conn(), clock.as_ref()).save(&sample_dag(), "test")
         })
         .unwrap();
-    run_repo.transition(&run.id, RunStatus::Running).unwrap();
-    run_repo.transition(&run.id, RunStatus::Completed).unwrap();
-    let nodes = NodeExecutionRepository::new(db.conn(), clock.as_ref());
-    let key = ExecutionKey::new(&run.id, "ping", 1);
-    nodes
-        .insert(&key, model::NodeStatus::Running, None)
+    state
+        .with_locked_db(|db| {
+            DagRepository::new(db.conn(), clock.as_ref()).activate(
+                "api-fixture",
+                saved.info.version,
+                None,
+            )
+        })
         .unwrap();
-    nodes
-        .update(
-            &key,
-            &NodeUpdate {
-                status: model::NodeStatus::Completed,
-                output: Some(serde_json::json!({"status": 200})),
-                poll_trace: None,
-                failure: None,
-            },
-        )
+    let run = state
+        .with_locked_db(|db| {
+            let run_repo = RunRepository::new(db.conn(), clock.as_ref(), &UuidV7Gen);
+            run_repo.create(&NewRun {
+                dag_id: "api-fixture".into(),
+                dag_version: saved.info.version,
+                env_name: "local".into(),
+                mode: RunMode::Manual,
+            })
+        })
+        .unwrap();
+    state
+        .with_locked_db(|db| {
+            let run_repo = RunRepository::new(db.conn(), clock.as_ref(), &UuidV7Gen);
+            run_repo.transition(&run.id, RunStatus::Running)?;
+            run_repo.transition(&run.id, RunStatus::Completed)
+        })
+        .unwrap();
+    let key = ExecutionKey::new(&run.id, "ping", 1);
+    state
+        .with_locked_db(|db| {
+            let nodes = NodeExecutionRepository::new(db.conn(), clock.as_ref());
+            nodes.insert(&key, model::NodeStatus::Running, None)?;
+            nodes.update(
+                &key,
+                &NodeUpdate {
+                    status: model::NodeStatus::Completed,
+                    output: Some(serde_json::json!({"status": 200})),
+                    poll_trace: None,
+                    failure: None,
+                },
+            )
+        })
         .unwrap();
     router(state)
 }

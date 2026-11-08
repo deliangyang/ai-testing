@@ -28,7 +28,7 @@ pub async fn run_event_stream(
     let state_check = state.clone();
     let rid = run_id.clone();
     tokio::task::spawn_blocking(move || {
-        state_check.with_db(|db| {
+        state_check.with_locked_db(|db| {
             let repo = store::RunRepository::new(
                 db.conn(),
                 state_check.clock.as_ref(),
