@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react'
 
 import { DagRunCanvas } from '../canvas'
 import {
@@ -17,6 +17,12 @@ import { resolveWorkspaceForTab } from './resolveWorkspace'
 import { StatusBar } from './StatusBar'
 import { buildStatusBarModel } from './statusBarModel'
 import { shellTokens } from './tokens'
+import { TopBar } from './TopBar'
+import {
+  initialRunControlState,
+  runControlReducer,
+  type RunControlAction,
+} from './runControl'
 import { WorkspaceTabBar } from './WorkspaceTabBar'
 import {
   activeTabAfterClose,
@@ -49,17 +55,46 @@ export function AppShell() {
     return resolveWorkspaceForTab(active, FIXTURE_NAV_CATALOG) ?? ASYNC_POLL_FAIL_SCENARIO
   }, [workspaceTabs, activeTabKey])
 
+  const [runControl, dispatchRunControl] = useReducer(runControlReducer, initialRunControlState)
+
+  useEffect(() => {
+    const failed = activeWorkspace.run?.status === 'FAILED'
+    dispatchRunControl({ type: 'set_can_rerun_failed', value: failed })
+  }, [activeWorkspace])
+
   const failureFocus = useFailureFocus(activeWorkspace)
   const statusBar = useMemo(
     () =>
       buildStatusBarModel({
         dag: failureFocus.dag,
         events: failureFocus.events,
-        run: activeWorkspace.run ?? ASYNC_POLL_FAIL_RUN,
+        run: {
+          ...(activeWorkspace.run ?? ASYNC_POLL_FAIL_RUN),
+          env_name: runControl.envName,
+        },
         connections: { sqliteConnected: true, sseConnected: true },
       }),
-    [failureFocus.dag, failureFocus.events, activeWorkspace.run],
+    [failureFocus.dag, failureFocus.events, activeWorkspace.run, runControl.envName],
   )
+
+  const dispatchRun = useCallback((action: RunControlAction) => {
+    dispatchRunControl(action)
+  }, [])
+
+  const handleRun = useCallback(() => {
+    dispatchRun({ type: 'start_run' })
+  }, [dispatchRun])
+
+  const handleStop = useCallback(() => {
+    dispatchRun({ type: 'stop_run' })
+    queueMicrotask(() => {
+      dispatchRun({ type: 'finish_run', failed: false })
+    })
+  }, [dispatchRun])
+
+  const handleRerunFailed = useCallback(() => {
+    dispatchRun({ type: 'start_run' })
+  }, [dispatchRun])
 
   const openScenarioTab = useCallback((scenarioId: string) => {
     const title =
@@ -139,9 +174,18 @@ export function AppShell() {
       data-testid="app-shell"
     >
       <header className="app-shell__top" role="banner">
-        <strong>AITest</strong>
-        <span className="app-shell__nav-label">环境 local</span>
-        <span style={{ marginLeft: 'auto' }}>运行 · 搜索 · 设置</span>
+        <TopBar
+          runControl={runControl}
+          onEnvChange={(envName) => {
+            dispatchRunControl({ type: 'set_env', envName })
+          }}
+          onRun={handleRun}
+          onStop={handleStop}
+          onRerunFailed={handleRerunFailed}
+          onModeChange={(mode) => {
+            dispatchRunControl({ type: 'set_mode', mode })
+          }}
+        />
       </header>
 
       <div className="app-shell__body">
