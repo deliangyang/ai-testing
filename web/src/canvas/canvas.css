@@ -23,6 +23,13 @@
     border-color: #5b8def;
 }
 
+.dag-edit-canvas__toolbar {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    align-items: stretch;
+}
+
 .dag-node-card {
     box-sizing: border-box;
     width: 180px;

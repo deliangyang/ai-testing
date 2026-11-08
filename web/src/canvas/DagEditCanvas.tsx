@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import {
   Background,
   Controls,
@@ -6,12 +6,19 @@ import {
   Panel,
   ReactFlow,
   ReactFlowProvider,
+  useEdgesState,
+  useNodesState,
   useReactFlow,
+  type Connection,
   type NodeTypes,
+  type OnConnect,
+  type OnEdgesDelete,
 } from '@xyflow/react'
 
 import type { Dag } from '../types/generated'
+import { DagEditContextMenu, type DagEditMenuAction } from './DagEditContextMenu'
 import { DagNodeCard } from './DagNodeCard'
+import { addEdge as dagAddEdge, addHttpNode, removeEdge, removeNode } from './dagEdit'
 import { buildDagEditGraph, DAG_NODE_TYPE } from './dagToFlow'
 import { canvasTokens } from './tokens'
 import './canvas.css'
@@ -28,6 +35,7 @@ function FitViewControl() {
     <button
       type="button"
       className="dag-edit-canvas__fit"
+      data-testid="dag-edit-fit-view"
       onClick={() => {
         void fitView({ padding: 0.2, duration: 200 })
       }}
@@ -37,19 +45,118 @@ function FitViewControl() {
   )
 }
 
-function DagEditCanvasInner({ dag }: { dag: Dag }) {
-  const { nodes, edges } = useMemo(() => buildDagEditGraph(dag), [dag])
+function AutoLayoutControl({ onLayout }: { onLayout: () => void }) {
+  return (
+    <button
+      type="button"
+      className="dag-edit-canvas__fit"
+      data-testid="dag-edit-auto-layout"
+      onClick={onLayout}
+    >
+      自动布局
+    </button>
+  )
+}
+
+function DagEditCanvasInner({
+  dag,
+  onDagChange,
+}: {
+  dag: Dag
+  onDagChange: (dag: Dag) => void
+}) {
+  const { fitView } = useReactFlow()
+  const [layoutPass, setLayoutPass] = useState(0)
+  const [menu, setMenu] = useState<
+    { target: 'pane' | 'node'; nodeId?: string; x: number; y: number } | null
+  >(null)
+
+  const graph = useMemo(() => buildDagEditGraph(dag), [dag, layoutPass])
+  const [nodes, setNodes, onNodesChange] = useNodesState(graph.nodes)
+  const [edges, setEdges, onEdgesChange] = useEdgesState(graph.edges)
+
+  useEffect(() => {
+    setNodes(graph.nodes)
+    setEdges(graph.edges)
+  }, [graph, setNodes, setEdges])
+
+  const commitDag = useCallback(
+    (next: Dag) => {
+      onDagChange(next)
+    },
+    [onDagChange],
+  )
+
+  const onConnect: OnConnect = useCallback(
+    (connection: Connection) => {
+      if (!connection.source || !connection.target) {
+        return
+      }
+      commitDag(dagAddEdge(dag, connection.source, connection.target))
+    },
+    [commitDag, dag],
+  )
+
+  const onEdgesDelete: OnEdgesDelete = useCallback(
+    (removed) => {
+      let next = dag
+      for (const edge of removed) {
+        next = removeEdge(next, edge.source, edge.target)
+      }
+      commitDag(next)
+    },
+    [commitDag, dag],
+  )
+
+  const openPaneMenu = (clientX: number, clientY: number) => {
+    setMenu({ target: 'pane', x: clientX, y: clientY })
+  }
+
+  const openNodeMenu = (nodeId: string, clientX: number, clientY: number) => {
+    setMenu({ target: 'node', nodeId, x: clientX, y: clientY })
+  }
+
+  const onMenuAction = useCallback(
+    (action: DagEditMenuAction) => {
+      if (action.kind === 'add-http-node') {
+        commitDag(addHttpNode(dag))
+        return
+      }
+      commitDag(removeNode(dag, action.nodeId))
+    },
+    [commitDag, dag],
+  )
+
+  const runAutoLayout = useCallback(() => {
+    setLayoutPass((n) => n + 1)
+    queueMicrotask(() => {
+      void fitView({ padding: 0.2, duration: 200 })
+    })
+  }, [fitView])
 
   return (
     <ReactFlow
       nodes={nodes}
       edges={edges}
       nodeTypes={nodeTypes}
-      fitView
+      onNodesChange={onNodesChange}
+      onEdgesChange={onEdgesChange}
+      onConnect={onConnect}
+      onEdgesDelete={onEdgesDelete}
+      onPaneContextMenu={(event) => {
+        event.preventDefault()
+        openPaneMenu(event.clientX, event.clientY)
+      }}
+      onNodeContextMenu={(event, node) => {
+        event.preventDefault()
+        openNodeMenu(node.id, event.clientX, event.clientY)
+      }}
+      fitView={layoutPass === 0}
       fitViewOptions={{ padding: 0.2 }}
-      nodesDraggable={false}
-      nodesConnectable={false}
+      nodesDraggable
+      nodesConnectable
       elementsSelectable
+      deleteKeyCode={['Backspace', 'Delete']}
       proOptions={{ hideAttribution: true }}
       color={canvasTokens.edgeStroke}
     >
@@ -62,22 +169,55 @@ function DagEditCanvasInner({ dag }: { dag: Dag }) {
         nodeColor={() => canvasTokens.nodeBackground}
       />
       <Panel position="top-right">
-        <FitViewControl />
+        <div className="dag-edit-canvas__toolbar">
+          <AutoLayoutControl onLayout={runAutoLayout} />
+          <FitViewControl />
+        </div>
       </Panel>
+      {menu ? (
+        <DagEditContextMenu
+          x={menu.x}
+          y={menu.y}
+          target={menu.target}
+          nodeId={menu.nodeId}
+          onAction={onMenuAction}
+          onClose={() => {
+            setMenu(null)
+          }}
+        />
+      ) : null}
     </ReactFlow>
   )
 }
 
 export interface DagEditCanvasProps {
   dag: Dag
+  onDagChange?: (dag: Dag) => void
 }
 
-export function DagEditCanvas({ dag }: DagEditCanvasProps) {
+function DagEditCanvasControlled({ dag, onDagChange }: DagEditCanvasProps) {
+  const [draft, setDraft] = useState(dag)
+  useEffect(() => {
+    setDraft(dag)
+  }, [dag])
+
+  const change = onDagChange ?? setDraft
+
   return (
-    <div className="dag-edit-canvas" data-testid="dag-edit-canvas" aria-label="DAG 编辑画布">
+    <div
+      className="dag-edit-canvas"
+      data-testid="dag-edit-canvas"
+      data-node-count={draft.nodes.length}
+      data-edge-count={draft.edges?.length ?? 0}
+      aria-label="DAG 编辑画布"
+    >
       <ReactFlowProvider>
-        <DagEditCanvasInner dag={dag} />
+        <DagEditCanvasInner dag={draft} onDagChange={change} />
       </ReactFlowProvider>
     </div>
   )
+}
+
+export function DagEditCanvas(props: DagEditCanvasProps) {
+  return <DagEditCanvasControlled {...props} />
 }
