@@ -11,6 +11,7 @@ use tokio::task::JoinSet;
 
 use crate::cancel::CancelToken;
 use crate::environment::Environment;
+use crate::events::{EngineEvent, EventSink, LogLevel};
 use crate::executor::{ExecContext, ExecError, ExecErrorKind, ExecOutput, Frame, NodeExecutor};
 use crate::record::{NodeRecord, RecordError, RunRecorder};
 use crate::state::{InvalidTransition, NodeStatus};
@@ -126,6 +127,7 @@ pub struct Scheduler {
     inputs: Option<Value>,
     cancel: CancelToken,
     recorder: Option<Arc<dyn RunRecorder>>,
+    events: Option<EventSink>,
 }
 
 impl Scheduler {
@@ -139,7 +141,15 @@ impl Scheduler {
             inputs: None,
             cancel: CancelToken::new(),
             recorder: None,
+            events: None,
         }
+    }
+
+    /// Streams [`EngineEvent`]s; a top-level run ends with `RunFinished`.
+    #[must_use]
+    pub fn with_events(mut self, events: Option<EventSink>) -> Self {
+        self.events = events;
+        self
     }
 
     /// Reports node evidence, masked with the environment, to `recorder`. A recording failure
@@ -219,19 +229,20 @@ impl Scheduler {
                 ready.insert((0, id));
             }
         }
-        for &(_, id) in &ready {
-            self.result(&mut nodes, id)?
-                .advance(id, NodeStatus::Ready)?;
-        }
-
         let mut journal = Journal {
             recorder: self.recorder.clone(),
+            events: self.events.clone(),
             run_id: run_id.to_owned(),
             prefix: self.frames.iter().map(|f| format!("{}/", f.node)).collect(),
             env: Arc::clone(&self.env),
             error: None,
             finished: Vec::new(),
         };
+        for &(_, id) in &ready {
+            self.result(&mut nodes, id)?
+                .advance(id, NodeStatus::Ready)?;
+            journal.changed(id, NodeStatus::Ready);
+        }
         let mut started = Vec::new();
         let mut cancelled = false;
         let mut in_flight: JoinSet<(String, Result<ExecOutput, ExecError>)> = JoinSet::new();
@@ -245,6 +256,7 @@ impl Scheduler {
                         let entry = self.result(&mut nodes, id)?;
                         if entry.status == NodeStatus::Pending {
                             entry.advance(id, NodeStatus::Ready)?;
+                            journal.changed(id, NodeStatus::Ready);
                             ready.insert((level, id));
                         }
                     }
@@ -255,13 +267,18 @@ impl Scheduler {
                 if phase == Phase::Main && !cancelled && self.cancel.is_cancelled() {
                     cancelled = true;
                     ready.clear();
+                    journal.log(
+                        None,
+                        LogLevel::Warn,
+                        "run cancelled: interrupting running nodes, skipping the rest".to_owned(),
+                    );
                     for (id, entry) in nodes.iter_mut() {
                         let Some(node) = dag.node(id) else { continue };
                         let unstarted =
                             matches!(entry.status, NodeStatus::Pending | NodeStatus::Ready);
                         if unstarted && !is_cleanup(node) {
                             entry.advance(id, NodeStatus::Skipped)?;
-                            journal.finished.push(id.clone());
+                            journal.changed(id, NodeStatus::Skipped);
                         }
                     }
                 }
@@ -287,9 +304,11 @@ impl Scheduler {
                         runner: Some(Arc::clone(&self.executor)),
                         cancel: self.cancel.clone(),
                         recorder: self.recorder.clone(),
+                        events: self.events.clone(),
                     };
                     self.result(&mut nodes, id)?
                         .advance(id, NodeStatus::Running)?;
+                    journal.changed(id, NodeStatus::Running);
                     started.push(id.to_owned());
                     if journal.recorder.is_some() {
                         let input = ctx.vars().resolve_node(node).ok();
@@ -338,7 +357,7 @@ impl Scheduler {
                         entry.advance(&id, NodeStatus::Completed)?;
                         entry.output = Some(done.output);
                         entry.trace = done.trace;
-                        journal.finished.push(id.clone());
+                        journal.changed(&id, NodeStatus::Completed);
                         for (child, result) in done.children {
                             nodes.insert(format!("{id}/{child}"), result);
                         }
@@ -358,6 +377,7 @@ impl Scheduler {
                                 ready.insert((level_of.get(succ).copied().unwrap_or(0), succ));
                                 self.result(&mut nodes, succ)?
                                     .advance(succ, NodeStatus::Ready)?;
+                                journal.changed(succ, NodeStatus::Ready);
                             }
                         }
                     }
@@ -367,7 +387,7 @@ impl Scheduler {
                         entry.trace = error.trace.take();
                         let children = std::mem::take(&mut error.children);
                         entry.error = Some(error);
-                        journal.finished.push(id.clone());
+                        journal.changed(&id, NodeStatus::Skipped);
                         for (child, result) in children {
                             nodes.insert(format!("{id}/{child}"), result);
                         }
@@ -378,7 +398,7 @@ impl Scheduler {
                         entry.trace = error.trace.take();
                         let children = std::mem::take(&mut error.children);
                         entry.error = Some(error);
-                        journal.finished.push(id.clone());
+                        journal.changed(&id, NodeStatus::Failed);
                         for (child, result) in children {
                             nodes.insert(format!("{id}/{child}"), result);
                         }
@@ -389,7 +409,7 @@ impl Scheduler {
                             let entry = self.result(&mut nodes, desc)?;
                             if entry.status == NodeStatus::Pending {
                                 entry.advance(desc, NodeStatus::Skipped)?;
-                                journal.finished.push(desc.to_owned());
+                                journal.changed(desc, NodeStatus::Skipped);
                             }
                         }
                     }
@@ -398,14 +418,26 @@ impl Scheduler {
             }
         }
         journal.flush(&nodes).await;
-        if let Some(error) = journal.error {
-            return Err(error.into());
-        }
-        Ok(RunOutcome {
+        let outcome = RunOutcome {
             started,
             nodes,
             cancelled,
-        })
+        };
+        let error = journal.error.take();
+        if let Some(error) = &error {
+            journal.log(None, LogLevel::Error, error.to_string());
+        }
+        if self.frames.is_empty() {
+            let status = match error {
+                Some(_) => RunStatus::Failed,
+                None => outcome.status(),
+            };
+            journal.emit(EngineEvent::RunFinished { status });
+        }
+        match error {
+            Some(error) => Err(error.into()),
+            None => Ok(outcome),
+        }
     }
 
     fn result<'n>(
@@ -419,9 +451,10 @@ impl Scheduler {
     }
 }
 
-/// Forwards one scheduler's evidence to the recorder, masked and under the frame path.
+/// Forwards one scheduler's events and evidence, masked and under the frame path.
 struct Journal {
     recorder: Option<Arc<dyn RunRecorder>>,
+    events: Option<EventSink>,
     run_id: String,
     /// `<subworkflow node>/` per enclosing frame.
     prefix: String,
@@ -433,6 +466,35 @@ struct Journal {
 }
 
 impl Journal {
+    /// A node of this DAG moved to `status`; terminal nodes are queued for recording.
+    fn changed(&mut self, id: &str, status: NodeStatus) {
+        self.emit(EngineEvent::NodeStateChanged {
+            node: format!("{}{id}", self.prefix),
+            status,
+        });
+        if status.is_terminal() {
+            self.finished.push(id.to_owned());
+        }
+    }
+
+    fn log(&self, node: Option<&str>, level: LogLevel, message: String) {
+        let message = match self.env.mask(&Value::String(message)) {
+            Value::String(s) => s,
+            _ => String::new(),
+        };
+        self.emit(EngineEvent::Log {
+            node: node.map(|id| format!("{}{id}", self.prefix)),
+            level,
+            message,
+        });
+    }
+
+    fn emit(&self, event: EngineEvent) {
+        if let Some(events) = &self.events {
+            events.emit(event);
+        }
+    }
+
     async fn started(&mut self, id: &str, input: Option<Value>) {
         let record = NodeRecord::Started {
             node: format!("{}{id}", self.prefix),

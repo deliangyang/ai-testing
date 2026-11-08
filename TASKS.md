@@ -95,7 +95,7 @@ M0 两周联合评审：P0-56。
 | P0-38 | 闸门规则：跨 DAG 子工作流引用环检测（保存时执行，需要 store 只读视图） | `crates/gate` | P0-37 | A→B→A 引用环被拦截 | DONE |
 | P0-39 | 运行取消：取消令牌，运行中节点尽快终止，状态 CANCELLED，cleanup 仍执行 | `crates/engine` | P0-36 | 单测 | DONE |
 | P0-40 | 持久化接入：运行全过程写 `dag_runs`/`node_executions`（含 input_resolved、output、poll_trace） | `crates/engine` | P0-24、P0-25、P0-35 | 运行后可从库中完整重建每个节点证据 | DONE |
-| P0-41 | 引擎事件流 `EngineEvent`（NodeStateChanged/PollIteration/Log/RunFinished），通过 channel 输出，供 CLI 与 UI 订阅 | `crates/engine` | P0-28 | 事件顺序测试 | TODO |
+| P0-41 | 引擎事件流 `EngineEvent`（NodeStateChanged/PollIteration/Log/RunFinished），通过 channel 输出，供 CLI 与 UI 订阅 | `crates/engine` | P0-28 | 事件顺序测试 | DONE |
 
 ### 0.6 失败分类器（§4.5）
 
@@ -373,3 +373,4 @@ M0 两周联合评审：P0-56。
 | 2026-11-08 | P0-38 | DONE：新增 `SubworkflowCycleRule`（`subworkflow.cycle`，在入口节点报告完整环路径）与 `subworkflow.unknown_dag`（引用的 DAG/版本不存在）；`Gate::for_save(catalog)` = 标准规则 + 跨 DAG 环检测。偏差：gate 不能依赖 store，故在 gate 中定义只读视图 `DagCatalog` trait 并提供 `MapCatalog`，基于 store 的适配器留给保存入口（P0-47 CLI / server）实现；引用根 DAG 自身 id 时使用待保存文档而非库中版本；DFS 用已探索集合去重 |
 | 2026-11-08 | P0-39 | DONE：`CancelToken`（`Scheduler::with_cancel`，经 `ExecContext.cancel` 传入子工作流）；取消后未启动节点 SKIPPED，运行中节点被中断为 SKIPPED 并带 `cancelled` 错误，cleanup 照常执行，`RunOutcome::status()` 为 CANCELLED；子工作流由子 DAG 自行收尾（子 DAG 的 cleanup 也执行）；补上 P0-36 推迟的「前驱被取消」场景。偏差（ADR-003）：节点层面没有 CANCELLED 状态，状态机新增 RUNNING/POLLING→SKIPPED，以免取消进入失败分类；同步更新了 engine 与 store 的迁移矩阵测试 |
 | 2026-11-08 | P0-40 | DONE：`RunRecorder` 钩子（Started/Finished，经 spawn_blocking 写入），`StoreRecorder`（begin_run/finish_run + node_executions），`load_results` 从库中重建结果，与 `RunOutcome.nodes` 相等（含子工作流帧路径节点、取消、并行度 1/4 一致）；记录前用 `Environment::mask` 把进程环境变量值替换为 ****。偏差（ADR-004）：FAILED/被中断节点的 output_json 存 ExecError；分类器接入前使用占位 `Unclassified`（unknown/UNCLASSIFIED），由 P0-44 替换；READY/POLLING 不落库；attempt 固定为 1；记录失败不中止运行，cleanup 照常执行，最后返回 `SchedulerError::Record` |
+| 2026-11-08 | P0-41 | DONE：`EngineEvent`（node_state_changed / poll_iteration / log / run_finished，带 `type` 标签的 JSON），`event_channel()` 返回 `EventSink` 与 receiver，`Scheduler::with_events`，经 `ExecContext.events` 传给子工作流（节点 id 为帧路径）与 poll 执行器（发出 POLLING 状态与每次迭代，内容经脱敏）；只有顶层运行发出 `RunFinished`，取消时发出 Warn 日志。偏差：使用无界 channel，引擎从不因订阅者阻塞；POLLING 只出现在事件中，不进入 NodeResult 和库；记录失败时先发 Error 日志，再发 `RunFinished(FAILED)` |

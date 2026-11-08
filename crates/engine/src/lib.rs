@@ -5,6 +5,7 @@ pub mod cancel;
 pub mod cleanup;
 pub mod condition;
 pub mod environment;
+pub mod events;
 pub mod executor;
 pub mod http;
 pub mod jsonpath;
@@ -20,6 +21,7 @@ pub use cancel::CancelToken;
 pub use cleanup::CleanupExecutor;
 pub use condition::{evaluate, ConditionResult};
 pub use environment::{EnvError, Environment, ProcessEnv, SystemEnv};
+pub use events::{channel as event_channel, EngineEvent, EventSink, LogLevel};
 pub use executor::{
     ExecContext, ExecError, ExecErrorKind, ExecFuture, ExecOutput, Frame, NodeExecutor,
 };

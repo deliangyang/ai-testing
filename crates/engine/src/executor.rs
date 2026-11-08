@@ -12,6 +12,7 @@ use serde_json::Value;
 
 use crate::cancel::CancelToken;
 use crate::environment::Environment;
+use crate::events::{EngineEvent, EventSink};
 use crate::record::RunRecorder;
 use crate::render::VarContext;
 use crate::scheduler::NodeResult;
@@ -126,6 +127,8 @@ pub struct ExecContext {
     pub cancel: CancelToken,
     /// Where the run's evidence goes; subworkflow nodes hand it to their child DAG.
     pub recorder: Option<Arc<dyn RunRecorder>>,
+    /// Live progress events; subworkflow nodes hand it to their child DAG.
+    pub events: Option<EventSink>,
 }
 
 impl fmt::Debug for ExecContext {
@@ -138,11 +141,26 @@ impl fmt::Debug for ExecContext {
             .field("runner", &self.runner.is_some())
             .field("cancel", &self.cancel)
             .field("recorder", &self.recorder.is_some())
+            .field("events", &self.events.is_some())
             .finish()
     }
 }
 
 impl ExecContext {
+    /// `id` prefixed with the enclosing subworkflow nodes, as used in evidence and events.
+    pub fn node_path(&self, id: &str) -> String {
+        let mut path: String = self.frames.iter().map(|f| format!("{}/", f.node)).collect();
+        path.push_str(id);
+        path
+    }
+
+    /// Callers mask environment values in the event themselves.
+    pub fn emit(&self, event: EngineEvent) {
+        if let Some(events) = &self.events {
+            events.emit(event);
+        }
+    }
+
     pub fn vars(&self) -> VarContext<'_> {
         VarContext {
             env: &self.env,

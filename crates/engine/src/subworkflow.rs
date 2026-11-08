@@ -152,6 +152,7 @@ impl NodeExecutor for SubworkflowExecutor {
                 .with_inputs(inputs.clone())
                 .with_cancel(ctx.cancel.clone())
                 .with_recorder(ctx.recorder.clone())
+                .with_events(ctx.events.clone())
                 .run(&ctx.run_id, &child)
                 .await
                 .map_err(|e| ExecError::new(ExecErrorKind::Internal, e.to_string()))?;

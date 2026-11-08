@@ -18,11 +18,13 @@ use model::{Node, NodeKind};
 use serde_json::{json, Map, Value};
 
 use crate::condition::{evaluate, ConditionResult};
+use crate::events::EngineEvent;
 use crate::executor::{
     ExecContext, ExecError, ExecErrorKind, ExecFuture, ExecOutput, NodeExecutor,
 };
 use crate::http::HttpExecutor;
 use crate::render::RenderError;
+use crate::state::NodeStatus;
 
 pub struct PollExecutor {
     http: Arc<HttpExecutor>,
@@ -39,7 +41,12 @@ impl PollExecutor {
         }
     }
 
-    async fn poll(&self, cfg: &PollConfig, ctx: &ExecContext) -> Result<ExecOutput, ExecError> {
+    async fn poll(
+        &self,
+        node_path: &str,
+        cfg: &PollConfig,
+        ctx: &ExecContext,
+    ) -> Result<ExecOutput, ExecError> {
         let expected =
             match &cfg.condition.expected {
                 Some(value) => Some(ctx.vars().render_value(value).map_err(
@@ -53,6 +60,10 @@ impl PollExecutor {
         let timeout = Duration::from_millis(cfg.timeout_ms);
         let deadline = self.clock.now().saturating_add(timeout);
         let mut trace: Vec<Value> = Vec::new();
+        ctx.emit(EngineEvent::NodeStateChanged {
+            node: node_path.to_owned(),
+            status: NodeStatus::Polling,
+        });
 
         for attempt in 1u32.. {
             let mut entry = Map::new();
@@ -62,7 +73,9 @@ impl PollExecutor {
                 Ok(output) => {
                     let result = evaluate(&cfg.condition, expected.as_ref(), &output);
                     record(&mut entry, &result);
-                    trace.push(Value::Object(entry));
+                    let entry = Value::Object(entry);
+                    iteration(ctx, node_path, attempt, &entry);
+                    trace.push(entry);
                     if result.passed {
                         return Ok(ExecOutput {
                             output,
@@ -83,7 +96,9 @@ impl PollExecutor {
                         "error".into(),
                         json!({"kind": e.kind, "message": e.message}),
                     );
-                    trace.push(Value::Object(entry));
+                    let entry = Value::Object(entry);
+                    iteration(ctx, node_path, attempt, &entry);
+                    trace.push(entry);
                 }
             }
 
@@ -104,7 +119,7 @@ impl NodeExecutor for PollExecutor {
     fn execute<'a>(&'a self, node: &'a Node, ctx: ExecContext) -> ExecFuture<'a> {
         Box::pin(async move {
             match &node.kind {
-                NodeKind::Poll(cfg) => self.poll(cfg, &ctx).await,
+                NodeKind::Poll(cfg) => self.poll(&ctx.node_path(&node.id), cfg, &ctx).await,
                 other => Err(ExecError::new(
                     ExecErrorKind::Unsupported,
                     format!("poll executor cannot run '{}' nodes", other.type_name()),
@@ -112,6 +127,14 @@ impl NodeExecutor for PollExecutor {
             }
         })
     }
+}
+
+fn iteration(ctx: &ExecContext, node_path: &str, attempt: u32, entry: &Value) {
+    ctx.emit(EngineEvent::PollIteration {
+        node: node_path.to_owned(),
+        attempt,
+        entry: ctx.env.mask(entry),
+    });
 }
 
 /// Wait after attempt `attempt` (1-based); the last interval repeats.
