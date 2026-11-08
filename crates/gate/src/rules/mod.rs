@@ -1,10 +1,12 @@
 mod acyclic;
+mod completeness;
 mod decidability;
 mod fields;
 mod references;
 mod structure;
 
 pub use acyclic::AcyclicRule;
+pub use completeness::CompletenessRule;
 pub use decidability::{DecidabilityRule, TYPE_NAMES};
 pub use fields::FieldRule;
 pub use references::{ReferenceRule, INPUT_NODE_ID};

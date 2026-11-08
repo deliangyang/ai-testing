@@ -17,7 +17,19 @@ pub fn dag(nodes: Vec<Value>, edges: Vec<Value>) -> Dag {
     Dag::from_json_str(&doc.to_string()).unwrap()
 }
 
+/// Standard gate minus `completeness.*`, so rule-focused tests can use minimal DAGs.
 pub fn validate(dag: &Dag) -> Report {
+    let report = validate_all(dag);
+    Report::new(
+        report
+            .issues
+            .into_iter()
+            .filter(|i| !i.code.starts_with("completeness."))
+            .collect(),
+    )
+}
+
+pub fn validate_all(dag: &Dag) -> Report {
     Gate::standard().validate(dag)
 }
 

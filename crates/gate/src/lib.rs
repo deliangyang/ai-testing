@@ -42,6 +42,7 @@ impl Gate {
             .with_rule(rules::ReferenceRule)
             .with_rule(rules::FieldRule)
             .with_rule(rules::DecidabilityRule)
+            .with_rule(rules::CompletenessRule)
     }
 
     #[must_use]

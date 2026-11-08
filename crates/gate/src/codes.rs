@@ -25,3 +25,8 @@ pub const POLL_EMPTY_BACKOFF: &str = "poll.empty_backoff";
 pub const POLL_BACKOFF_DECREASING: &str = "poll.backoff_decreasing";
 pub const POLL_TIMEOUT_TOO_SHORT: &str = "poll.timeout_too_short";
 pub const POLL_ZERO_MAX_ATTEMPTS: &str = "poll.zero_max_attempts";
+
+pub const EMPTY_FIELD: &str = "completeness.empty_field";
+pub const ORPHAN_NODE: &str = "completeness.orphan_node";
+pub const CLEANUP_HAS_SUCCESSOR: &str = "completeness.cleanup_has_successor";
+pub const UNASSERTED_HTTP: &str = "completeness.unasserted_http";
