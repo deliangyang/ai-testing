@@ -3,6 +3,7 @@
 pub mod dags;
 pub mod db;
 pub mod error;
+pub mod failures;
 pub mod migrate;
 pub mod nodes;
 pub mod runs;
@@ -10,6 +11,7 @@ pub mod runs;
 pub use dags::{DagRecord, DagRepository, DagStatus, DagVersionInfo};
 pub use db::Db;
 pub use error::{Result, StoreError};
+pub use failures::{FailureRecord, FailureRecordRepository, NewFailure};
 pub use migrate::{Migration, MIGRATIONS};
 pub use nodes::{
     ExecutionKey, Failure, NodeExecution, NodeExecutionRepository, NodeStatus, NodeUpdate,
