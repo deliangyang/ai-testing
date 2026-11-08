@@ -1,7 +1,6 @@
 //! Node executions: one append-only evidence row per (run, node, attempt).
 
 use std::fmt;
-use std::str::FromStr;
 
 use common::clock::{Clock, Timestamp};
 use rusqlite::{params, Connection, OptionalExtension, Row};
@@ -9,81 +8,7 @@ use serde_json::Value;
 
 use crate::error::{Result, StoreError};
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub enum NodeStatus {
-    Pending,
-    Ready,
-    Running,
-    Polling,
-    Completed,
-    Failed,
-    Skipped,
-}
-
-impl NodeStatus {
-    pub const ALL: [NodeStatus; 7] = [
-        NodeStatus::Pending,
-        NodeStatus::Ready,
-        NodeStatus::Running,
-        NodeStatus::Polling,
-        NodeStatus::Completed,
-        NodeStatus::Failed,
-        NodeStatus::Skipped,
-    ];
-
-    pub fn as_str(self) -> &'static str {
-        match self {
-            NodeStatus::Pending => "PENDING",
-            NodeStatus::Ready => "READY",
-            NodeStatus::Running => "RUNNING",
-            NodeStatus::Polling => "POLLING",
-            NodeStatus::Completed => "COMPLETED",
-            NodeStatus::Failed => "FAILED",
-            NodeStatus::Skipped => "SKIPPED",
-        }
-    }
-
-    pub fn is_terminal(self) -> bool {
-        matches!(
-            self,
-            NodeStatus::Completed | NodeStatus::Failed | NodeStatus::Skipped
-        )
-    }
-
-    /// develop.md §3.2. Staying in a non-terminal status is allowed so a polling row can keep
-    /// updating its trace; nodes that have not started can be skipped after an upstream failure.
-    pub fn can_transition_to(self, to: NodeStatus) -> bool {
-        use NodeStatus::*;
-        if self.is_terminal() {
-            return false;
-        }
-        self == to
-            || matches!(
-                (self, to),
-                (Pending, Ready | Skipped)
-                    | (Ready, Running | Skipped)
-                    | (Running, Polling | Completed | Failed)
-                    | (Polling, Completed | Failed)
-            )
-    }
-}
-
-impl fmt::Display for NodeStatus {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str(self.as_str())
-    }
-}
-
-impl FromStr for NodeStatus {
-    type Err = StoreError;
-
-    fn from_str(s: &str) -> Result<Self> {
-        NodeStatus::ALL
-            .into_iter()
-            .find(|st| st.as_str() == s)
-            .ok_or_else(|| StoreError::Corrupt(format!("unknown node status '{s}'")))
-    }
-}
+pub use model::NodeStatus;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct ExecutionKey {
@@ -366,7 +291,10 @@ impl Raw {
         };
         Ok(NodeExecution {
             key: ExecutionKey::new(self.run_id, self.node_id, self.attempt),
-            status: self.status.parse()?,
+            status: self
+                .status
+                .parse()
+                .map_err(|e| StoreError::Corrupt(format!("{e}")))?,
             input_resolved: json(self.input)?,
             output: json(self.output)?,
             poll_trace: json(self.poll_trace)?,

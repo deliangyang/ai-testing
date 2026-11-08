@@ -278,6 +278,7 @@ dependencies = [
  "classifier",
  "common",
  "model",
+ "serde_json",
  "store",
 ]
 

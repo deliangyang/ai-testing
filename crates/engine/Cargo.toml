@@ -13,5 +13,8 @@ model = { workspace = true }
 store = { workspace = true }
 classifier = { workspace = true }
 
+[dev-dependencies]
+serde_json = { workspace = true }
+
 [lints]
 workspace = true
