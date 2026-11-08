@@ -13,6 +13,7 @@ pub mod jsonpath;
 pub mod poll;
 pub mod record;
 pub mod render;
+pub mod router;
 pub mod scheduler;
 pub mod state;
 pub mod subworkflow;
@@ -33,6 +34,7 @@ pub use record::{
     load_results, FailureClassifier, NodeRecord, RecordError, RunRecorder, StoreRecorder,
 };
 pub use render::{RenderError, RenderFailure, VarContext};
+pub use router::NodeRouter;
 pub use scheduler::{NodeResult, RunOutcome, Scheduler, SchedulerError, INPUT_NODE_ID};
 pub use state::{InvalidTransition, NodeStatus};
 pub use subworkflow::{DagSource, StoreDagSource, SubworkflowExecutor};
