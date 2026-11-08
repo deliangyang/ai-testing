@@ -26,7 +26,9 @@ describe('NodePropertyPanel', () => {
       />,
     )
 
-    expect(screen.getByTestId('prop-http-path-suggestions')).toHaveTextContent('${create.output.body}')
+    expect(screen.getByTestId('prop-http-path-suggestions')).toHaveTextContent(
+      '${create.output.body}',
+    )
     fireEvent.change(screen.getByTestId('prop-http-path'), { target: { value: '/orders/v2' } })
     expect(onDagChange).toHaveBeenCalled()
     fireEvent.click(screen.getByTestId('node-property-save'))

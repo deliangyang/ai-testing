@@ -23,7 +23,12 @@ describe('WorkspaceTabBar', () => {
     const onSelect = vi.fn()
     const onClose = vi.fn()
     render(
-      <WorkspaceTabBar tabs={tabs} activeKey={tabs[0]?.key ?? null} onSelect={onSelect} onClose={onClose} />,
+      <WorkspaceTabBar
+        tabs={tabs}
+        activeKey={tabs[0]?.key ?? null}
+        onSelect={onSelect}
+        onClose={onClose}
+      />,
     )
     fireEvent.click(screen.getByRole('tab', { name: '报告 run-1' }))
     expect(onSelect).toHaveBeenCalledWith(reportTabKey('run-1'))

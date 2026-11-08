@@ -11,8 +11,12 @@ describe('dagAncestors', () => {
 
   it('excludes siblings and the node itself', () => {
     expect(ancestorIds(ASYNC_POLL_DAG, 'wait_paid')).toEqual(['create', 'pay'])
-    expect(upstreamVariableSuggestions(ASYNC_POLL_DAG, 'wait_paid')).toContain('${create.output.body}')
+    expect(upstreamVariableSuggestions(ASYNC_POLL_DAG, 'wait_paid')).toContain(
+      '${create.output.body}',
+    )
     expect(upstreamVariableSuggestions(ASYNC_POLL_DAG, 'check')).toContain('${pay.output.body}')
-    expect(upstreamVariableSuggestions(ASYNC_POLL_DAG, 'check')).not.toContain('${wait_paid.output.body}')
+    expect(upstreamVariableSuggestions(ASYNC_POLL_DAG, 'check')).not.toContain(
+      '${wait_paid.output.body}',
+    )
   })
 })

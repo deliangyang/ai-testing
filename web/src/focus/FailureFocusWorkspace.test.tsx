@@ -12,10 +12,7 @@ function FailureFocusHarness() {
   return (
     <div data-testid="failure-focus-harness" data-focus-node={focus.failedNodeId ?? ''}>
       <DagRunCanvas dag={focus.dag} events={focus.events} focusNodeId={focus.failedNodeId} />
-      <ExecutionDetailPanel
-        nodeId={focus.failedNodeId ?? ''}
-        execution={focus.execution}
-      />
+      <ExecutionDetailPanel nodeId={focus.failedNodeId ?? ''} execution={focus.execution} />
       <RunLogList entries={focus.filteredLogs} focusNodeId={focus.failedNodeId} />
       <PollTraceTable rows={focus.pollRows} />
     </div>

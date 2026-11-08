@@ -9,7 +9,12 @@ export interface WorkspaceTabBarProps {
 
 export function WorkspaceTabBar({ tabs, activeKey, onSelect, onClose }: WorkspaceTabBarProps) {
   return (
-    <div className="app-shell__tabs" role="tablist" aria-label="工作区标签" data-testid="workspace-tabs">
+    <div
+      className="app-shell__tabs"
+      role="tablist"
+      aria-label="工作区标签"
+      data-testid="workspace-tabs"
+    >
       {tabs.map((tab) => {
         const selected = tab.key === activeKey
         return (

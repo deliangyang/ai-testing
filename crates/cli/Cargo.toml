@@ -22,7 +22,7 @@ engine = { workspace = true }
 schemars = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
-tokio = { workspace = true, features = ["signal"] }
+tokio = { workspace = true, features = ["signal", "rt-multi-thread"] }
 
 [dev-dependencies]
 jsonschema = { workspace = true }

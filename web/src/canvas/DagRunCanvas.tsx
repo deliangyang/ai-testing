@@ -1,4 +1,11 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type MouseEvent as DomMouseEvent } from 'react'
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type MouseEvent as DomMouseEvent,
+} from 'react'
 import {
   Background,
   Controls,
@@ -30,7 +37,9 @@ const nodeTypes: NodeTypes = {
   [DAG_RUN_NODE_TYPE]: DagRunNodeCard,
 }
 
-function fitCanvasView(fitView: (options: { padding: number; duration: number }) => Promise<boolean>) {
+function fitCanvasView(
+  fitView: (options: { padding: number; duration: number }) => Promise<boolean>,
+) {
   void fitView({ padding: 0.2, duration: 200 })
 }
 
@@ -62,11 +71,7 @@ function FitViewOnSignal({ token }: { token: number }) {
   return null
 }
 
-function SelectionBridge({
-  onChange,
-}: {
-  onChange: (nodeId: string | null) => void
-}) {
+function SelectionBridge({ onChange }: { onChange: (nodeId: string | null) => void }) {
   useOnSelectionChange({
     onChange: ({ nodes }) => {
       onChange(nodes[0]?.id ?? null)
@@ -120,10 +125,7 @@ function DagRunCanvasInner({
   const onNodeClick = useCallback((_: DomMouseEvent, node: Node) => {
     setSelectedNodeId(node.id)
   }, [])
-  const view = useMemo(
-    () => applyRunEvents(dag, events, replaySeq),
-    [dag, events, replaySeq],
-  )
+  const view = useMemo(() => applyRunEvents(dag, events, replaySeq), [dag, events, replaySeq])
   const { nodes, edges } = useMemo(
     () => buildDagRunGraph(dag, view.nodeStates),
     [dag, view.nodeStates],

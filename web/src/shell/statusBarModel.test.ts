@@ -1,9 +1,5 @@
 import { ASYNC_POLL_FAIL_SCENARIO } from '../data/fixtures/asyncPollFail'
-import {
-  buildStatusBarModel,
-  formatElapsed,
-  formatExecutionSummary,
-} from './statusBarModel'
+import { buildStatusBarModel, formatElapsed, formatExecutionSummary } from './statusBarModel'
 
 describe('statusBar', () => {
   it('formats elapsed time from run timestamps', () => {

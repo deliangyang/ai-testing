@@ -81,11 +81,7 @@ function initialStates(dag: Dag): Record<string, NodeRunState> {
 /**
  * Deterministic fold of stored SSE events into per-node execution visualization state.
  */
-export function applyRunEvents(
-  dag: Dag,
-  events: StoredRunEvent[],
-  upToSeq?: number,
-): RunViewModel {
+export function applyRunEvents(dag: Dag, events: StoredRunEvent[], upToSeq?: number): RunViewModel {
   const nodeStates = initialStates(dag)
   const sorted = [...events].sort((a, b) => a.seq - b.seq)
   const limit = upToSeq ?? Number.POSITIVE_INFINITY
@@ -98,20 +94,15 @@ export function applyRunEvents(
     const event = item.event
     switch (event.type) {
       case 'node_state_changed': {
-        const current = nodeStates[event.node]
-        if (current) {
-          current.status = event.status
-        }
+        nodeStates[event.node].status = event.status
         break
       }
       case 'poll_iteration': {
         const current = nodeStates[event.node]
-        if (current) {
-          current.pollAttempt = event.attempt
-          current.pollActual = pollActualFromEntry(event.entry)
-          if (current.status !== 'POLLING') {
-            current.status = 'POLLING'
-          }
+        current.pollAttempt = event.attempt
+        current.pollActual = pollActualFromEntry(event.entry)
+        if (current.status !== 'POLLING') {
+          current.status = 'POLLING'
         }
         break
       }
@@ -126,7 +117,7 @@ export function applyRunEvents(
   const total = sortedNodeIds(dag).length
   let done = 0
   for (const id of sortedNodeIds(dag)) {
-    if (isTerminal(nodeStates[id]?.status ?? 'PENDING')) {
+    if (isTerminal(nodeStates[id].status)) {
       done += 1
     }
   }

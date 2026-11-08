@@ -12,7 +12,7 @@ export function splitTemplateSegments(value: string): TemplateSegment[] {
   const segments: TemplateSegment[] = []
   let last = 0
   for (const match of value.matchAll(VAR_PATTERN)) {
-    const index = match.index ?? 0
+    const index = match.index
     if (index > last) {
       segments.push({ kind: 'text', text: value.slice(last, index) })
     }

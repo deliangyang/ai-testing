@@ -6,7 +6,10 @@ test.describe('partial rerun from node', () => {
     await page.getByTestId('dag-run-node-wait_paid').click({ button: 'right' })
     await expect(page.getByTestId('run-node-context-menu')).toBeVisible()
     await page.getByTestId('run-node-ctx-rerun').click()
-    await expect(page.getByTestId('dag-run-canvas')).toHaveAttribute('data-partial-rerun-node', 'wait_paid')
+    await expect(page.getByTestId('dag-run-canvas')).toHaveAttribute(
+      'data-partial-rerun-node',
+      'wait_paid',
+    )
     await expect(page.getByTestId('dag-run-canvas')).toHaveAttribute(
       'data-partial-rerun-from-run',
       'run-async-poll-fail',
@@ -19,7 +22,10 @@ test.describe('partial rerun from node', () => {
     await expect(page.getByTestId('run-replay-actions')).toBeVisible()
     await page.getByTestId('dag-run-node-wait_paid').click()
     await page.getByTestId('replay-rerun-from-node').click()
-    await expect(page.getByTestId('dag-run-canvas')).toHaveAttribute('data-partial-rerun-node', 'wait_paid')
+    await expect(page.getByTestId('dag-run-canvas')).toHaveAttribute(
+      'data-partial-rerun-node',
+      'wait_paid',
+    )
     await expect(page.getByTestId('dag-run-canvas')).toHaveAttribute(
       'data-partial-rerun-from-run',
       'run-async-poll-fail',

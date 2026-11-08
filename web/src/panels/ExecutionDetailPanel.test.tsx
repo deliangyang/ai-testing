@@ -12,7 +12,11 @@ describe('ExecutionDetailPanel', () => {
   })
 
   it('renders http request/response and timing for pay', () => {
-    const pay = SERIAL_EXECUTIONS.find((e) => e.node_id === 'pay')!
+    const pay = SERIAL_EXECUTIONS.find((e) => e.node_id === 'pay')
+    expect(pay).toBeDefined()
+    if (!pay) {
+      return
+    }
     render(<ExecutionDetailPanel nodeId="pay" execution={pay} />)
     expect(screen.getByTestId('execution-request')).toHaveTextContent('POST')
     expect(screen.getByTestId('execution-request')).toHaveTextContent('/orders/o-fixture/pay')
@@ -22,7 +26,11 @@ describe('ExecutionDetailPanel', () => {
   })
 
   it('renders passing assert output', () => {
-    const check = SERIAL_EXECUTIONS.find((e) => e.node_id === 'check')!
+    const check = SERIAL_EXECUTIONS.find((e) => e.node_id === 'check')
+    expect(check).toBeDefined()
+    if (!check) {
+      return
+    }
     render(<ExecutionDetailPanel nodeId="check" execution={check} />)
     const row = screen.getByTestId('assertion-$.status')
     expect(within(row).getByText('通过')).toBeInTheDocument()

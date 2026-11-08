@@ -8,12 +8,7 @@ describe('GlobalSearchDialog', () => {
     const onPick = vi.fn()
     const onClose = vi.fn()
     render(
-      <GlobalSearchDialog
-        open
-        catalog={FIXTURE_NAV_CATALOG}
-        onClose={onClose}
-        onPick={onPick}
-      />,
+      <GlobalSearchDialog open catalog={FIXTURE_NAV_CATALOG} onClose={onClose} onPick={onPick} />,
     )
     fireEvent.change(screen.getByTestId('global-search-input'), {
       target: { value: 'serial' },

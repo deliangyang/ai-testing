@@ -33,8 +33,13 @@ function looksLikeHttpResolved(value: unknown): boolean {
   )
 }
 
-function httpResponseBody(output: unknown): unknown | null {
-  if (output === null || typeof output !== 'object' || !('status' in output)) {
+function httpResponseBody(output: unknown): Record<string, unknown> | null {
+  if (
+    output === null ||
+    typeof output !== 'object' ||
+    Array.isArray(output) ||
+    !('status' in output)
+  ) {
     return null
   }
   return output
@@ -118,9 +123,7 @@ export function ExecutionDetailPanel({ nodeId, execution }: ExecutionDetailPanel
         <JsonSection title="实际响应" value={response} testId="execution-response" />
       ) : null}
 
-      {pollTrace.length > 0 ? (
-        <PollTraceTimeline nodeId={nodeId} entries={pollTrace} />
-      ) : null}
+      {pollTrace.length > 0 ? <PollTraceTimeline nodeId={nodeId} entries={pollTrace} /> : null}
 
       {assertions.length > 0 ? (
         <section className="panel-section" data-testid="execution-assertions">

@@ -6,6 +6,7 @@ class ResizeObserverMock {
   disconnect(): void {}
 }
 
-if (globalThis.ResizeObserver === undefined) {
-  globalThis.ResizeObserver = ResizeObserverMock
+if (!('ResizeObserver' in globalThis)) {
+  ;(globalThis as typeof globalThis & { ResizeObserver: typeof ResizeObserver }).ResizeObserver =
+    ResizeObserverMock
 }

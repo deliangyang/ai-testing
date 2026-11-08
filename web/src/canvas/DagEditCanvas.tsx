@@ -72,10 +72,15 @@ function DagEditCanvasInner({
 }) {
   const { fitView } = useReactFlow()
   const [layoutPass, setLayoutPass] = useState(0)
-  const [menu, setMenu] = useState<
-    { target: 'pane' | 'node'; nodeId?: string; x: number; y: number } | null
-  >(null)
+  const [menu, setMenu] = useState<{
+    target: 'pane' | 'node'
+    nodeId?: string
+    x: number
+    y: number
+  } | null>(null)
 
+  // layoutPass intentionally invalidates layout when user clicks "重新布局".
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- layoutPass is a relayout trigger, not graph input
   const graph = useMemo(() => buildDagEditGraph(dag), [dag, layoutPass])
   const [nodes, setNodes, onNodesChange] = useNodesState(graph.nodes)
   const [edges, setEdges, onEdgesChange] = useEdgesState(graph.edges)
@@ -212,9 +217,11 @@ export interface DagEditCanvasProps {
 function DagEditCanvasControlled(props: DagEditCanvasProps) {
   const { dag, onDagChange } = props
   const [draft, setDraft] = useState(dag)
-  useEffect(() => {
+  const [prevDag, setPrevDag] = useState(dag)
+  if (dag !== prevDag) {
+    setPrevDag(dag)
     setDraft(dag)
-  }, [dag])
+  }
 
   const change = onDagChange ?? setDraft
 

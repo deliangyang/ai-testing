@@ -12,12 +12,8 @@ export function RunReportSummaryBar({ summary }: RunReportSummaryBarProps) {
       </span>
       <span data-testid="run-report-elapsed">耗时 {summary.elapsed}</span>
       <span data-testid="run-report-mode">触发 {summary.modeLabel}</span>
-      <span data-testid="run-report-vs-pass">
-        较上次 {summary.vsLastPassRate ?? '—'}
-      </span>
-      <span data-testid="run-report-vs-elapsed">
-        耗时差 {summary.vsLastElapsed ?? '—'}
-      </span>
+      <span data-testid="run-report-vs-pass">较上次 {summary.vsLastPassRate ?? '—'}</span>
+      <span data-testid="run-report-vs-elapsed">耗时差 {summary.vsLastElapsed ?? '—'}</span>
     </div>
   )
 }

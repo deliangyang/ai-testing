@@ -169,8 +169,8 @@ M0 两周联合评审：P0-56。
 | P1-29 | Playwright E2E：轮询超时失败从「变红」到右面板看到完整证据 ≤2 次点击 | `web/e2e` | P1-13、P1-04 | E2E 通过并纳入 CI | DONE |
 | P1-30 | nsh 技术 spike：验证加载 web 组件、`native_module` 调用 engine/store、`nsh test` 无界面测试；结论写 ADR | `app/`、`docs/decisions/` | P1-09 | ADR 给出可行/不可行与替代方案 | DONE |
 | P1-31 | nsh 外壳集成：以 `native_module` 实现 `DataSource`，复用全部 web 组件 | `app/` | P1-30 | `nsh test` 跑通核心用例 | DONE |
-| P1-32 | **阶段 1 验收** | `docs/reviews/phase1.md` | P1-29、P1-25、P1-24、P1-31 | 验收通过 | DOING |
-| P1-32-fix1 | 阶段 1 验收阻塞：`check.ps1` prettier/clippy(`server` sse 测试)/eslint 全绿；`web:vitest` 在 check 流程稳定 | `web/`、`crates/server/`、`scripts/check.ps1` | P1-32 | `./scripts/check.ps1` exit 0 | TODO |
+| P1-32 | **阶段 1 验收** | `docs/reviews/phase1.md` | P1-29、P1-25、P1-24、P1-31 | 验收通过 | DONE |
+| P1-32-fix1 | 阶段 1 验收阻塞：`check.ps1` prettier/clippy(`server` sse 测试)/eslint 全绿；`web:vitest` 在 check 流程稳定 | `web/`、`crates/server/`、`scripts/check.ps1` | P1-32 | `./scripts/check.ps1` exit 0 | DONE |
 
 ---
 
@@ -392,6 +392,8 @@ M0 两周联合评审：P0-56。
 | 2026-11-09 | — | 编排 | [P1-32 预备](2c8a0b19-3f55-4bc2-8321-952fbd5707f3) → `docs/reviews/phase1.md`（7 行清单）；主编排已将 #1–#5 标为 Web 证据就绪 |
 | 2026-11-09 | — | 编排 | [P0-56 探索](1be80a6d-52da-429e-82a2-39ab665dc4c4) 后：Q8 文案同步 P1-29（细节见 `d5120c1`）；P0-56 仍 BLOCKED |
 | 2026-11-09 | P1-32 | 验收会话 | 功能证据：failure-evidence/gate-validation E2E、`DagReportReplayView` vitest、`cargo test -p nsh-bridge` 通过；`nsh test` SKIP；`check.ps1` exit 1 → `phase1.md` 结论不通过；新增 **P1-32-fix1**，P1-32 仍 DOING |
+| 2026-11-09 | P1-32-fix1 | DOING→DONE | → `a3f6136`：web prettier/eslint；`statusBar*.test` 重命名；server 测试 `TokioSleeper`；`mytool run` `multi_thread` runtime 修复 golden 死锁；golden 两次运行间重启 mock-sut；`schema.sql` 快照；`./scripts/check.ps1` exit 0 |
+| 2026-11-09 | P1-32 | DOING→DONE | → `a3f6136`：`phase1.md` #7 与结论**通过** |
 | 2026-11-09 | P1-31 | DOING→DONE | `nsh-bridge` 嵌入式 `server` + sync reads；`app/aitest` mixed（`native` `DataSource`/`WebUiHost`）；`NshDataSource`+`api_base`；`cargo test -p nsh-bridge`；`nsh test` 需本机 CLI |
 | 2026-11-09 | P1-30 | TODO→DONE | ADR-006；`nsh-bridge` store 探针；`app/` 脚手架与 `scripts/nsh-spike.ps1`；React 经 WebView+server 复用 |
 | 2026-11-09 | P1-27 | TODO→DONE | `useAppShellShortcuts`（运行/重跑/模式/F/搜索/帮助）；`GlobalSearchDialog`+`ShortcutHelpDialog`；状态栏提示；画布 `fitViewToken` |

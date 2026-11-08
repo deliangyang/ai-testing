@@ -7,7 +7,7 @@ use std::time::Duration;
 
 use axum::body::Body;
 use axum::http::{Request, StatusCode};
-use common::{FixedClock, Timestamp, UuidV7Gen};
+use common::{FixedClock, Sleeper, Timestamp, TokioSleeper, UuidV7Gen};
 use http_body_util::BodyExt;
 use mock_sut::MockSutBuilder;
 use model::Dag;
@@ -89,7 +89,7 @@ async fn wait_run_terminal(state: &AppState, run_id: &str) -> RunStatus {
         if status.is_terminal() {
             return status;
         }
-        tokio::time::sleep(Duration::from_millis(25)).await;
+        TokioSleeper.sleep(Duration::from_millis(25)).await;
     }
     panic!("run {run_id} did not finish");
 }
@@ -163,7 +163,7 @@ async fn write_api_validate_save_activate_and_run() {
     assert_eq!(res.status(), StatusCode::OK);
     let started = body_json(res).await;
     let run_id = started["run_id"].as_str().unwrap();
-    tokio::time::sleep(Duration::from_millis(50)).await;
+    TokioSleeper.sleep(Duration::from_millis(50)).await;
     let status = wait_run_terminal(&layout.state, run_id).await;
     assert_eq!(status, RunStatus::Completed);
 

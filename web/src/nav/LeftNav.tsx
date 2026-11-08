@@ -30,7 +30,10 @@ export function LeftNav({
       >
         {collapsed ? '»' : '«'}
       </button>
-      <div className={`left-nav${collapsed ? ' left-nav--collapsed' : ''}`} data-testid="left-nav-panel">
+      <div
+        className={`left-nav${collapsed ? ' left-nav--collapsed' : ''}`}
+        data-testid="left-nav-panel"
+      >
         <section className="left-nav__section" aria-label="场景库">
           <h2 className="left-nav__heading">场景库</h2>
           <ul className="left-nav__list" data-testid="nav-scenarios">

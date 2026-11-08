@@ -100,3 +100,16 @@ CREATE TABLE schema_migrations (
     checksum   TEXT NOT NULL,
     applied_at TEXT NOT NULL
 ) STRICT;
+
+CREATE TABLE ui_layouts (
+    scope_key   TEXT PRIMARY KEY,
+    layout_json TEXT NOT NULL CHECK (json_valid(layout_json)),
+    updated_at  TEXT NOT NULL
+) STRICT;
+
+CREATE TABLE workspace_presets (
+    id          TEXT PRIMARY KEY,
+    name        TEXT NOT NULL,
+    layout_json TEXT NOT NULL CHECK (json_valid(layout_json)),
+    updated_at  TEXT NOT NULL
+) STRICT;

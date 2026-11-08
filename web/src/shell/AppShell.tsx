@@ -2,10 +2,7 @@ import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'r
 
 import { DagReportReplayView, DagRunCanvas } from '../canvas'
 import { reportPreviousFor } from '../data/fixtures/reportPrevious'
-import {
-  ASYNC_POLL_FAIL_RUN,
-  ASYNC_POLL_FAIL_SCENARIO,
-} from '../data/fixtures/asyncPollFail'
+import { ASYNC_POLL_FAIL_RUN, ASYNC_POLL_FAIL_SCENARIO } from '../data/fixtures/asyncPollFail'
 import { BottomDrawer } from '../drawer/BottomDrawer'
 import '../drawer/drawer.css'
 import { watchVariablesFromExecutions } from '../drawer/watchVariables'
@@ -22,11 +19,7 @@ import { StatusBar } from './StatusBar'
 import { buildStatusBarModel } from './statusBarModel'
 import { shellTokens } from './tokens'
 import { TopBar } from './TopBar'
-import {
-  initialRunControlState,
-  runControlReducer,
-  type RunControlAction,
-} from './runControl'
+import { initialRunControlState, runControlReducer, type RunControlAction } from './runControl'
 import { GlobalSearchDialog } from './GlobalSearchDialog'
 import { ShortcutHelpDialog } from './ShortcutHelpDialog'
 import type { GlobalSearchItem } from './globalSearch'
@@ -138,7 +131,8 @@ export function AppShell() {
   }, [])
 
   const openReportTab = useCallback((reportId: string) => {
-    const title = FIXTURE_NAV_CATALOG.reports.find((item) => item.id === reportId)?.title ?? reportId
+    const title =
+      FIXTURE_NAV_CATALOG.reports.find((item) => item.id === reportId)?.title ?? reportId
     const tab: WorkspaceTab = {
       key: reportTabKey(reportId),
       kind: 'report',
@@ -152,7 +146,9 @@ export function AppShell() {
   const closeTab = useCallback((key: string) => {
     setWorkspaceTabs((prev) => {
       const next = closeWorkspaceTab(prev, key)
-      setActiveTabKey((current) => activeTabAfterClose(next, key, current) ?? INITIAL_WORKSPACE_TAB.key)
+      setActiveTabKey(
+        (current) => activeTabAfterClose(next, key, current) ?? INITIAL_WORKSPACE_TAB.key,
+      )
       return next.length > 0 ? next : [INITIAL_WORKSPACE_TAB]
     })
   }, [])
@@ -166,16 +162,22 @@ export function AppShell() {
     ? workspaceScopeKey(activeTab.kind, activeTab.refId)
     : workspaceScopeKey(INITIAL_WORKSPACE_TAB.kind, INITIAL_WORKSPACE_TAB.refId)
 
-  useEffect(() => {
+  const [hydratedScope, setHydratedScope] = useState<string | null>(null)
+  if (layoutScopeKey !== hydratedScope) {
+    setHydratedScope(layoutScopeKey)
     const stored = loadShellLayout(layoutScopeKey)
-    if (!stored) {
-      return
+    if (stored) {
+      setNavCollapsed(stored.nav_collapsed)
+      setRightWidth(clampRightPanelWidth(stored.right_width_px))
+      setDrawerHeight(clampBottomDrawerHeight(stored.drawer_height_px))
+      setDrawerCollapsed(stored.drawer_collapsed)
+    } else {
+      setNavCollapsed(false)
+      setRightWidth(shellTokens.rightPanelWidthPx)
+      setDrawerHeight(shellTokens.bottomDrawerHeightPx)
+      setDrawerCollapsed(false)
     }
-    setNavCollapsed(stored.nav_collapsed)
-    setRightWidth(clampRightPanelWidth(stored.right_width_px))
-    setDrawerHeight(clampBottomDrawerHeight(stored.drawer_height_px))
-    setDrawerCollapsed(stored.drawer_collapsed)
-  }, [layoutScopeKey])
+  }
 
   useEffect(() => {
     saveShellLayout(layoutScopeKey, {
@@ -327,9 +329,7 @@ export function AppShell() {
                     dag={failureFocus.dag}
                     events={failureFocus.events}
                     run={activeWorkspace.run}
-                    previous={
-                      activeTab ? reportPreviousFor(activeTab.refId) : undefined
-                    }
+                    previous={reportPreviousFor(activeTab.refId)}
                     focusNodeId={failureFocus.failedNodeId}
                     sourceRunId={sourceRunId}
                     partialRerunNode={partialRerunNode}

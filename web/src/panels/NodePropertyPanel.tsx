@@ -8,7 +8,30 @@ import { findNode, replaceNode } from './updateDagNode'
 import './panels.css'
 
 const HTTP_METHODS: HttpMethod[] = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'HEAD', 'OPTIONS']
-const OPERATORS: Operator[] = ['eq', 'ne', 'gt', 'gte', 'lt', 'lte', 'contains', 'exists', 'not_exists']
+const OPERATORS: Operator[] = [
+  'eq',
+  'ne',
+  'gt',
+  'gte',
+  'lt',
+  'lte',
+  'contains',
+  'exists',
+  'not_exists',
+]
+
+function jsonScalarFieldText(value: unknown): string {
+  if (value === null || value === undefined) {
+    return ''
+  }
+  if (typeof value === 'string') {
+    return value
+  }
+  if (typeof value === 'number' || typeof value === 'boolean') {
+    return String(value)
+  }
+  return JSON.stringify(value)
+}
 
 export interface NodePropertyPanelProps {
   dag: Dag
@@ -85,7 +108,7 @@ function PollFields({
   node: Extract<Node, { type: 'poll' }>
   onChange: (node: Node) => void
 }) {
-  const condition = node.condition as Condition
+  const condition = node.condition
   const suggestions = upstreamVariableSuggestions(dag, node.id)
   return (
     <>
@@ -154,11 +177,14 @@ function PollFields({
         <input
           data-testid="prop-poll-expected"
           type="text"
-          value={String(condition.expected ?? '')}
+          value={jsonScalarFieldText(condition.expected)}
           onChange={(e) => {
             onChange({
               ...node,
-              condition: { ...condition, expected: e.target.value as unknown as Condition['expected'] },
+              condition: {
+                ...condition,
+                expected: e.target.value as unknown as Condition['expected'],
+              },
             })
           }}
         />
@@ -199,7 +225,7 @@ function AssertFields({
   node: Extract<Node, { type: 'assert' }>
   onChange: (node: Node) => void
 }) {
-  const assertion = (node.assertions[0] ?? { path: '$.status', op: 'eq', expected: 200 }) as Condition
+  const assertion = node.assertions[0] ?? { path: '$.status', op: 'eq', expected: 200 }
   return (
     <>
       <Field label="目标节点">
@@ -243,11 +269,15 @@ function AssertFields({
         <input
           data-testid="prop-assert-expected"
           type="text"
-          value={String(assertion.expected ?? '')}
+          value={jsonScalarFieldText(assertion.expected)}
           onChange={(e) => {
             const raw = e.target.value
             const expected =
-              raw === '' ? undefined : ((Number.isNaN(Number(raw)) ? raw : Number(raw)) as unknown as Condition['expected'])
+              raw === ''
+                ? undefined
+                : ((Number.isNaN(Number(raw))
+                    ? raw
+                    : Number(raw)) as unknown as Condition['expected'])
             const next: Condition = { ...assertion, expected }
             onChange({ ...node, assertions: [next, ...node.assertions.slice(1)] })
           }}
@@ -257,7 +287,12 @@ function AssertFields({
   )
 }
 
-export function NodePropertyPanel({ dag, selectedNodeId, onDagChange, onSave }: NodePropertyPanelProps) {
+export function NodePropertyPanel({
+  dag,
+  selectedNodeId,
+  onDagChange,
+  onSave,
+}: NodePropertyPanelProps) {
   const node = useMemo(
     () => (selectedNodeId ? findNode(dag, selectedNodeId) : undefined),
     [dag, selectedNodeId],

@@ -113,7 +113,7 @@ describe('DataSource contract', () => {
     await exerciseDataSourceContract(
       () =>
         new NshDataSource({
-          ensureApi: async () => 'http://127.0.0.1:8790',
+          ensureApi: () => Promise.resolve('http://127.0.0.1:8790'),
         }),
     )
     vi.unstubAllGlobals()

@@ -39,9 +39,7 @@ export function DagEditWorkbench() {
   }, [dag])
 
   if (!dag) {
-    return (
-      <div data-testid="dag-edit-workbench-loading">加载 DAG…</div>
-    )
+    return <div data-testid="dag-edit-workbench-loading">加载 DAG…</div>
   }
 
   return (

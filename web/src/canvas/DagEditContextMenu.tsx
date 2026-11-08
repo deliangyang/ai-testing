@@ -1,8 +1,6 @@
 import { useEffect, useRef } from 'react'
 
-export type DagEditMenuAction =
-  | { kind: 'add-http-node' }
-  | { kind: 'delete-node'; nodeId: string }
+export type DagEditMenuAction = { kind: 'add-http-node' } | { kind: 'delete-node'; nodeId: string }
 
 export interface DagEditContextMenuProps {
   x: number

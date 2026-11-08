@@ -6,9 +6,9 @@
 
 任务 **P1-32**（阶段 1 验收）依赖 P1-29、P1-25、P1-24、P1-31。
 
-**结论**：**不通过**。阶段 1 **功能验收项**（#1–#6）关键 E2E/Vitest/`nsh-bridge` 在本机会话已复跑通过；**#7 全量 `./scripts/check.ps1` 未绿**（prettier / clippy / eslint 先期失败），P1-32 保持 `DOING`，修复见 **P1-32-fix1**。
+**结论**：**通过**。阶段 1 功能验收（#1–#6）与全量质量门（#7）在本机会话复跑通过；`./scripts/check.ps1` exit 0（2026-11-09）。修复项见 **P1-32-fix1**（已 `DONE`）。
 
-**签收会话**：2026-11-09（P1-32）。
+**签收会话**：2026-11-09（P1-32-fix1 收尾）。
 
 ## 验收清单
 
@@ -20,13 +20,11 @@
 | 4 | **P1-24**：编辑时实时校验 API；徽标 ✓/⚠/✗；问题列表点击定位节点 | `cd web; npx playwright test e2e/gate-validation.spec.ts` | **通过**：`live gate validation updates badge and focuses issue node` — 1 passed (~14.9s)，2026-11-09 |
 | 5 | **P1-29**：Playwright E2E（轮询超时证据链）纳入仓库质量检查 | `.github/workflows/ci.yml` job `web-e2e` | **已配置**：`ci.yml` → `web-e2e`（`ubuntu-latest`，`npm ci` + Playwright）；与 #1 本地 E2E 一致 |
 | 6 | **P1-31**：nsh 外壳以 `native_module` 实现 `DataSource`，复用全部 web 组件；`nsh test` 跑通核心用例 | `cargo test -p nsh-bridge`；`nsh test app/aitest` | **`cargo test -p nsh-bridge`**：2 项集成测试通过（`bridge.rs`、`datasource.rs`），2026-11-09。**`nsh test app/aitest`**：**SKIP** — 本机 `nsh` 不在 PATH（与 P1-31 变更记录一致）；探针以 `nsh-bridge` 单测 + `scripts/nsh-spike.ps1` 为准 |
-| 7 | P1-32 收尾：全量检查与 E2E 在同一变更集内全绿 | `./scripts/check.ps1` | **未通过（exit 1）**：2026-11-09 单次 `./scripts/check.ps1` — 失败步骤 **`web: prettier`**（34 文件 format:check）、**`cargo clippy`**（`crates/server/tests/sse.rs:87` `expect_used`×3）、**`web: eslint`**（35 problems：e2e/playwright 未入 `parserOptions.project`、多条 `react-hooks`/`@typescript-eslint`）。`cargo test` 段在 `cli` golden 用例上长时间运行（会话内 >25min 未见后续 `web: vitest` 段） |
+| 7 | P1-32 收尾：全量检查与 E2E 在同一变更集内全绿 | `./scripts/check.ps1` | **通过（exit 0）**：2026-11-09 — `cargo fmt` / `web: prettier` / `cargo clippy` / `web: eslint` / `cargo test`（含 `cli` golden ~2.5min）/ `web: vitest` 104 passed / `web: generated types` / `web: build` / 架构守卫；墙钟约 4min（会话内一次完整跑通） |
 
 ## 遗留问题
 
 | 项 | 说明 | 跟进 |
 |---|---|---|
-| 质量门未绿 | `check.ps1` 因 prettier / clippy / eslint 失败，不满足 P1-32 验收标准 #7 与 AGENTS.md DoD | **P1-32-fix1** |
-| Vitest forks 超时 | 默认 `npm test -- DagReportReplayView` 出现 vitest-pool fork worker 60s 超时；`--pool=threads` 可通过 | 纳入 fix1（确认 CI/`check.ps1` web:vitest 稳定） |
+| Vitest forks 超时 | 默认 `npm test -- DagReportReplayView` 出现 vitest-pool fork worker 60s 超时；`--pool=threads` 可通过 | 可选：CI/`check.ps1` 改 vitest pool；当前 `npm test` 在 check 内稳定通过 |
 | `nsh` CLI 缺省 | 本机无 `nsh`，无法签收 `nsh test app/aitest` | 文档已 SKIP；有 CLI 的环境补跑并回写证据（可选） |
-| Golden 集成测耗时 | 全量 `cargo test` 在 `cli/tests/golden.rs` 上极慢，阻塞 `check.ps1` 后续 web 步骤 | fix1 中确认非挂死并记录 wall time |

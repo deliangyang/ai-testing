@@ -47,7 +47,10 @@ export function extractRunLogEntries(events: StoredRunEvent[]): RunLogEntry[] {
 }
 
 /** Keep logs for the focused node; unscoped logs remain visible. */
-export function filterRunLogEntries(entries: RunLogEntry[], focusNodeId: string | null): RunLogEntry[] {
+export function filterRunLogEntries(
+  entries: RunLogEntry[],
+  focusNodeId: string | null,
+): RunLogEntry[] {
   if (!focusNodeId) {
     return entries
   }

@@ -34,7 +34,10 @@ export function formatExecutionSummary(
   parallel: number,
   pollingCount: number,
 ): string {
-  const parts = [`${String(progress.done)}/${String(progress.total)} 节点`, `并行 ${String(parallel)}`]
+  const parts = [
+    `${String(progress.done)}/${String(progress.total)} 节点`,
+    `并行 ${String(parallel)}`,
+  ]
   if (pollingCount > 0) {
     parts.push(`${String(pollingCount)} 轮询中`)
   }

@@ -89,7 +89,10 @@ export const ASYNC_POLL_FAIL_EVENTS: StoredRunEvent[] = [
       message: 'poll deadline exceeded',
     },
   },
-  { seq: 12, event: { type: 'log', node: 'create', level: 'info', message: 'ignored when focused' } },
+  {
+    seq: 12,
+    event: { type: 'log', node: 'create', level: 'info', message: 'ignored when focused' },
+  },
   { seq: 13, event: { type: 'node_state_changed', node: 'check', status: 'SKIPPED' } },
   { seq: 14, event: { type: 'run_finished', status: 'FAILED' } },
 ]

@@ -35,7 +35,7 @@ export function activeTabAfterClose(
     return null
   }
   if (previousActive !== closedKey) {
-    return tabs.some((tab) => tab.key === previousActive) ? previousActive : tabs[0]?.key ?? null
+    return tabs.some((tab) => tab.key === previousActive) ? previousActive : (tabs[0]?.key ?? null)
   }
   return tabs[0]?.key ?? null
 }

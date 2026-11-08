@@ -33,12 +33,16 @@ impl RunLayout {
     fn new(base_url: &str) -> Self {
         let dir = tempfile::tempdir().unwrap();
         fs::create_dir_all(dir.path().join("environments")).unwrap();
+        Self { dir }.with_base_url(base_url)
+    }
+
+    fn with_base_url(self, base_url: &str) -> Self {
         fs::write(
-            dir.path().join("environments/local.yaml"),
+            self.dir.path().join("environments/local.yaml"),
             format!("base_url: {base_url}\n"),
         )
         .unwrap();
-        Self { dir }
+        self
     }
 
     fn db(&self) -> PathBuf {
@@ -84,15 +88,19 @@ fn deterministic_canonical_bytes(path: &Path) -> Vec<u8> {
         .into_bytes()
 }
 
-async fn assert_twice_same_deterministic(dag_file: &str) {
-    install_rustls();
-    let sut = MockSutBuilder::new()
+async fn spawn_sut() -> mock_sut::MockSutHandle {
+    MockSutBuilder::new()
         .pay_delay_ms(40)
         .jitter_ms(0)
         .seed(1)
         .spawn()
         .await
-        .unwrap();
+        .unwrap()
+}
+
+async fn assert_twice_same_deterministic(dag_file: &str) {
+    install_rustls();
+    let mut sut = spawn_sut().await;
     let layout = RunLayout::new(sut.base_url());
 
     let first = layout.dir.path().join("first.json");
@@ -100,6 +108,9 @@ async fn assert_twice_same_deterministic(dag_file: &str) {
     let a = layout
         .run_example(dag_file, &["--report-json", first.to_str().unwrap()])
         .await;
+    sut.shutdown().await.unwrap();
+    sut = spawn_sut().await;
+    let layout = layout.with_base_url(sut.base_url());
     let b = layout
         .run_example(
             dag_file,

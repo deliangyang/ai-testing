@@ -80,7 +80,7 @@ export function edgeVariableLabel(fromId: string, toNode: Node): string | undefi
   for (const text of collectTemplateStrings(toNode)) {
     const match = re.exec(text)
     if (match) {
-      const suffix = match[1] ?? ''
+      const suffix = match[1]
       return suffix.length > 0 ? `output${suffix}` : 'output'
     }
   }

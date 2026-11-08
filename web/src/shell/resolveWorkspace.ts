@@ -1,11 +1,6 @@
 import { ASYNC_POLL_FAIL_RUN, ASYNC_POLL_FAIL_SCENARIO } from '../data/fixtures/asyncPollFail'
 import { PARALLEL_DAG } from '../data/fixtures/parallel'
-import {
-  SERIAL_DAG,
-  SERIAL_EVENTS,
-  SERIAL_EXECUTIONS,
-  SERIAL_RUN,
-} from '../data/fixtures/serial'
+import { SERIAL_DAG, SERIAL_EVENTS, SERIAL_EXECUTIONS, SERIAL_RUN } from '../data/fixtures/serial'
 import type { RunFocusScenario } from '../focus/useFailureFocus'
 import type { NavCatalog, ReportNavItem } from '../nav/types'
 import type { WorkspaceTab } from './workspaceTabs'

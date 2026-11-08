@@ -1,11 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import {
-  isGlobalSearchKey,
-  isRunShortcut,
-  isShortcutHelpKey,
-  runModeForDigitKey,
-} from './keyboard'
+import { isGlobalSearchKey, isRunShortcut, isShortcutHelpKey, runModeForDigitKey } from './keyboard'
 
 function keyEvent(init: KeyboardEventInit & { target?: EventTarget | null }): KeyboardEvent {
   const event = new KeyboardEvent('keydown', init)

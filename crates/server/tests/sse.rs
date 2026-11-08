@@ -1,11 +1,11 @@
-#![allow(clippy::unwrap_used)]
+#![allow(clippy::unwrap_used, clippy::expect_used)]
 
 use std::sync::Arc;
 use std::time::Duration;
 
 use axum::body::Body;
 use axum::http::{Request, StatusCode};
-use common::{FixedClock, Timestamp, UuidV7Gen};
+use common::{FixedClock, Sleeper, Timestamp, TokioSleeper, UuidV7Gen};
 use engine::{EngineEvent, NodeStatus};
 use http_body_util::BodyExt;
 use model::Dag;
@@ -161,7 +161,7 @@ async fn sse_streams_live_events_after_replay() {
 
     let rid = run_id.clone();
     tokio::spawn(async move {
-        tokio::time::sleep(Duration::from_millis(50)).await;
+        TokioSleeper.sleep(Duration::from_millis(50)).await;
         hub.push(
             &rid,
             EngineEvent::Log {

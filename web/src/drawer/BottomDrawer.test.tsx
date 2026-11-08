@@ -32,8 +32,6 @@ describe('BottomDrawer', () => {
     render(<BottomDrawer logs={logs} pollRows={pollRows} variables={variables} />)
     fireEvent.click(screen.getByTestId('drawer-tab-variables'))
     expect(screen.getByTestId('variable-watch')).toBeInTheDocument()
-    expect(screen.getByTestId('variable-row-create.output.body.id')).toHaveTextContent(
-      'o-timeout',
-    )
+    expect(screen.getByTestId('variable-row-create.output.body.id')).toHaveTextContent('o-timeout')
   })
 })

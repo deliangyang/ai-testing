@@ -1,7 +1,11 @@
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from 'react'
 
 import type { NavCatalog } from '../nav/types'
-import { buildGlobalSearchItems, filterGlobalSearchItems, type GlobalSearchItem } from './globalSearch'
+import {
+  buildGlobalSearchItems,
+  filterGlobalSearchItems,
+  type GlobalSearchItem,
+} from './globalSearch'
 
 export interface GlobalSearchDialogProps {
   open: boolean
@@ -13,6 +17,8 @@ export interface GlobalSearchDialogProps {
 export function GlobalSearchDialog({ open, catalog, onClose, onPick }: GlobalSearchDialogProps) {
   const [query, setQuery] = useState('')
   const [highlight, setHighlight] = useState(0)
+  const [prevOpen, setPrevOpen] = useState(open)
+  const [prevQuery, setPrevQuery] = useState(query)
   const inputRef = useRef<HTMLInputElement>(null)
 
   const items = useMemo(() => {
@@ -20,10 +26,20 @@ export function GlobalSearchDialog({ open, catalog, onClose, onPick }: GlobalSea
     return filterGlobalSearchItems(all, query)
   }, [catalog, query])
 
-  useEffect(() => {
+  if (prevOpen !== open) {
+    setPrevOpen(open)
     if (!open) {
       setQuery('')
       setHighlight(0)
+    }
+  }
+  if (prevQuery !== query) {
+    setPrevQuery(query)
+    setHighlight(0)
+  }
+
+  useEffect(() => {
+    if (!open) {
       return
     }
     const id = window.requestAnimationFrame(() => {
@@ -33,10 +49,6 @@ export function GlobalSearchDialog({ open, catalog, onClose, onPick }: GlobalSea
       window.cancelAnimationFrame(id)
     }
   }, [open])
-
-  useEffect(() => {
-    setHighlight(0)
-  }, [query])
 
   if (!open) {
     return null

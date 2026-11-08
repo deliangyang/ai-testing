@@ -25,7 +25,9 @@ use crate::input::{load_dag, Loaded};
 use crate::store::Store;
 
 pub fn run(db_path: &Path, args: &RunArgs) -> anyhow::Result<u8> {
-    let runtime = tokio::runtime::Builder::new_current_thread()
+    // multi_thread: scheduler records via spawn_blocking while print_events runs concurrently.
+    let runtime = tokio::runtime::Builder::new_multi_thread()
+        .worker_threads(2)
         .enable_all()
         .build()
         .context("cannot start the async runtime")?;
@@ -135,6 +137,8 @@ async fn run_async(db_path: &Path, args: &RunArgs) -> anyhow::Result<u8> {
     }
     let result = scheduler.run(&run.id, &target.dag).await;
     interrupt.abort();
+    // Drop the event sink so `print_events` can finish after `RunFinished`.
+    drop(scheduler);
     printer.await.context("progress printer failed")?;
 
     let outcome = result?;

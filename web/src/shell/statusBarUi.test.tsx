@@ -4,7 +4,7 @@ import { ASYNC_POLL_FAIL_SCENARIO } from '../data/fixtures/asyncPollFail'
 import { StatusBar } from './StatusBar'
 import { buildStatusBarModel } from './statusBarModel'
 
-describe('StatusBar', () => {
+describe('StatusBar UI', () => {
   it('renders connection, execution, env and elapsed segments', () => {
     const model = buildStatusBarModel({
       dag: ASYNC_POLL_FAIL_SCENARIO.dag,

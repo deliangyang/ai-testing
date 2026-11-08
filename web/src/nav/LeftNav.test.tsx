@@ -11,7 +11,9 @@ describe('LeftNav', () => {
     expect(within(serial).getByTestId('nav-status-serial')).toHaveClass('nav-status-dot--completed')
     expect(within(serial).getByTestId('pass-rate-bar')).toHaveAttribute('aria-valuenow', '100')
     const asyncItem = screen.getByTestId('nav-scenario-async-poll')
-    expect(within(asyncItem).getByTestId('nav-status-async-poll')).toHaveClass('nav-status-dot--failed')
+    expect(within(asyncItem).getByTestId('nav-status-async-poll')).toHaveClass(
+      'nav-status-dot--failed',
+    )
   })
 
   it('shows plan validation badges', () => {
