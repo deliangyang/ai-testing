@@ -83,7 +83,17 @@ fn usage_errors_exit_with_2() {
 
 #[test]
 fn global_options_are_accepted_after_the_subcommand() {
-    let out = mytool(&["dag", "list", "--db", "x.db", "--log-level", "debug"]);
+    let dir = tempfile::tempdir().unwrap();
+    let db = dir.path().join("x.db");
+    let out = mytool(&[
+        "dag",
+        "list",
+        "--db",
+        db.to_str().unwrap(),
+        "--log-level",
+        "debug",
+    ]);
+    assert!(out.status.success(), "{}", stderr(&out));
     assert!(
         !stderr(&out).contains("unexpected argument"),
         "{}",

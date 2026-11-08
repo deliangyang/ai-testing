@@ -189,6 +189,20 @@ impl<'a> DagRepository<'a> {
         rows.map(|r| r.map_err(StoreError::from).and_then(RawInfo::decode))
             .collect()
     }
+
+    /// Every version of every DAG, ordered by id then version.
+    pub fn list(&self) -> Result<Vec<DagVersionInfo>> {
+        let mut stmt = self.conn.prepare(&format!(
+            "SELECT {INFO_COLUMNS} FROM dag_definitions ORDER BY id, version"
+        ))?;
+        let rows = stmt.query_map([], raw_info)?;
+        rows.map(|r| r.map_err(StoreError::from).and_then(RawInfo::decode))
+            .collect()
+    }
+
+    pub fn active_version(&self, id: &str) -> Result<Option<u32>> {
+        active_version(self.conn, id)
+    }
 }
 
 fn active_version(conn: &Connection, id: &str) -> Result<Option<u32>> {

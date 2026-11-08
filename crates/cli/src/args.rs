@@ -77,20 +77,25 @@ pub enum DagCommand {
         #[arg(long, value_enum, default_value_t = OutputFormat::Text)]
         format: OutputFormat,
     },
-    /// Validate a DAG file and store it as a new pending version.
+    /// Store a DAG file as a new pending version; refused (exit 3) unless it passes the gate.
     Save {
-        /// DAG file (YAML or JSON).
+        /// DAG file (`.json` is read as JSON, anything else as YAML).
         file: PathBuf,
     },
-    /// Make a stored version the active one.
+    /// Re-check a stored version with the gate and make it the active one.
     Activate {
         /// DAG id.
         id: String,
         /// Version to activate.
+        #[arg(id = "dag_version", value_name = "VERSION")]
         version: u32,
     },
     /// List stored DAGs and their versions.
-    List,
+    List {
+        /// Output format.
+        #[arg(long, value_enum, default_value_t = OutputFormat::Text)]
+        format: OutputFormat,
+    },
 }
 
 #[derive(Debug, Args)]
@@ -110,4 +115,14 @@ pub struct RunArgs {
     /// Write the canonical run report to this file.
     #[arg(long)]
     pub report_json: Option<PathBuf>,
+}
+
+#[cfg(test)]
+mod tests {
+    use clap::CommandFactory;
+
+    #[test]
+    fn command_definition_is_consistent() {
+        super::Cli::command().debug_assert();
+    }
 }

@@ -4,6 +4,7 @@ mod args;
 mod dag;
 mod exit;
 mod input;
+mod store;
 
 use std::process::ExitCode;
 
@@ -28,12 +29,11 @@ fn main() -> ExitCode {
 }
 
 fn dispatch(cli: &Cli) -> anyhow::Result<u8> {
-    let name = match &cli.command {
-        Command::Dag(DagCommand::Validate { file, format }) => return dag::validate(file, *format),
-        Command::Dag(DagCommand::Save { .. }) => "dag save",
-        Command::Dag(DagCommand::Activate { .. }) => "dag activate",
-        Command::Dag(DagCommand::List) => "dag list",
-        Command::Run(_) => "run",
-    };
-    bail!("`{name}` is not implemented yet")
+    match &cli.command {
+        Command::Dag(DagCommand::Validate { file, format }) => dag::validate(file, *format),
+        Command::Dag(DagCommand::Save { file }) => dag::save(&cli.db, file),
+        Command::Dag(DagCommand::Activate { id, version }) => dag::activate(&cli.db, id, *version),
+        Command::Dag(DagCommand::List { format }) => dag::list(&cli.db, *format),
+        Command::Run(_) => bail!("`run` is not implemented yet"),
+    }
 }

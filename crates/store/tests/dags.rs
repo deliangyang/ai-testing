@@ -134,6 +134,35 @@ fn stale_or_missing_activation_changes_nothing() {
     );
 }
 
+#[test]
+fn list_returns_every_version_ordered_by_id_then_version() {
+    let clock = clock();
+    let db = Db::open_in_memory(&clock).unwrap();
+    let repo = DagRepository::new(db.conn(), &clock);
+    assert!(repo.list().unwrap().is_empty());
+    repo.save(&dag("users", "/u"), "alice").unwrap();
+    repo.save(&dag("orders", "/v1"), "alice").unwrap();
+    repo.save(&dag("orders", "/v2"), "alice").unwrap();
+    repo.activate("orders", 2, None).unwrap();
+
+    let listed: Vec<(String, u32, DagStatus)> = repo
+        .list()
+        .unwrap()
+        .into_iter()
+        .map(|v| (v.id, v.version, v.status))
+        .collect();
+    assert_eq!(
+        listed,
+        [
+            ("orders".to_owned(), 1, DagStatus::Pending),
+            ("orders".to_owned(), 2, DagStatus::Active),
+            ("users".to_owned(), 1, DagStatus::Pending),
+        ]
+    );
+    assert_eq!(repo.active_version("orders").unwrap(), Some(2));
+    assert_eq!(repo.active_version("users").unwrap(), None);
+}
+
 const THREADS: usize = 8;
 
 /// Runs `f(db, thread_index)` on `THREADS` connections to the same file, released together.
