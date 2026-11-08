@@ -34,7 +34,7 @@ M0 两周联合评审：P0-56。
 
 | ID | 任务 | 位置 | 依赖 | 验收标准 | 状态 |
 |---|---|---|---|---|---|
-| P0-01 | 初始化 git 与 Cargo workspace：创建空 crate `common`/`model`/`gate`/`store`/`classifier`/`engine`/`cli`；`rust-toolchain.toml`、`.gitignore`、`.editorconfig`、`rustfmt.toml` | `/`、`crates/` | — | `cargo build --workspace` 通过；目录与 AGENTS.md「仓库布局」一致 | TODO |
+| P0-01 | 初始化 git 与 Cargo workspace：创建空 crate `common`/`model`/`gate`/`store`/`classifier`/`engine`/`cli`；`rust-toolchain.toml`、`.gitignore`、`.editorconfig`、`rustfmt.toml` | `/`、`crates/` | — | `cargo build --workspace` 通过；目录与 AGENTS.md「仓库布局」一致 | DONE |
 | P0-02 | 质量检查脚本 `scripts/check.ps1`（及 `check.sh`）：fmt --check、clippy `-D warnings`、test；内置架构守卫（见 AGENTS.md「红线」第 1、2 条） | `scripts/` | P0-01 | 干净仓库退出码 0；人为在 engine 中写 `tokio::time::sleep` 或依赖 llm 类 crate 时退出码非 0 | TODO |
 | P0-03 | CI 流水线 `.github/workflows/ci.yml`，Windows + Linux 矩阵调用检查脚本 | `.github/` | P0-02 | 推送后流水线绿 | TODO |
 | P0-04 | `common` crate：错误约定（thiserror）、tracing 初始化、`Clock`/`Sleeper`/`IdGen` trait 及真实实现与固定实现（`FixedClock`、`ManualSleeper`、`SeqIdGen`） | `crates/common` | P0-01 | 单测覆盖固定实现可推进时间、顺序生成 ID | TODO |
@@ -328,3 +328,4 @@ M0 两周联合评审：P0-56。
 | 日期 | 任务 | 变化 | 说明 |
 |---|---|---|---|
 | 2026-11-08 | — | 创建 | 根据 develop.md v1.0 拆分初版任务表 |
+| 2026-11-08 | P0-01 | TODO→DONE | 本地工具链为 Rust stable（x86_64-pc-windows-gnu）；rust-toolchain.toml 不固定 target，以便 CI 在 Linux 上使用默认 target |

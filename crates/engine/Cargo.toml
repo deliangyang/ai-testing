@@ -1,0 +1,17 @@
+[package]
+name = "engine"
+description = "Deterministic DAG execution engine."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[dependencies]
+common = { workspace = true }
+model = { workspace = true }
+store = { workspace = true }
+classifier = { workspace = true }
+
+[lints]
+workspace = true

@@ -1,0 +1,33 @@
+[workspace]
+resolver = "2"
+members = [
+    "crates/common",
+    "crates/model",
+    "crates/gate",
+    "crates/store",
+    "crates/classifier",
+    "crates/engine",
+    "crates/cli",
+]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.80"
+license = "UNLICENSED"
+publish = false
+
+[workspace.dependencies]
+common = { path = "crates/common" }
+model = { path = "crates/model" }
+gate = { path = "crates/gate" }
+store = { path = "crates/store" }
+classifier = { path = "crates/classifier" }
+engine = { path = "crates/engine" }
+
+[workspace.lints.rust]
+unsafe_code = "forbid"
+
+[workspace.lints.clippy]
+unwrap_used = "warn"
+expect_used = "warn"
