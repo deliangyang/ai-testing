@@ -7,7 +7,7 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::{Arc, Mutex};
 
 use common::dag;
-use engine::NodeStatus::{Completed, Failed, Pending};
+use engine::NodeStatus::{Completed, Failed, Skipped};
 use engine::{ExecContext, ExecError, ExecErrorKind, ExecFuture, NodeExecutor, Scheduler};
 use model::{Dag, Node};
 use serde_json::json;
@@ -127,7 +127,7 @@ async fn failure_in_one_branch_lets_the_running_sibling_finish() {
         let outcome = run(&exec, &diamond(), parallel).await;
         assert_eq!(outcome.nodes["c"].status, Failed, "parallel {parallel}");
         assert_eq!(outcome.nodes["d"].status, Completed, "parallel {parallel}");
-        assert_eq!(outcome.nodes["e"].status, Pending, "parallel {parallel}");
+        assert_eq!(outcome.nodes["e"].status, Skipped, "parallel {parallel}");
         assert!(!exec.finished().contains(&"e".to_owned()));
     }
 }

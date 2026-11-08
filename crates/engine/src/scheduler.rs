@@ -3,7 +3,7 @@
 use std::collections::{BTreeMap, BTreeSet};
 use std::sync::Arc;
 
-use model::{to_canonical_json, Dag, DagGraph};
+use model::{to_canonical_json, Dag, DagGraph, Node, NodeKind};
 use serde::Serialize;
 use serde_json::Value;
 use tokio::task::JoinSet;
@@ -84,8 +84,8 @@ pub enum SchedulerError {
 ///
 /// A node becomes `READY` once all its predecessors completed and is started in
 /// (level, node id) order, levels as in [`DagGraph::topo_levels`]. With `max_parallel == 1`
-/// this is a strict serial order. Nodes downstream of a failure are never started and stay
-/// `PENDING`.
+/// this is a strict serial order. When a node fails, every descendant that has not run is
+/// marked `SKIPPED`, except cleanup nodes, which stay `PENDING` here.
 pub struct Scheduler {
     executor: Arc<dyn NodeExecutor>,
     max_parallel: usize,
@@ -178,7 +178,10 @@ impl Scheduler {
                             continue;
                         };
                         *count -= 1;
-                        if *count == 0 {
+                        let pending = nodes
+                            .get(succ)
+                            .is_some_and(|n| n.status == NodeStatus::Pending);
+                        if *count == 0 && pending {
                             ready.insert((level_of.get(succ).copied().unwrap_or(0), succ));
                             self.result(&mut nodes, succ)?
                                 .advance(succ, NodeStatus::Ready)?;
@@ -189,6 +192,15 @@ impl Scheduler {
                     let entry = self.result(&mut nodes, &id)?;
                     entry.advance(&id, NodeStatus::Failed)?;
                     entry.error = Some(error);
+                    for desc in graph.descendants(&id) {
+                        if dag.node(desc).is_some_and(is_cleanup) {
+                            continue;
+                        }
+                        let entry = self.result(&mut nodes, desc)?;
+                        if entry.status == NodeStatus::Pending {
+                            entry.advance(desc, NodeStatus::Skipped)?;
+                        }
+                    }
                 }
             }
         }
@@ -204,4 +216,8 @@ impl Scheduler {
             .get_mut(id)
             .ok_or_else(|| SchedulerError::ExecutorCrashed(format!("unknown node '{id}'")))
     }
+}
+
+fn is_cleanup(node: &Node) -> bool {
+    matches!(node.kind, NodeKind::Cleanup(_))
 }

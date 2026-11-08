@@ -71,10 +71,19 @@ impl<'a> DagGraph<'a> {
 
     /// All transitive predecessors of `id` (excluding `id` unless it lies on a cycle).
     pub fn ancestors(&self, id: &str) -> BTreeSet<&'a str> {
+        self.reachable(id, &self.pred)
+    }
+
+    /// All transitive successors of `id` (excluding `id` unless it lies on a cycle).
+    pub fn descendants(&self, id: &str) -> BTreeSet<&'a str> {
+        self.reachable(id, &self.succ)
+    }
+
+    fn reachable(&self, id: &str, adjacency: &[BTreeSet<usize>]) -> BTreeSet<&'a str> {
         let mut seen = BTreeSet::new();
         let mut stack: Vec<usize> = self.index.get(id).into_iter().copied().collect();
         while let Some(i) = stack.pop() {
-            for &p in &self.pred[i] {
+            for &p in &adjacency[i] {
                 if seen.insert(p) {
                     stack.push(p);
                 }
@@ -240,6 +249,12 @@ mod tests {
         );
         assert!(g.ancestors("a").is_empty());
         assert!(g.ancestors("ghost").is_empty());
+        assert_eq!(
+            g.descendants("x").into_iter().collect::<Vec<_>>(),
+            vec!["c", "d"]
+        );
+        assert!(g.descendants("c").is_empty());
+        assert!(g.descendants("ghost").is_empty());
     }
 
     #[test]

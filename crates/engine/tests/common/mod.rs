@@ -57,11 +57,21 @@ impl NodeExecutor for MockExecutor {
     }
 }
 
-/// A DAG of cleanup-free http nodes; `nodes` are declared in the given order.
+/// A DAG of http nodes; `nodes` are declared in the given order.
 pub fn dag(nodes: &[&str], edges: &[(&str, &str)]) -> Dag {
-    let nodes: Vec<Value> = nodes
+    dag_with_cleanup(nodes, &[], edges)
+}
+
+/// Like [`dag`], with `cleanup` added as cleanup nodes after the http nodes.
+pub fn dag_with_cleanup(http: &[&str], cleanup: &[&str], edges: &[(&str, &str)]) -> Dag {
+    let nodes: Vec<Value> = http
         .iter()
         .map(|id| json!({"id": id, "type": "http", "method": "GET", "path": "/"}))
+        .chain(
+            cleanup
+                .iter()
+                .map(|id| json!({"id": id, "type": "cleanup"})),
+        )
         .collect();
     let edges: Vec<Value> = edges
         .iter()

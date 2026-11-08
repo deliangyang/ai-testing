@@ -5,7 +5,7 @@ mod common;
 use std::sync::Arc;
 
 use common::{dag, keys, MockExecutor};
-use engine::NodeStatus::{Completed, Failed, Pending};
+use engine::NodeStatus::{Completed, Failed, Skipped};
 use engine::{Scheduler, SchedulerError};
 use serde_json::json;
 
@@ -80,7 +80,7 @@ async fn nodes_downstream_of_a_failure_are_not_started() {
         outcome.nodes["b"].error.as_ref().unwrap().message,
         "b failed"
     );
-    assert_eq!(outcome.nodes["c"].status, Pending);
+    assert_eq!(outcome.nodes["c"].status, Skipped);
     assert_eq!(outcome.nodes["side"].status, Completed);
 }
 
