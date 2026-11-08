@@ -9,6 +9,10 @@ use std::sync::OnceLock;
 
 use mock_sut::MockSutBuilder;
 use serde_json::Value;
+use tokio::sync::Mutex;
+
+/// `mock-sut` + `mytool` share process-global state; run golden cases one at a time.
+static GOLDEN_MUTEX: Mutex<()> = Mutex::const_new(());
 
 fn repo_root() -> PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR")).join("../..")
@@ -99,6 +103,7 @@ async fn spawn_sut() -> mock_sut::MockSutHandle {
 }
 
 async fn assert_twice_same_deterministic(dag_file: &str) {
+    let _guard = GOLDEN_MUTEX.lock().await;
     install_rustls();
     let mut sut = spawn_sut().await;
     let layout = RunLayout::new(sut.base_url());
