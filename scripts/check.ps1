@@ -103,6 +103,7 @@ if ($Only -contains 'clippy') {
 if ($Only -contains 'test') {
     Invoke-Step 'cargo test' { Invoke-Native { cargo test --workspace } }
     Invoke-Step 'web: vitest' { Invoke-WebNpm 'test' }
+    Invoke-Step 'web: generated types' { Invoke-WebNpm 'check:types' }
     Invoke-Step 'web: build' { Invoke-WebNpm 'build' }
 }
 if ($Only -contains 'guards') {

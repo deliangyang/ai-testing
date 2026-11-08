@@ -139,7 +139,7 @@ M0 两周联合评审：P0-56。
 | ID | 任务 | 位置 | 依赖 | 验收标准 | 状态 |
 |---|---|---|---|---|---|
 | P1-01 | 初始化 `web/`：Vite + React + TS（strict）+ ESLint + Prettier + Vitest；检查脚本纳入 `web` lint/test/build | `web/` | P0-02 | `npm run build` 与 `npm test` 通过 | DONE |
-| P1-02 | Rust→TS 类型生成（ts-rs 或从 JSON Schema 生成）到 `web/src/types/generated`；检查脚本校验同步 | `crates/model`、`web/` | P1-01、P0-12 | 类型不同步时检查失败 | TODO |
+| P1-02 | Rust→TS 类型生成（ts-rs 或从 JSON Schema 生成）到 `web/src/types/generated`；检查脚本校验同步 | `crates/model`、`web/` | P1-01、P0-12 | 类型不同步时检查失败 | DONE |
 | P1-03 | `server` crate（axum）只读 API：DAG 列表/版本/详情、运行列表、运行详情、节点执行证据 | `crates/server` | P0-40 | API 集成测试 | TODO |
 | P1-04 | server SSE：转发 `EngineEvent`，支持按 run 订阅、断线重连补发 | `crates/server` | P1-03、P0-41 | SSE 集成测试 | TODO |
 | P1-05 | server 写 API：保存 DAG（pending）、校验、激活、触发运行、取消运行 | `crates/server` | P1-03、P0-47 | API 集成测试；保存前强制闸门 | TODO |
@@ -371,6 +371,7 @@ M0 两周联合评审：P0-56。
 | 2026-11-08 | P0-56 | TODO→BLOCKED | `docs/reviews/m0.md` 已写 Q1/Q3；Q2 依赖 P1-13，登记待决 Q8 |
 | 2026-11-08 | P0-57 | TODO→DONE | `docs/reviews/phase0.md` 逐条引用测试/脚本证据；阶段 1 可启动（P0-56 不阻塞阶段门，见 develop §7.3 与 Q8） |
 | 2026-11-08 | P1-01 | TODO→DONE | `web/` Vite+React+TS strict、ESLint flat、Prettier、Vitest+Testing Library；`scripts/check.ps1`/`check.sh` 增加 web prettier/eslint/vitest/build |
+| 2026-11-08 | P1-02 | TODO→DONE | `schemas/*.schema.json` → `web/src/types/generated/`（`json-schema-to-typescript`）；`npm run generate:types` / `check:types`；`check.ps1` web 步骤 `check:types`；Rust schema 仍以 `UPDATE_SCHEMAS=1 cargo test -p model --test schema_sync` 为准 |
 | 2026-11-08 | P0-27 | TODO→DONE | `NodeStatus` 从 store 移到 `model::status`，engine（`engine::state`）和 store 都重新导出它，避免两份状态机各自演化；store 的公开 API 不变。新增 `transition()`，返回 `InvalidTransition{from,to}`；serde 名称为全大写（PENDING…SKIPPED），并 derive JsonSchema。迁移规则沿用 P0-25：非终态允许原地停留（轮询每轮都会上报），终态不能再迁移。测试覆盖全部 49 种组合，期望表独立写出；另验证终态不可离开、从 PENDING 能到达所有状态、任一非终态都能走到终态，以及文本与 JSON 名称稳定 |
 | 2026-11-08 | P0-28 | TODO→DONE | `NodeExecutor::execute(&Node, ExecContext) -> ExecFuture`，用装箱 Future，与 Sleeper 的写法一致，不引入 async_trait。`ExecContext` 只包含该节点已完成祖先的输出，作用域由调度器保证。执行器失败返回 `ExecError{kind, message, detail}`，只描述原始错误，分类留给 P0-43/P0-44。`Scheduler::run` 串行执行，每个节点经过 PENDING→READY→RUNNING→COMPLETED/FAILED，每一步都走 `NodeStatus::transition` 校验。顺序：`同层`理解为 Kahn 算法的轮次。`topo_order`（每次挑最小的就绪 id）在 a→b 加独立 c 的情况下会得到 a,b,c，与按层的 a,c,b 不同，因此在 model 新增 `DagGraph::topo_levels()`，也方便与 P0-29 的并行波次对齐。失败节点的后继暂时保持 PENDING，SKIPPED 与 cleanup 例外由 P0-30 处理；有环时返回 `SchedulerError::Cycle`，一个节点都不执行 |
 | 2026-11-08 | P0-29 | TODO→DONE | 用 tokio `JoinSet` 加在途计数实现有界并行，效果等同信号量，但不额外引入 Semaphore。就绪队列为 `BTreeSet<(层号, id)>`，因此并行度 1 时与 P0-28 的串行按层顺序完全一致。节点入队即标 READY，发起执行时标 RUNNING。`RunOutcome::report()` 对 `BTreeMap<id, NodeResult>` 输出规范化 JSON，不包含发起顺序 `started`，测试验证并行度 1 与 4 的完成顺序不同，报告却字节一致。默认并行度为 1，传 0 时按 1 处理；执行器 panic 映射为 `SchedulerError::ExecutorCrashed`。tokio 从 dev 依赖改为正式依赖（`rt`/`sync` 已在 workspace 中启用）。测试用 `yield_now` 控制完成时序，不用 sleep |

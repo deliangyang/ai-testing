@@ -87,6 +87,7 @@ want clippy && run_step "cargo clippy" cargo clippy --workspace --all-targets --
 want clippy && run_step "web: eslint" web_npm lint
 want test && run_step "cargo test" cargo test --workspace
 want test && run_step "web: vitest" web_npm test
+want test && run_step "web: generated types" web_npm check:types
 want test && run_step "web: build" web_npm build
 if want guards; then
   run_step "guard: deterministic crates must not depend on LLM crates" dependency_guard
