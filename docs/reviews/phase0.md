@@ -1,5 +1,7 @@
 # Phase 0 acceptance (`develop.md` §8.3)
 
+M0 联合评审（§7.3）见 [`m0.md`](./m0.md)（Q1 轮询、Q2 证据草稿、Q3 闸门/分类器）。
+
 **结论**：通过。下文每条对应阶段 0 摘录的两项验收，并给出可复现证据。
 
 ## 1. 同一 DAG 两次 `--no-llm` 运行，确定性报告逐字节一致
@@ -35,5 +37,5 @@
 
 ## 遗留
 
-- **M0 评审 Q2**（UI 两次点击）依赖 **P1-13**，见 `docs/reviews/m0.md` 与 `TASKS.md` 待决 **Q8**。
+- **M0 评审**：详见 [`m0.md`](./m0.md)。**Q2**：UI 证据见 **P1-29** E2E（`failure-evidence.spec.ts`）；Q2 草稿已写入 `m0.md`，**Q8** 待人类签收是否可作为 M0 正式结论。**Q3**：线 C 在阶段 0 以坏 DAG 100% 拦截 + 分类器 unknown（[`classifier-coverage.md`](./classifier-coverage.md)）为据；模型闸门 **≥70% 接受率** 推迟至阶段 2 **P2-25**，不在本阶段验收。
 - 阶段 1 任务在 **P0-57** 标 DONE 后按 `AGENTS.md` 阶段门启动。
