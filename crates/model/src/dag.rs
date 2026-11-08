@@ -1,16 +1,18 @@
 //! Declarative DAG document (§4.1).
 
+use std::borrow::Cow;
 use std::collections::BTreeMap;
 
+use schemars::{json_schema, JsonSchema, Schema, SchemaGenerator};
 use serde::{Deserialize, Serialize};
-use serde_json::{Map, Value};
+use serde_json::{json, Map, Value};
 
 use crate::error::{Format, ModelError};
 use crate::nodes::{
     AssertConfig, CleanupConfig, DbQueryConfig, HttpConfig, PollConfig, SubworkflowConfig,
 };
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct Dag {
     pub id: String,
@@ -50,7 +52,7 @@ impl Dag {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct Edge {
     pub from: String,
@@ -99,6 +101,45 @@ impl NodeKind {
             NodeKind::Cleanup(_) => "cleanup",
         }
     }
+}
+
+/// Mirrors the flat wire format: one closed object schema per node type, combined with `oneOf`.
+impl JsonSchema for Node {
+    fn schema_name() -> Cow<'static, str> {
+        "Node".into()
+    }
+
+    fn json_schema(generator: &mut SchemaGenerator) -> Schema {
+        let variants = vec![
+            node_variant("http", HttpConfig::json_schema(generator)),
+            node_variant("poll", PollConfig::json_schema(generator)),
+            node_variant("assert", AssertConfig::json_schema(generator)),
+            node_variant("db_query", DbQueryConfig::json_schema(generator)),
+            node_variant("subworkflow", SubworkflowConfig::json_schema(generator)),
+            node_variant("cleanup", CleanupConfig::json_schema(generator)),
+        ];
+        json_schema!({ "oneOf": variants })
+    }
+}
+
+fn node_variant(type_name: &str, mut config: Schema) -> Value {
+    let object = config.ensure_object();
+    object.remove("title");
+    let mut properties = Map::new();
+    properties.insert("id".into(), json!({ "type": "string", "minLength": 1 }));
+    properties.insert("name".into(), json!({ "type": "string" }));
+    properties.insert("type".into(), json!({ "const": type_name }));
+    if let Some(Value::Object(config_props)) = object.remove("properties") {
+        properties.extend(config_props);
+    }
+    let mut required = vec![json!("id"), json!("type")];
+    if let Some(Value::Array(config_required)) = object.remove("required") {
+        required.extend(config_required);
+    }
+    object.insert("properties".into(), Value::Object(properties));
+    object.insert("required".into(), Value::Array(required));
+    object.insert("additionalProperties".into(), Value::Bool(false));
+    config.to_value()
 }
 
 /// Intermediate form so each config type can keep `deny_unknown_fields`, which serde does not

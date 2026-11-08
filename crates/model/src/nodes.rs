@@ -2,10 +2,13 @@
 
 use std::collections::BTreeMap;
 
+use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
+#[derive(
+    Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize, JsonSchema,
+)]
 #[serde(rename_all = "UPPERCASE")]
 pub enum HttpMethod {
     #[serde(alias = "get")]
@@ -25,7 +28,7 @@ pub enum HttpMethod {
 }
 
 /// A request description. String leaves of `path`, `query`, `headers` and `body` are templates.
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct HttpRequest {
     pub method: HttpMethod,
@@ -44,7 +47,7 @@ pub struct HttpRequest {
 /// `http` node: a request plus the expected shape of the response body.
 ///
 /// The request fields are repeated instead of flattened so unknown keys are still rejected.
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct HttpConfig {
     pub method: HttpMethod,
@@ -75,7 +78,9 @@ impl HttpConfig {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
+#[derive(
+    Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize, JsonSchema,
+)]
 #[serde(rename_all = "snake_case")]
 pub enum Operator {
     Eq,
@@ -101,7 +106,7 @@ impl Operator {
 
 /// A mechanically decidable check: JSONPath into a node output (`{status, headers, body}`),
 /// an operator and the expected value.
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct Condition {
     /// e.g. `$.body.status`
@@ -113,7 +118,7 @@ pub struct Condition {
 
 /// `poll` node: repeat `request` until `condition` holds, waiting `backoff_ms[i]` between
 /// attempts (the last interval repeats) and failing once `timeout_ms` has elapsed.
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct PollConfig {
     pub request: HttpRequest,
@@ -127,7 +132,7 @@ pub struct PollConfig {
 }
 
 /// `assert` node: checks evaluated against the output of `target`, reported one by one.
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct AssertConfig {
     /// Id of the node whose output is checked; must be an ancestor.
@@ -135,7 +140,7 @@ pub struct AssertConfig {
     pub assertions: Vec<Condition>,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum QueryResultMode {
     /// Output `{ rows: [...] }`.
@@ -148,7 +153,7 @@ pub enum QueryResultMode {
 }
 
 /// `db_query` node: parameterized SQL against a named connection.
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct DbQueryConfig {
     /// Name of a connection asset bound to the current environment.
@@ -165,7 +170,7 @@ pub struct DbQueryConfig {
 }
 
 /// Pin to a stored DAG. `version: None` resolves to the active version at run time.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct DagRef {
     pub id: String,
@@ -177,7 +182,7 @@ pub struct DagRef {
 ///
 /// The child sees only `inputs`, as the reserved node id `input` (`${input.output.<name>}`).
 /// The parent sees only `outputs`, as `${<this node>.output.<name>}`.
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct SubworkflowConfig {
     pub dag: DagRef,
@@ -190,7 +195,7 @@ pub struct SubworkflowConfig {
 }
 
 /// `cleanup` node: always runs when the DAG reaches a terminal state.
-#[derive(Debug, Clone, PartialEq, Default, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Default, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct CleanupConfig {
     /// Executed in order; a failing request does not stop the remaining ones.

@@ -29,6 +29,8 @@ serde = { version = "1", features = ["derive"] }
 serde_json = { version = "1", features = ["float_roundtrip"] }
 serde_path_to_error = "0.1"
 sha2 = "0.10"
+schemars = "1"
+jsonschema = { version = "0.33", default-features = false }
 proptest = "1"
 yaml_serde = "0.10"
 thiserror = "2"

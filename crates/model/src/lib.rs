@@ -4,6 +4,7 @@ pub mod canonical;
 pub mod dag;
 pub mod error;
 pub mod nodes;
+pub mod schema;
 pub mod template;
 
 pub use canonical::{canonical_json, content_hash, to_canonical_json, CanonicalError};

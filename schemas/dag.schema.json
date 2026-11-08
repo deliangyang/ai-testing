@@ -1,0 +1,437 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Dag",
+  "type": "object",
+  "properties": {
+    "edges": {
+      "type": "array",
+      "default": [],
+      "items": {
+        "$ref": "#/$defs/Edge"
+      }
+    },
+    "id": {
+      "type": "string"
+    },
+    "meta": {
+      "type": "object",
+      "additionalProperties": true
+    },
+    "name": {
+      "type": "string"
+    },
+    "nodes": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/Node"
+      }
+    },
+    "version": {
+      "description": "Assigned by the store on save; absent in hand-written files.",
+      "type": [
+        "integer",
+        "null"
+      ],
+      "format": "uint32",
+      "minimum": 0
+    }
+  },
+  "additionalProperties": false,
+  "required": [
+    "id",
+    "nodes"
+  ],
+  "$defs": {
+    "Condition": {
+      "description": "A mechanically decidable check: JSONPath into a node output (`{status, headers, body}`),\nan operator and the expected value.",
+      "type": "object",
+      "properties": {
+        "expected": true,
+        "op": {
+          "$ref": "#/$defs/Operator"
+        },
+        "path": {
+          "description": "e.g. `$.body.status`",
+          "type": "string"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "path",
+        "op"
+      ]
+    },
+    "DagRef": {
+      "description": "Pin to a stored DAG. `version: None` resolves to the active version at run time.",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "version": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint32",
+          "minimum": 0
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "id"
+      ]
+    },
+    "Edge": {
+      "type": "object",
+      "properties": {
+        "from": {
+          "type": "string"
+        },
+        "to": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "from",
+        "to"
+      ]
+    },
+    "HttpMethod": {
+      "type": "string",
+      "enum": [
+        "GET",
+        "POST",
+        "PUT",
+        "PATCH",
+        "DELETE",
+        "HEAD",
+        "OPTIONS"
+      ]
+    },
+    "HttpRequest": {
+      "description": "A request description. String leaves of `path`, `query`, `headers` and `body` are templates.",
+      "type": "object",
+      "properties": {
+        "body": true,
+        "headers": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        },
+        "method": {
+          "$ref": "#/$defs/HttpMethod"
+        },
+        "path": {
+          "description": "Relative to the environment `base_url` unless it starts with `http://` or `https://`.",
+          "type": "string"
+        },
+        "query": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        },
+        "timeout_ms": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint64",
+          "minimum": 0
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "method",
+        "path"
+      ]
+    },
+    "Node": {
+      "oneOf": [
+        {
+          "description": "`http` node: a request plus the expected shape of the response body.\n\nThe request fields are repeated instead of flattened so unknown keys are still rejected.",
+          "type": "object",
+          "properties": {
+            "body": true,
+            "headers": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "string"
+              }
+            },
+            "id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "method": {
+              "$ref": "#/$defs/HttpMethod"
+            },
+            "name": {
+              "type": "string"
+            },
+            "path": {
+              "type": "string"
+            },
+            "query": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "string"
+              }
+            },
+            "response_schema": {
+              "description": "JSON Schema of the response body; used by the gate to check `${node.output.body...}`."
+            },
+            "timeout_ms": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "format": "uint64",
+              "minimum": 0
+            },
+            "type": {
+              "const": "http"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "id",
+            "type",
+            "method",
+            "path"
+          ]
+        },
+        {
+          "description": "`poll` node: repeat `request` until `condition` holds, waiting `backoff_ms[i]` between\nattempts (the last interval repeats) and failing once `timeout_ms` has elapsed.",
+          "type": "object",
+          "properties": {
+            "backoff_ms": {
+              "type": "array",
+              "items": {
+                "type": "integer",
+                "format": "uint64",
+                "minimum": 0
+              }
+            },
+            "condition": {
+              "$ref": "#/$defs/Condition"
+            },
+            "id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "max_attempts": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "format": "uint32",
+              "minimum": 0
+            },
+            "name": {
+              "type": "string"
+            },
+            "request": {
+              "$ref": "#/$defs/HttpRequest"
+            },
+            "response_schema": true,
+            "timeout_ms": {
+              "type": "integer",
+              "format": "uint64",
+              "minimum": 0
+            },
+            "type": {
+              "const": "poll"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "id",
+            "type",
+            "request",
+            "condition",
+            "backoff_ms",
+            "timeout_ms"
+          ]
+        },
+        {
+          "description": "`assert` node: checks evaluated against the output of `target`, reported one by one.",
+          "type": "object",
+          "properties": {
+            "assertions": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/Condition"
+              }
+            },
+            "id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "name": {
+              "type": "string"
+            },
+            "target": {
+              "description": "Id of the node whose output is checked; must be an ancestor.",
+              "type": "string"
+            },
+            "type": {
+              "const": "assert"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "id",
+            "type",
+            "target",
+            "assertions"
+          ]
+        },
+        {
+          "description": "`db_query` node: parameterized SQL against a named connection.",
+          "type": "object",
+          "properties": {
+            "connection": {
+              "description": "Name of a connection asset bound to the current environment.",
+              "type": "string"
+            },
+            "id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "name": {
+              "type": "string"
+            },
+            "params": {
+              "description": "Positional parameters; string leaves are templates.",
+              "type": "array",
+              "items": true
+            },
+            "response_schema": true,
+            "result": {
+              "$ref": "#/$defs/QueryResultMode"
+            },
+            "sql": {
+              "description": "Uses the driver's positional placeholders; values never get interpolated into SQL text.",
+              "type": "string"
+            },
+            "type": {
+              "const": "db_query"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "id",
+            "type",
+            "connection",
+            "sql"
+          ]
+        },
+        {
+          "description": "`subworkflow` node: runs a child DAG in its own variable scope.\n\nThe child sees only `inputs`, as the reserved node id `input` (`${input.output.<name>}`).\nThe parent sees only `outputs`, as `${<this node>.output.<name>}`.",
+          "type": "object",
+          "properties": {
+            "dag": {
+              "$ref": "#/$defs/DagRef"
+            },
+            "id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "inputs": {
+              "description": "Input name -> value; templates evaluated in the parent scope.",
+              "type": "object",
+              "additionalProperties": true
+            },
+            "name": {
+              "type": "string"
+            },
+            "outputs": {
+              "description": "Output name -> template evaluated in the child scope, e.g. `${login.output.body.token}`.",
+              "type": "object",
+              "additionalProperties": {
+                "type": "string"
+              }
+            },
+            "type": {
+              "const": "subworkflow"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "id",
+            "type",
+            "dag"
+          ]
+        },
+        {
+          "description": "`cleanup` node: always runs when the DAG reaches a terminal state.",
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "name": {
+              "type": "string"
+            },
+            "requests": {
+              "description": "Executed in order; a failing request does not stop the remaining ones.",
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/HttpRequest"
+              }
+            },
+            "type": {
+              "const": "cleanup"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "id",
+            "type"
+          ]
+        }
+      ]
+    },
+    "Operator": {
+      "type": "string",
+      "enum": [
+        "eq",
+        "ne",
+        "gt",
+        "gte",
+        "lt",
+        "lte",
+        "contains",
+        "exists",
+        "not_exists",
+        "regex",
+        "len_eq",
+        "type_is"
+      ]
+    },
+    "QueryResultMode": {
+      "oneOf": [
+        {
+          "description": "Output `{ rows: [...] }`.",
+          "type": "string",
+          "const": "rows"
+        },
+        {
+          "description": "Output `{ row: {...} }`; zero rows is a failure.",
+          "type": "string",
+          "const": "first_row"
+        },
+        {
+          "description": "Output `{ value: ... }` from the first column of the first row.",
+          "type": "string",
+          "const": "scalar"
+        }
+      ]
+    }
+  }
+}
