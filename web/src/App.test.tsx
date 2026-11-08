@@ -1,9 +1,12 @@
 import { render, screen } from '@testing-library/react'
+
 import App from './App'
 
 describe('App', () => {
-  it('renders the product title', () => {
+  it('renders the shell layout', () => {
     render(<App />)
-    expect(screen.getByRole('heading', { name: 'AITest' })).toBeInTheDocument()
+    expect(screen.getByTestId('app-shell')).toBeInTheDocument()
+    expect(screen.getByRole('banner')).toHaveTextContent('AITest')
+    expect(screen.getByTestId('center-canvas')).toBeInTheDocument()
   })
 })

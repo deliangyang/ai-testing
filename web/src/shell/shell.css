@@ -1,0 +1,173 @@
+.app-shell {
+    --top-h: 48px;
+    --status-h: 24px;
+    --chrome-bg: #1a1d26;
+    --chrome-border: #2a2f3a;
+    --chrome-muted: #9aa3b2;
+    --accent: #5b8def;
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+    background: #12141a;
+    color: #e8eaed;
+}
+
+.app-shell__top {
+    flex: 0 0 var(--top-h);
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0 0.75rem;
+    border-bottom: 1px solid var(--chrome-border);
+    background: var(--chrome-bg);
+    font-size: 0.875rem;
+}
+
+.app-shell__body {
+    flex: 1 1 auto;
+    display: flex;
+    min-height: 0;
+}
+
+.app-shell__left {
+    flex: 0 0 auto;
+    border-right: 1px solid var(--chrome-border);
+    background: var(--chrome-bg);
+    overflow: hidden;
+}
+
+.app-shell__center-col {
+    flex: 1 1 auto;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.app-shell__center-main {
+    flex: 1 1 auto;
+    display: flex;
+    min-height: 0;
+}
+
+.app-shell__center {
+    flex: 1 1 auto;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    border-right: 1px solid var(--chrome-border);
+}
+
+.app-shell__tabs {
+    flex: 0 0 auto;
+    display: flex;
+    gap: 0.5rem;
+    padding: 0.35rem 0.75rem;
+    border-bottom: 1px solid var(--chrome-border);
+    font-size: 0.8rem;
+    color: var(--chrome-muted);
+}
+
+.app-shell__canvas {
+    flex: 1 1 auto;
+    padding: 1rem;
+    overflow: auto;
+}
+
+.app-shell__resize-v {
+    flex: 0 0 6px;
+    cursor: col-resize;
+    background: transparent;
+}
+
+.app-shell__resize-v:hover,
+.app-shell__resize-h:hover {
+    background: var(--accent);
+    opacity: 0.35;
+}
+
+.app-shell__right {
+    flex: 0 0 auto;
+    background: var(--chrome-bg);
+    overflow: auto;
+    padding: 0.75rem;
+    font-size: 0.85rem;
+}
+
+.app-shell__drawer {
+    flex: 0 0 auto;
+    border-top: 1px solid var(--chrome-border);
+    background: #151820;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+}
+
+.app-shell__drawer-toolbar {
+    flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 0.5rem;
+    height: 32px;
+    font-size: 0.75rem;
+    color: var(--chrome-muted);
+    border-bottom: 1px solid var(--chrome-border);
+}
+
+.app-shell__drawer-body {
+    flex: 1 1 auto;
+    padding: 0.5rem 0.75rem;
+    overflow: auto;
+    font-size: 0.8rem;
+}
+
+.app-shell__resize-h {
+    flex: 0 0 6px;
+    cursor: row-resize;
+    background: transparent;
+}
+
+.app-shell__status {
+    flex: 0 0 var(--status-h);
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 0 0.75rem;
+    border-top: 1px solid var(--chrome-border);
+    background: #0f1116;
+    font-size: 0.7rem;
+    color: var(--chrome-muted);
+}
+
+.app-shell__nav-toggle,
+.app-shell__drawer-toggle {
+    border: 1px solid var(--chrome-border);
+    background: #22262f;
+    color: inherit;
+    border-radius: 4px;
+    padding: 0.15rem 0.45rem;
+    cursor: pointer;
+    font-size: 0.75rem;
+}
+
+.app-shell__nav-list {
+    list-style: none;
+    margin: 0;
+    padding: 0.5rem;
+    font-size: 0.8rem;
+}
+
+.app-shell__nav-list li {
+    padding: 0.35rem 0.5rem;
+    border-radius: 4px;
+    color: var(--chrome-muted);
+}
+
+.app-shell__nav-list li:hover {
+    background: #22262f;
+    color: #e8eaed;
+}
+
+.app-shell--nav-collapsed .app-shell__nav-label {
+    display: none;
+}
