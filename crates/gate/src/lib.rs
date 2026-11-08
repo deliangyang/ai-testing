@@ -45,6 +45,11 @@ impl Gate {
             .with_rule(rules::CompletenessRule)
     }
 
+    /// The standard rules plus the cross-DAG checks that need stored DAGs; used when saving.
+    pub fn for_save(catalog: std::sync::Arc<dyn rules::DagCatalog>) -> Self {
+        Self::standard().with_rule(rules::SubworkflowCycleRule::new(catalog))
+    }
+
     #[must_use]
     pub fn with_rule(mut self, rule: impl Rule + 'static) -> Self {
         self.rules.push(Box::new(rule));

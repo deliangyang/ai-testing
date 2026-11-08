@@ -9,6 +9,9 @@ pub const DUPLICATE_EDGE: &str = "structure.duplicate_edge";
 
 pub const CYCLE: &str = "graph.cycle";
 
+pub const SUBWORKFLOW_CYCLE: &str = "subworkflow.cycle";
+pub const SUBWORKFLOW_UNKNOWN_DAG: &str = "subworkflow.unknown_dag";
+
 pub const INVALID_TEMPLATE: &str = "reference.invalid_template";
 pub const UNKNOWN_NODE: &str = "reference.unknown_node";
 pub const NOT_ANCESTOR: &str = "reference.not_ancestor";
