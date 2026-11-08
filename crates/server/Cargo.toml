@@ -1,0 +1,37 @@
+[package]
+name = "server"
+description = "Local HTTP API for the Web UI (read-only in phase 1)."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[[bin]]
+name = "aitest-server"
+path = "src/main.rs"
+
+[dependencies]
+anyhow = { workspace = true }
+axum = { workspace = true }
+clap = { workspace = true }
+common = { workspace = true }
+model = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+store = { workspace = true }
+thiserror = { workspace = true }
+tokio = { workspace = true, features = ["rt-multi-thread", "net", "macros", "signal"] }
+tower-http = { version = "0.6", features = ["trace"] }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+
+[dev-dependencies]
+common = { workspace = true }
+http-body-util = "0.1"
+serde_json = { workspace = true }
+tempfile = { workspace = true }
+tower = { version = "0.5", features = ["util"] }
+
+[lints]
+workspace = true

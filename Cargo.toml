@@ -9,6 +9,7 @@ members = [
     "crates/engine",
     "crates/cli",
     "crates/mock-sut",
+    "crates/server",
 ]
 
 [workspace.package]
