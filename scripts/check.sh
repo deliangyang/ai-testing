@@ -19,13 +19,30 @@ failed=()
 
 want() { local s; for s in "${steps[@]}"; do [ "$s" = "$1" ] && return 0; done; return 1; }
 
+# On GitHub Actions a failing step's output tail becomes an error annotation, which is
+# readable without downloading the (authenticated) job log.
+annotate() {
+  local name="$1" log="$2" tail
+  [ "${GITHUB_ACTIONS:-}" = "true" ] || return 0
+  tail="$(tail -n 60 "$log")"
+  tail="${tail//'%'/'%25'}"
+  tail="${tail//$'\r'/'%0D'}"
+  tail="${tail//$'\n'/'%0A'}"
+  echo "::error title=check failed: ${name}::${tail}"
+}
+
 run_step() {
-  local name="$1"; shift
+  local name="$1" log status; shift
   echo "==> $name"
-  if ! "$@"; then
+  log="$(mktemp)"
+  "$@" 2>&1 | tee "$log"
+  status=${PIPESTATUS[0]}
+  if [ "$status" -ne 0 ]; then
     failed+=("$name")
     echo "    FAILED: $name"
+    annotate "$name" "$log"
   fi
+  rm -f "$log"
 }
 
 dependency_guard() {

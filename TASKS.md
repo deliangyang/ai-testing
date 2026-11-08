@@ -36,7 +36,7 @@ M0 两周联合评审：P0-56。
 |---|---|---|---|---|---|
 | P0-01 | 初始化 git 与 Cargo workspace：创建空 crate `common`/`model`/`gate`/`store`/`classifier`/`engine`/`cli`；`rust-toolchain.toml`、`.gitignore`、`.editorconfig`、`rustfmt.toml` | `/`、`crates/` | — | `cargo build --workspace` 通过；目录与 AGENTS.md「仓库布局」一致 | DONE |
 | P0-02 | 质量检查脚本 `scripts/check.ps1`（及 `check.sh`）：fmt --check、clippy `-D warnings`、test；内置架构守卫（见 AGENTS.md「红线」第 1、2 条） | `scripts/` | P0-01 | 干净仓库退出码 0；人为在 engine 中写 `tokio::time::sleep` 或依赖 llm 类 crate 时退出码非 0 | DONE |
-| P0-03 | CI 流水线 `.github/workflows/ci.yml`，Windows + Linux 矩阵调用检查脚本 | `.github/` | P0-02 | 推送后流水线绿 | BLOCKED（Q7） |
+| P0-03 | CI 流水线 `.github/workflows/ci.yml`，Windows + Linux 矩阵调用检查脚本 | `.github/` | P0-02 | 推送后流水线绿 | DOING |
 | P0-04 | `common` crate：错误约定（thiserror）、tracing 初始化、`Clock`/`Sleeper`/`IdGen` trait 及真实实现与固定实现（`FixedClock`、`ManualSleeper`、`SeqIdGen`） | `crates/common` | P0-01 | 单测覆盖固定实现可推进时间、顺序生成 ID | DONE |
 
 ### 0.2 DAG 模型（§4.1）
@@ -318,7 +318,7 @@ M0 两周联合评审：P0-56。
 | Q4 | db_query 首批需支持的数据库 | P3-10 | Postgres、MySQL、SQLite | OPEN |
 | Q5 | JSONPath 方言 | P0-34、P0-07 | 暂按 RFC 9535 的 singular query 子集（`$`、`.name`、`['name']`、`[n]`）自行解析（`model::parse_json_path`，与模板路径共用解析器），不引入 serde_json_path；若需要通配/过滤再议 | OPEN |
 | Q6 | 用于 spike 的 3 条「真实链路」由谁提供？ | P0-52 | 先用 mock-sut 构造等价链路 | OPEN |
-| Q7 | 代码托管远程仓库（GitHub / Cursor origin / 其他）？ | P0-03 | workflow 已按 GitHub Actions 写好并通过 YAML 语法校验，待推送后实跑 | OPEN |
+| Q7 | 代码托管远程仓库（GitHub / Cursor origin / 其他）？ | P0-03 | GitHub：`git@github.com:deliangyang/ai-testing.git`（2026-11-08 人类答复） | RESOLVED |
 
 ---
 
@@ -353,3 +353,4 @@ M0 两周联合评审：P0-56。
 | 2026-11-08 | P0-22 | TODO→DONE | `V001__core.sql` 按 §3.1 建 5 张表，在原设计上加了约束：全部 STRICT；必填列 NOT NULL；状态/模式等枚举列加 CHECK（节点状态含 POLLING、SKIPPED，与 §3.2 一致）；`*_json` 列加 json_valid；dag_runs (dag_id, dag_version) 外键指向 dag_definitions；node_executions、failure_records 外键指向 dag_runs 并级联删除；部分唯一索引 `dag_definitions_one_active` 保证同一 DAG 至多一个 active；按查询场景加了 dag_runs、failure_records 的索引。failure_category 暂不加 CHECK，留给 classifier 定义分类。快照文件为 `crates/store/tests/snapshots/schema.sql`，更新命令：设置 UPDATE_SCHEMAS=1 后运行 `cargo test -p store --test schema_snapshot` |
 | 2026-11-08 | P0-23 | TODO→DONE | `DagRepository::new(&Connection, &dyn Clock)`，提供 save/activate/get/active/versions。save 在 IMMEDIATE 事务里取 max(version)+1，存去掉 version 后的规范化 JSON，状态为 pending，读回时把 version 填进 Dag。activate 采用乐观并发：调用方传入它看到的当前 active 版本（`expected_active`），与库中不一致返回 `StoreError::Conflict`，且不做任何修改；重复激活当前 active 版本不做操作；允许重新激活 archived 版本（即回滚）；版本不存在返回 NotFound。另有部分唯一索引兜底，保证不会出现两个 active。store 层不跑闸门，保存前由调用方负责过闸门。新增错误类型 NotFound/Conflict/Corrupt。8 线程并发激活恰好 1 个成功、并发保存版本号互不重复，各连跑 20 次通过 |
 | 2026-11-08 | P0-24 | TODO→DONE | `RunRepository::new(&Connection, &dyn Clock, &dyn IdGen)`，提供 create/transition/get/list。合法迁移：PENDING→RUNNING/FAILED/CANCELLED，RUNNING→COMPLETED/FAILED/CANCELLED；终态不能再迁移。允许 PENDING→FAILED，用于启动前就失败的情况，比如环境解析失败。进入 RUNNING 时写 started_at，进入终态时写 finished_at，时间都取注入的 Clock。UPDATE 带上原状态作条件，被并发改掉时返回 Conflict。非法迁移返回 `StoreError::InvalidTransition`；创建时 DAG 版本不存在返回 NotFound。list 支持按 dag_id/status/limit 过滤，按 id 倒序，id 为 UUIDv7，按时间有序，因此不用加 created_at 列。矩阵测试覆盖全部 25 种 (from, to) 组合，期望结果单独列出，不依赖被测函数推导 |
+| 2026-11-08 | P0-03 | BLOCKED→DOING | Q7 已答复：远程为 GitHub `deliangyang/ai-testing`。远程上原有一个只含 MIT LICENSE 的初始提交，用 `--allow-unrelated-histories` 合并进来，没有改写本地历史，也没有强推；随后把 Cargo 的 license 从 UNLICENSED 改为 MIT，与仓库一致 |
