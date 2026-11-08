@@ -101,7 +101,7 @@ M0 两周联合评审：P0-56。
 
 | ID | 任务 | 位置 | 依赖 | 验收标准 | 状态 |
 |---|---|---|---|---|---|
-| P0-42 | `FailureCategory` 枚举（7 类）与 `error_code` 目录，文档化到 `docs/error-codes.md` | `crates/classifier`、`docs/` | P0-01 | 枚举与文档一一对应（测试比对） | TODO |
+| P0-42 | `FailureCategory` 枚举（7 类）与 `error_code` 目录，文档化到 `docs/error-codes.md` | `crates/classifier`、`docs/` | P0-01 | 枚举与文档一一对应（测试比对） | DONE |
 | P0-43 | 确定性分类器：输入（执行器错误类型、HTTP 状态、断言结果、提取错误、原始消息）→ (category, error_code)；规则表驱动（正则 + 状态码 + 错误类型），无 LLM | `crates/classifier` | P0-42 | 每个 category ≥3 个样本测试；无法匹配归 `unknown` | TODO |
 | P0-44 | 引擎接入分类器：失败节点写 `failure_category`/`error_code` 与 `failure_records` | `crates/engine` | P0-43、P0-40、P0-26 | 连接拒绝→connection_error；状态码不符→assertion_failed_status 等端到端用例 | TODO |
 
@@ -374,3 +374,4 @@ M0 两周联合评审：P0-56。
 | 2026-11-08 | P0-39 | DONE：`CancelToken`（`Scheduler::with_cancel`，经 `ExecContext.cancel` 传入子工作流）；取消后未启动节点 SKIPPED，运行中节点被中断为 SKIPPED 并带 `cancelled` 错误，cleanup 照常执行，`RunOutcome::status()` 为 CANCELLED；子工作流由子 DAG 自行收尾（子 DAG 的 cleanup 也执行）；补上 P0-36 推迟的「前驱被取消」场景。偏差（ADR-003）：节点层面没有 CANCELLED 状态，状态机新增 RUNNING/POLLING→SKIPPED，以免取消进入失败分类；同步更新了 engine 与 store 的迁移矩阵测试 |
 | 2026-11-08 | P0-40 | DONE：`RunRecorder` 钩子（Started/Finished，经 spawn_blocking 写入），`StoreRecorder`（begin_run/finish_run + node_executions），`load_results` 从库中重建结果，与 `RunOutcome.nodes` 相等（含子工作流帧路径节点、取消、并行度 1/4 一致）；记录前用 `Environment::mask` 把进程环境变量值替换为 ****。偏差（ADR-004）：FAILED/被中断节点的 output_json 存 ExecError；分类器接入前使用占位 `Unclassified`（unknown/UNCLASSIFIED），由 P0-44 替换；READY/POLLING 不落库；attempt 固定为 1；记录失败不中止运行，cleanup 照常执行，最后返回 `SchedulerError::Record` |
 | 2026-11-08 | P0-41 | DONE：`EngineEvent`（node_state_changed / poll_iteration / log / run_finished，带 `type` 标签的 JSON），`event_channel()` 返回 `EventSink` 与 receiver，`Scheduler::with_events`，经 `ExecContext.events` 传给子工作流（节点 id 为帧路径）与 poll 执行器（发出 POLLING 状态与每次迭代，内容经脱敏）；只有顶层运行发出 `RunFinished`，取消时发出 Warn 日志。偏差：使用无界 channel，引擎从不因订阅者阻塞；POLLING 只出现在事件中，不进入 NodeResult 和库；记录失败时先发 Error 日志，再发 `RunFinished(FAILED)` |
+| 2026-11-08 | P0-42 | DONE：`FailureCategory`（§4.5 的 7 类，snake_case）与 `ErrorCode` 目录（27 个，SCREAMING_SNAKE_CASE，每个码只属于一个分类，按分类分组），均支持 FromStr、serde、JsonSchema；`docs/error-codes.md` 的表格由 `catalog_markdown()` 生成，测试比对生成区块（更新命令 `UPDATE_DOCS=1 cargo test -p classifier --test catalog`）。设计未给出错误码，本任务自定：配置问题（CONFIG_*）与引擎内部问题（ENGINE_*）归入 unknown（转人工、不调 LLM）；409/422 与非法状态流转归入 business_rule_violation。classifier 新增依赖 serde、schemars、thiserror（均已在 workspace 中） |

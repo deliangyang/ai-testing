@@ -192,6 +192,12 @@ dependencies = [
 [[package]]
 name = "classifier"
 version = "0.1.0"
+dependencies = [
+ "schemars",
+ "serde",
+ "serde_json",
+ "thiserror",
+]
 
 [[package]]
 name = "cli"
