@@ -135,7 +135,41 @@ export class FixtureDataSource implements DataSource {
         ],
       })
     }
-    return Promise.resolve({ passed: true, issues: [] })
+    const issues: GateResponse['issues'] = []
+    const nodeIds = new Set(dag.nodes.map((n) => n.id))
+    for (const node of dag.nodes) {
+      if (node.type === 'http' && !node.path.trim()) {
+        issues.push({
+          code: 'http.path_empty',
+          severity: 'error',
+          node_id: node.id,
+          message: `HTTP 节点 ${node.id} 缺少 path`,
+        })
+      }
+      if (node.type === 'http') {
+        for (const match of node.path.matchAll(/\$\{([^.}]+)/g)) {
+          const ref = match[1]
+          if (ref && !nodeIds.has(ref)) {
+            issues.push({
+              code: 'template.unknown_node',
+              severity: 'error',
+              node_id: node.id,
+              message: `节点 ${node.id} 引用了不存在的上游「${ref}」`,
+            })
+          }
+        }
+      }
+      if (node.type === 'assert' && !nodeIds.has(node.target)) {
+        issues.push({
+          code: 'assert.missing_target',
+          severity: 'error',
+          node_id: node.id,
+          message: `断言节点 ${node.id} 的目标不存在`,
+        })
+      }
+    }
+    const passed = !issues.some((i) => i.severity === 'error')
+    return Promise.resolve({ passed, issues })
   }
 
   async saveDag(dag: Dag): Promise<DagVersionDto> {

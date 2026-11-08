@@ -133,6 +133,57 @@
     color: #c4daf8;
 }
 
+.dag-validation {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    margin-bottom: 0.75rem;
+    font-size: 0.82rem;
+}
+
+.dag-validation__head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.dag-validation__issues {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.dag-validation__issue {
+    display: flex;
+    gap: 0.35rem;
+    width: 100%;
+    text-align: left;
+    border: none;
+    background: transparent;
+    color: #e8eaed;
+    padding: 0.25rem 0;
+    cursor: pointer;
+    font-size: 0.78rem;
+}
+
+.dag-validation__issue:hover {
+    color: #5b8def;
+}
+
+.dag-validation__sev--error {
+    color: #e25c5c;
+}
+
+.dag-validation__sev--warn {
+    color: #d4a72c;
+}
+
+.dag-validation__ok {
+    margin: 0;
+    color: #3d9e6a;
+    font-size: 0.78rem;
+}
+
 .execution-detail {
     display: flex;
     flex-direction: column;

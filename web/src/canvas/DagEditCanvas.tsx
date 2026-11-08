@@ -20,6 +20,7 @@ import { DagEditContextMenu, type DagEditMenuAction } from './DagEditContextMenu
 import { DagNodeCard } from './DagNodeCard'
 import { addEdge as dagAddEdge, addHttpNode, removeEdge, removeNode } from './dagEdit'
 import { buildDagEditGraph, DAG_NODE_TYPE } from './dagToFlow'
+import { FocusNodeEffect } from './focusNodeEffect'
 import { canvasTokens } from './tokens'
 import './canvas.css'
 
@@ -62,10 +63,12 @@ function DagEditCanvasInner({
   dag,
   onDagChange,
   onSelectedNodeIdChange,
+  focusNodeId,
 }: {
   dag: Dag
   onDagChange: (dag: Dag) => void
   onSelectedNodeIdChange?: (nodeId: string | null) => void
+  focusNodeId?: string | null
 }) {
   const { fitView } = useReactFlow()
   const [layoutPass, setLayoutPass] = useState(0)
@@ -182,6 +185,7 @@ function DagEditCanvasInner({
           <FitViewControl />
         </div>
       </Panel>
+      <FocusNodeEffect nodeId={focusNodeId} />
       {menu ? (
         <DagEditContextMenu
           x={menu.x}
@@ -202,6 +206,7 @@ export interface DagEditCanvasProps {
   dag: Dag
   onDagChange?: (dag: Dag) => void
   onSelectedNodeIdChange?: (nodeId: string | null) => void
+  focusNodeId?: string | null
 }
 
 function DagEditCanvasControlled(props: DagEditCanvasProps) {
@@ -219,6 +224,7 @@ function DagEditCanvasControlled(props: DagEditCanvasProps) {
       data-testid="dag-edit-canvas"
       data-node-count={draft.nodes.length}
       data-edge-count={draft.edges?.length ?? 0}
+      data-focus-node={props.focusNodeId ?? undefined}
       aria-label="DAG 编辑画布"
     >
       <ReactFlowProvider>
@@ -226,6 +232,7 @@ function DagEditCanvasControlled(props: DagEditCanvasProps) {
           dag={draft}
           onDagChange={change}
           onSelectedNodeIdChange={props.onSelectedNodeIdChange}
+          focusNodeId={props.focusNodeId}
         />
       </ReactFlowProvider>
     </div>

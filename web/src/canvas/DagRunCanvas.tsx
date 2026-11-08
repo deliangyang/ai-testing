@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState, type MouseEvent as DomMouseEvent } from 'react'
+import { useCallback, useMemo, useState, type MouseEvent as DomMouseEvent } from 'react'
 import {
   Background,
   Controls,
@@ -16,6 +16,7 @@ import type { Dag } from '../types/generated'
 import type { StoredRunEvent } from '../data/types'
 import { buildDagRunGraph, DAG_RUN_NODE_TYPE } from './buildDagRunGraph'
 import { DagRunNodeCard } from './DagRunNodeCard'
+import { FocusNodeEffect } from './focusNodeEffect'
 import { RunNodeContextMenu } from './RunNodeContextMenu'
 import { RunProgressBar } from './RunProgressBar'
 import { RunReplayActions } from './RunReplayActions'
@@ -27,22 +28,6 @@ import '@xyflow/react/dist/style.css'
 
 const nodeTypes: NodeTypes = {
   [DAG_RUN_NODE_TYPE]: DagRunNodeCard,
-}
-
-function FocusNodeEffect({ nodeId }: { nodeId?: string | null }) {
-  const { fitView } = useReactFlow()
-  useEffect(() => {
-    if (!nodeId) {
-      return
-    }
-    const handle = window.requestAnimationFrame(() => {
-      void fitView({ nodes: [{ id: nodeId }], padding: 0.35, duration: 200 })
-    })
-    return () => {
-      window.cancelAnimationFrame(handle)
-    }
-  }, [nodeId, fitView])
-  return null
 }
 
 function FitViewControl() {

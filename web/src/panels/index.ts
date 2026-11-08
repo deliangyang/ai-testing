@@ -1,5 +1,6 @@
 export { ExecutionDetailPanel } from './ExecutionDetailPanel'
 export { NodePropertyPanel } from './NodePropertyPanel'
+export { DagValidationPanel } from './DagValidationPanel'
 export { PollTraceTable } from './PollTraceTable'
 export { PollTraceTimeline } from './PollTraceTimeline'
 export { extractAssertionRows } from './assertionResults'
