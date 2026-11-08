@@ -5,7 +5,7 @@ use std::sync::Arc;
 use anyhow::Context;
 use clap::Parser;
 use common::{SystemClock, UuidV7Gen};
-use server::AppState;
+use server::{AppState, RunEventHub};
 use tower_http::trace::TraceLayer;
 use tracing_subscriber::EnvFilter;
 
@@ -30,6 +30,7 @@ async fn main() -> anyhow::Result<()> {
         args.db,
         Arc::new(SystemClock),
         Arc::new(UuidV7Gen),
+        Arc::new(RunEventHub::new()),
     );
     let app = server::router(state).layer(TraceLayer::new_for_http());
     let listener = tokio::net::TcpListener::bind(args.listen)

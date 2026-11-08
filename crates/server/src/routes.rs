@@ -6,6 +6,7 @@ use store::{DagRepository, NodeExecutionRepository, RunQuery, RunRepository};
 
 use crate::dto::{DagDetailDto, DagVersionDto, NodeExecutionDto, RunDto};
 use crate::error::{ApiError, ApiResult};
+use crate::sse::run_event_stream;
 use crate::state::AppState;
 
 pub fn router(state: AppState) -> Router {
@@ -13,10 +14,14 @@ pub fn router(state: AppState) -> Router {
         .route("/health", get(health))
         .route("/api/dags", get(list_dags))
         .route("/api/dags/{dag_id}/active", get(get_active_dag))
-        .route("/api/dags/{dag_id}/versions/{version}", get(get_dag_version))
+        .route(
+            "/api/dags/{dag_id}/versions/{version}",
+            get(get_dag_version),
+        )
         .route("/api/runs", get(list_runs))
         .route("/api/runs/{run_id}", get(get_run))
         .route("/api/runs/{run_id}/executions", get(list_executions))
+        .route("/api/runs/{run_id}/events", get(run_event_stream))
         .with_state(state)
 }
 
@@ -52,7 +57,9 @@ async fn get_active_dag(
     .await
     .map_err(|e| ApiError::Internal(e.to_string()))??
     .ok_or_else(|| ApiError::NotFound(format!("DAG '{dag_id}' has no active version")))?;
-    Ok(Json(DagDetailDto::from_record(record).map_err(|e| ApiError::Internal(e.to_string()))?))
+    Ok(Json(
+        DagDetailDto::from_record(record).map_err(|e| ApiError::Internal(e.to_string()))?,
+    ))
 }
 
 async fn get_dag_version(
@@ -70,7 +77,9 @@ async fn get_dag_version(
     .await
     .map_err(|e| ApiError::Internal(e.to_string()))??
     .ok_or_else(|| ApiError::NotFound(format!("DAG '{dag_id}' version {version}")))?;
-    Ok(Json(DagDetailDto::from_record(record).map_err(|e| ApiError::Internal(e.to_string()))?))
+    Ok(Json(
+        DagDetailDto::from_record(record).map_err(|e| ApiError::Internal(e.to_string()))?,
+    ))
 }
 
 #[derive(Debug, Deserialize)]
@@ -103,9 +112,7 @@ async fn list_runs(
 
 fn parse_run_status(s: &str) -> Option<store::RunStatus> {
     use store::RunStatus;
-    RunStatus::ALL
-        .into_iter()
-        .find(|st| st.as_str() == s)
+    RunStatus::ALL.into_iter().find(|st| st.as_str() == s)
 }
 
 async fn get_run(

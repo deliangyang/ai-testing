@@ -7,7 +7,7 @@ use axum::http::{Request, StatusCode};
 use common::{FixedClock, Timestamp, UuidV7Gen};
 use http_body_util::BodyExt;
 use model::Dag;
-use server::{router, AppState};
+use server::{router, AppState, RunEventHub};
 use store::{
     DagRepository, ExecutionKey, NodeExecutionRepository, NodeUpdate, RunRepository, RunStatus,
 };
@@ -31,6 +31,7 @@ fn app(tmp: &tempfile::TempDir) -> axum::Router {
         tmp.path().join("t.db"),
         clock.clone(),
         Arc::new(UuidV7Gen),
+        Arc::new(RunEventHub::new()),
     );
     let db = Db::open(state.db_path.clone(), clock.as_ref()).unwrap();
     let saved = DagRepository::new(db.conn(), clock.as_ref())
@@ -48,12 +49,8 @@ fn app(tmp: &tempfile::TempDir) -> axum::Router {
             mode: RunMode::Manual,
         })
         .unwrap();
-    run_repo
-        .transition(&run.id, RunStatus::Running)
-        .unwrap();
-    run_repo
-        .transition(&run.id, RunStatus::Completed)
-        .unwrap();
+    run_repo.transition(&run.id, RunStatus::Running).unwrap();
+    run_repo.transition(&run.id, RunStatus::Completed).unwrap();
     let nodes = NodeExecutionRepository::new(db.conn(), clock.as_ref());
     let key = ExecutionKey::new(&run.id, "ping", 1);
     nodes
@@ -97,7 +94,11 @@ async fn read_only_api_lists_dags_runs_and_executions() {
         .unwrap();
     assert_eq!(res.status(), StatusCode::OK);
     let dags = body_json(res).await;
-    assert!(dags.as_array().unwrap().iter().any(|d| d["id"] == "api-fixture"));
+    assert!(dags
+        .as_array()
+        .unwrap()
+        .iter()
+        .any(|d| d["id"] == "api-fixture"));
 
     let res = app
         .clone()
