@@ -109,6 +109,35 @@ impl<'a> DagGraph<'a> {
         Err(self.find_cycle(&remaining))
     }
 
+    /// Kahn's algorithm in rounds: level 0 holds the roots, level n the nodes whose last
+    /// predecessor is in level n-1. Each level is sorted by id. Errors like [`Self::topo_order`].
+    pub fn topo_levels(&self) -> Result<Vec<Vec<&'a str>>, Vec<&'a str>> {
+        let mut in_degree: Vec<usize> = self.pred.iter().map(BTreeSet::len).collect();
+        let mut level: Vec<usize> = (0..self.ids.len()).filter(|&i| in_degree[i] == 0).collect();
+        let mut levels = Vec::new();
+        let mut placed = 0;
+        while !level.is_empty() {
+            let mut next = BTreeSet::new();
+            for &i in &level {
+                for &j in &self.succ[i] {
+                    in_degree[j] -= 1;
+                    if in_degree[j] == 0 {
+                        next.insert(j);
+                    }
+                }
+            }
+            placed += level.len();
+            levels.push(level.iter().map(|&i| self.ids[i]).collect());
+            level = next.into_iter().collect();
+        }
+        if placed == self.ids.len() {
+            return Ok(levels);
+        }
+        let remaining: BTreeSet<usize> =
+            (0..self.ids.len()).filter(|&i| in_degree[i] > 0).collect();
+        Err(self.find_cycle(&remaining))
+    }
+
     /// Every node left after Kahn has a remaining predecessor, so walking predecessors must
     /// revisit a node; the revisited stretch is a cycle.
     fn find_cycle(&self, remaining: &BTreeSet<usize>) -> Vec<&'a str> {
@@ -221,5 +250,33 @@ mod tests {
         assert_eq!(g.successors("a").collect::<Vec<_>>(), vec!["b"]);
         assert_eq!(g.predecessors("b").collect::<Vec<_>>(), vec!["a"]);
         assert!(!g.contains("ghost"));
+    }
+
+    #[test]
+    fn topo_levels_group_by_kahn_round() {
+        // a -> b, c alone: by rounds c runs before b, unlike smallest-ready-first.
+        let d = dag(&["a", "b", "c"], &[("a", "b")]);
+        let g = DagGraph::new(&d);
+        assert_eq!(g.topo_levels().unwrap(), vec![vec!["a", "c"], vec!["b"]]);
+        assert_eq!(g.topo_order().unwrap(), vec!["a", "b", "c"]);
+
+        let d = dag(
+            &["e", "c", "a", "d", "b"],
+            &[("a", "c"), ("a", "d"), ("c", "e"), ("d", "e"), ("b", "e")],
+        );
+        assert_eq!(
+            DagGraph::new(&d).topo_levels().unwrap(),
+            vec![vec!["a", "b"], vec!["c", "d"], vec!["e"]]
+        );
+        assert_eq!(
+            DagGraph::new(&dag(&[], &[])).topo_levels().unwrap(),
+            Vec::<Vec<&str>>::new()
+        );
+    }
+
+    #[test]
+    fn topo_levels_report_cycles() {
+        let d = dag(&["s", "p", "q"], &[("s", "p"), ("p", "q"), ("q", "p")]);
+        assert_eq!(DagGraph::new(&d).topo_levels().unwrap_err(), vec!["p", "q"]);
     }
 }

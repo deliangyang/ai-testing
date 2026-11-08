@@ -82,7 +82,7 @@ M0 两周联合评审：P0-56。
 | ID | 任务 | 位置 | 依赖 | 验收标准 | 状态 |
 |---|---|---|---|---|---|
 | P0-27 | 节点状态机：PENDING/READY/RUNNING/POLLING/COMPLETED/FAILED/SKIPPED 及合法迁移 | `crates/engine` | P0-01 | 迁移矩阵全覆盖测试 | DONE |
-| P0-28 | `NodeExecutor` trait + 串行拓扑调度器（用 mock 执行器测试） | `crates/engine` | P0-27、P0-15 | 执行顺序符合拓扑序；同层按 node_id 字典序 | TODO |
+| P0-28 | `NodeExecutor` trait + 串行拓扑调度器（用 mock 执行器测试） | `crates/engine` | P0-27、P0-15 | 执行顺序符合拓扑序；同层按 node_id 字典序 | DONE |
 | P0-29 | 并行调度：无依赖后继同时发起，有界信号量控制并行度；**结果写入与报告顺序与完成时序无关** | `crates/engine` | P0-28 | c∥d 并行用例：并行度 1 与 4 的报告字节一致 | TODO |
 | P0-30 | 失败传播：节点 FAILED 后所有未执行后继标记 SKIPPED（cleanup 除外） | `crates/engine` | P0-28 | 菱形 DAG 用例 | TODO |
 | P0-31 | 环境配置加载：`environments/<name>.yaml`（base_url、变量、`${env:VAR}` 引用）；缺失变量报明确错误 | `crates/engine` | P0-10 | 单测 | TODO |
@@ -360,3 +360,4 @@ M0 两周联合评审：P0-56。
 | 2026-11-08 | P0-26 | TODO→DONE | `FailureRecordRepository::new(&Connection, &dyn Clock, &dyn IdGen)`，提供 insert、list_for_run（按 classified_at、id 升序）、list_by_category（按时间倒序，带 limit）。id 和 classified_at 由注入的 IdGen/Clock 生成；node_id 可为空，用于运行级失败；run 不存在返回 NotFound（由外键约束映射而来）；failure_category 为空返回 Invalid。raw_message 中凭据的打码由调用方负责。resolution 的写入接口留给后续需要它的任务 |
 | 2026-11-08 | P0-03 | DOING→DONE | ba52e8e 的 [CI](https://github.com/deliangyang/ai-testing/actions/runs/42462850786) 在 ubuntu-latest 和 windows-latest 上都通过，借助 rust-cache 每个平台约 1 分钟。首轮 Linux 失败暴露了 check.ps1 漏报的问题（见 P0-02-fix1）；check.sh 在 Actions 上会把失败步骤输出的末尾 60 行写成 annotation，不登录也能通过公开 API 读到。workflow 本身未改 |
 | 2026-11-08 | P0-27 | TODO→DONE | `NodeStatus` 从 store 移到 `model::status`，engine（`engine::state`）和 store 都重新导出它，避免两份状态机各自演化；store 的公开 API 不变。新增 `transition()`，返回 `InvalidTransition{from,to}`；serde 名称为全大写（PENDING…SKIPPED），并 derive JsonSchema。迁移规则沿用 P0-25：非终态允许原地停留（轮询每轮都会上报），终态不能再迁移。测试覆盖全部 49 种组合，期望表独立写出；另验证终态不可离开、从 PENDING 能到达所有状态、任一非终态都能走到终态，以及文本与 JSON 名称稳定 |
+| 2026-11-08 | P0-28 | TODO→DONE | `NodeExecutor::execute(&Node, ExecContext) -> ExecFuture`，用装箱 Future，与 Sleeper 的写法一致，不引入 async_trait。`ExecContext` 只包含该节点已完成祖先的输出，作用域由调度器保证。执行器失败返回 `ExecError{kind, message, detail}`，只描述原始错误，分类留给 P0-43/P0-44。`Scheduler::run` 串行执行，每个节点经过 PENDING→READY→RUNNING→COMPLETED/FAILED，每一步都走 `NodeStatus::transition` 校验。顺序：`同层`理解为 Kahn 算法的轮次。`topo_order`（每次挑最小的就绪 id）在 a→b 加独立 c 的情况下会得到 a,b,c，与按层的 a,c,b 不同，因此在 model 新增 `DagGraph::topo_levels()`，也方便与 P0-29 的并行波次对齐。失败节点的后继暂时保持 PENDING，SKIPPED 与 cleanup 例外由 P0-30 处理；有环时返回 `SchedulerError::Cycle`，一个节点都不执行 |

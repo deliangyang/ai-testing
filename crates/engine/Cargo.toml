@@ -12,9 +12,12 @@ common = { workspace = true }
 model = { workspace = true }
 store = { workspace = true }
 classifier = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+thiserror = { workspace = true }
 
 [dev-dependencies]
-serde_json = { workspace = true }
+tokio = { workspace = true }
 
 [lints]
 workspace = true
