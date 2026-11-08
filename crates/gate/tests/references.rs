@@ -1,6 +1,6 @@
 mod common;
 
-use common::{dag, edge, finding, findings, http, validate};
+use common::{dag, edge, error_findings, finding, http, validate};
 use gate::codes;
 use serde_json::json;
 
@@ -21,7 +21,7 @@ fn transitive_ancestor_reference_passes() {
         ],
         vec![edge("login", "create"), edge("create", "pay")],
     ));
-    assert!(report.issues.is_empty(), "{:#?}", report.issues);
+    assert!(report.passed(), "{:#?}", report.issues);
 }
 
 #[test]
@@ -36,7 +36,7 @@ fn sibling_reference_is_located_to_the_field() {
         vec![edge("root", "c"), edge("root", "d")],
     ));
     assert_eq!(
-        findings(&report),
+        error_findings(&report),
         vec![finding(
             codes::NOT_ANCESTOR,
             Some("d"),
@@ -56,7 +56,7 @@ fn successor_and_self_references_are_rejected() {
         vec![edge("a", "b")],
     ));
     assert_eq!(
-        findings(&report),
+        error_findings(&report),
         vec![
             finding(codes::NOT_ANCESTOR, Some("a"), Some("/nodes/0/path")),
             finding(codes::NOT_ANCESTOR, Some("b"), Some("/nodes/1/path")),
@@ -69,7 +69,7 @@ fn successor_and_self_references_are_rejected() {
 fn unknown_node_reference_is_rejected() {
     let report = validate(&dag(vec![http_with_path("a", "/${ghost.output}")], vec![]));
     assert_eq!(
-        findings(&report),
+        error_findings(&report),
         vec![finding(
             codes::UNKNOWN_NODE,
             Some("a"),
@@ -87,7 +87,7 @@ fn assert_target_must_be_upstream() {
         vec![edge("a", "check"), edge("a", "b")],
     ));
     assert_eq!(
-        findings(&report),
+        error_findings(&report),
         vec![finding(
             codes::NOT_ANCESTOR,
             Some("check"),
@@ -104,7 +104,7 @@ fn env_auth_and_input_references_are_not_node_references() {
             "headers": {"Authorization": "Bearer ${auth.token}"}})],
         vec![],
     ));
-    assert!(report.issues.is_empty(), "{:#?}", report.issues);
+    assert!(report.passed(), "{:#?}", report.issues);
 }
 
 #[test]
@@ -117,7 +117,7 @@ fn invalid_template_is_reported_with_pointer() {
         vec![],
     ));
     assert_eq!(
-        findings(&report),
+        error_findings(&report),
         vec![finding(
             codes::INVALID_TEMPLATE,
             Some("a"),

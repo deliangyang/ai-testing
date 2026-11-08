@@ -30,6 +30,13 @@ pub fn findings(report: &Report) -> Vec<(String, Option<String>, Option<String>)
         .collect()
 }
 
+pub fn error_findings(report: &Report) -> Vec<(String, Option<String>, Option<String>)> {
+    report
+        .errors()
+        .map(|i| (i.code.clone(), i.node_id.clone(), i.json_path.clone()))
+        .collect()
+}
+
 pub fn finding(
     code: &str,
     node: Option<&str>,

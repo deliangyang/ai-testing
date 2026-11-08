@@ -60,7 +60,7 @@ M0 两周联合评审：P0-56。
 | P0-14 | 结构规则：节点 ID 唯一、边端点存在、禁止自环、禁止重复边、禁止使用保留 id（`input`/`env`/`auth`） | `crates/gate` | P0-13 | 每条规则至少一个正例一个反例 | DONE |
 | P0-15 | 无环规则：Kahn 拓扑排序，失败时报告一条具体环路径 | `crates/gate` | P0-13 | 环 a→b→c→a 报告完整路径 | DONE |
 | P0-16 | 前驱引用规则：模板中 `${x.output...}` 的 x 必须是当前节点的祖先（传递闭包） | `crates/gate` | P0-10、P0-15 | 引用兄弟/后继节点均被拦截并定位到字段 | DONE |
-| P0-17 | 字段存在规则：被引用字段路径必须在上游 `response_schema` 中存在；上游无 schema 时降级为 warn | `crates/gate` | P0-16、P0-06 | 不存在字段报 error；无 schema 报 warn | TODO |
+| P0-17 | 字段存在规则：被引用字段路径必须在上游 `response_schema` 中存在；上游无 schema 时降级为 warn | `crates/gate` | P0-16、P0-06 | 不存在字段报 error；无 schema 报 warn | DONE |
 | P0-18 | 轮询可判定规则：condition 路径可解析、op 与 expected 类型匹配、backoff 非空且单调非减、timeout ≥ backoff 首项 | `crates/gate` | P0-07、P0-13 | 4 类违规各一例 | TODO |
 | P0-19 | 完整性规则：必填字段、孤立节点（无边且非唯一节点）、cleanup 必须无出边、每个 http 节点至少被一个 assert 引用（warn） | `crates/gate` | P0-13 | 各违规一例 | TODO |
 | P0-20 | 坏 DAG 语料：`tests/fixtures/bad_dags/` ≥20 个（环/无效引用/轮询不可判定/孤立节点/缺字段…），每个文件头注明期望 issue code；全量拦截测试 | `crates/gate/tests` | P0-14 ~ P0-19 | 100% 被拦截且命中期望 code | TODO |
@@ -345,3 +345,4 @@ M0 两周联合评审：P0-56。
 | 2026-11-08 | P0-14 | TODO→DONE | 额外增加 `structure.invalid_node_id`：节点 id 必须匹配 `[A-Za-z_][A-Za-z0-9_-]*`，与模板引用语法一致；新增 `Gate::standard()` 注册全部内置规则；重复 id 定位到后出现的那一处 |
 | 2026-11-08 | P0-15 | TODO→DONE | 拓扑排序与找环放在 `model::graph::DagGraph`（引擎 P0-28 复用，引擎不依赖 gate）；就绪节点按 id 字典序出队；环路径旋转为从最小 id 开始，并定位到环上第一条边；自环与悬空边在图中忽略，由结构规则报告 |
 | 2026-11-08 | P0-16 | TODO→DONE | 模板位置提取放在 `model::scope::node_refs`（引擎渲染复用）：覆盖 http/poll 请求各部分、条件与断言的 expected、db_query params、subworkflow inputs、cleanup 请求；subworkflow outputs 属子作用域，留给 P0-37；assert `target` 同样要求为祖先；`${input.output...}` 不算节点引用；模板语法错误报 `reference.invalid_template` |
+| 2026-11-08 | P0-17 | TODO→DONE | 约定节点输出结构：http/poll 为封闭对象 {status, headers, body, timing}，body 由 response_schema 描述；db_query 为 rows/row/value（schema 描述单行）；subworkflow 为 outputs 的键；assert 为 {results}；cleanup 无输出。schema 遍历（`gate::schema_path`）支持 properties/additionalProperties/items/prefixItems/本地 $ref/allOf/anyOf/oneOf。无 schema 时报 `reference.unverified_field`（warn）；只检查祖先目标，非法目标交给 ReferenceRule。poll/assert 条件里 JSONPath 的字段检查延后 |

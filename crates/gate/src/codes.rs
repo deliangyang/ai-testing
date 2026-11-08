@@ -12,3 +12,5 @@ pub const CYCLE: &str = "graph.cycle";
 pub const INVALID_TEMPLATE: &str = "reference.invalid_template";
 pub const UNKNOWN_NODE: &str = "reference.unknown_node";
 pub const NOT_ANCESTOR: &str = "reference.not_ancestor";
+pub const UNKNOWN_FIELD: &str = "reference.unknown_field";
+pub const UNVERIFIED_FIELD: &str = "reference.unverified_field";
