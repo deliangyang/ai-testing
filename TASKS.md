@@ -69,7 +69,7 @@ M0 两周联合评审：P0-56。
 
 | ID | 任务 | 位置 | 依赖 | 验收标准 | 状态 |
 |---|---|---|---|---|---|
-| P0-21 | SQLite 连接层：WAL、foreign_keys、busy_timeout；嵌入式 SQL 迁移框架（`migrations/V###__name.sql` + 版本表） | `crates/store` | P0-01 | 新库自动迁移；重复启动幂等 | TODO |
+| P0-21 | SQLite 连接层：WAL、foreign_keys、busy_timeout；嵌入式 SQL 迁移框架（`migrations/V###__name.sql` + 版本表） | `crates/store` | P0-01 | 新库自动迁移；重复启动幂等 | DONE |
 | P0-22 | 迁移 V001：`api_specs`、`dag_definitions`、`dag_runs`、`node_executions`、`failure_records`（按 §3.1，补必要索引） | `crates/store/migrations` | P0-21 | 迁移后 schema 快照测试 | TODO |
 | P0-23 | `DagRepository`：保存新版本（pending）、激活（同 id 仅一个 active，旧版 archived）、按版本/取 active/列版本 | `crates/store` | P0-22、P0-05 | 并发激活只有一个成功；旧版本仍可读取 | TODO |
 | P0-24 | `RunRepository`：创建运行、状态迁移（非法迁移返回错误）、查询 | `crates/store` | P0-22 | 状态迁移矩阵表驱动测试 | TODO |
@@ -349,3 +349,4 @@ M0 两周联合评审：P0-56。
 | 2026-11-08 | P0-18 | TODO→DONE | 新增 `DecidabilityRule`（规则名 decidability），同时作用于 poll 的 condition 和 assert 的每条 assertion：路径必须是 singular JSONPath，且在已知 schema 中存在（poll 查自身输出，assert 查祖先 target 的输出）；需要 expected 的操作符缺 expected、exists/not_exists 带 expected、gt/gte/lt/lte 非数字、len_eq 非非负整数、regex 无法编译（Rust regex 方言）、type_is 不在 7 种 JSON 类型内，均报错；含模板引用的 expected 留到运行时判断。poll 另查：backoff_ms 非空、单调非减（定位到第一个下降处）、timeout_ms ≥ backoff 首项、max_attempts ≠ 0。顺带修复 model：显式 `expected: null` 原先被反序列化为缺失，现保留为 null。输出结构辅助函数移到 `gate::output` 与 FieldRule 共用 |
 | 2026-11-08 | P0-19 | TODO→DONE | 新增 `CompletenessRule`（规则名 completeness）。必填字段（serde 已保证字段存在，这里查空白/空集合）：DAG id、nodes，http path、poll request.path、assert target 与 assertions、db_query connection 与 sql、subworkflow dag.id、cleanup requests 及每个 request 的 path。孤立节点：节点数 ≥ 2 时，没有任何有效边（悬空边、自环不计）的节点报错；cleanup 不豁免。cleanup 的每条出边报错，定位到 /edges/i。http 节点既不是任何 assert 的 target、也没被 assert 中的模板引用时报 warn。测试辅助函数 `validate` 改为过滤掉 completeness.*，供只关注单条规则的测试使用；完整报告用 `validate_all` |
 | 2026-11-08 | P0-20 | TODO→DONE | 语料位于 `crates/gate/tests/fixtures/bad_dags/`，共 27 个：结构 6、环 2、引用 5（含 assert target 非祖先）、字段 1、轮询 5、断言 2、完整性 3、加载失败 3（缺 timeout_ms、未知节点类型、配置键拼错）。文件头 `# expect: code[, code]`，`parse` 表示必须在反序列化阶段失败。判定要求 error code 集合与期望完全相等（warn 不计），防止样例靠别的错误被拦截；已用改错期望的方式验证测试会失败。另加 `good_dags/order_pay.yaml`，用覆盖全部节点类型的完整流程防止误杀 |
+| 2026-11-08 | P0-21 | TODO→DONE | 选用 rusqlite 0.41（bundled，自带 SQLite 源码，无系统依赖）；它要求 Rust 1.89，因此 workspace 的 rust-version 从 1.80 提到 1.89。`Db::open` 依次设置 busy_timeout=5s、WAL、foreign_keys=ON、synchronous=NORMAL，然后迁移。切换 WAL 时 SQLite 不走 busy handler，并发首次打开会立刻报 locked；改为先读当前模式，遇到 BUSY 时用 `BEGIN IMMEDIATE` 借 busy handler 等待后重试（最多 20 次），不引入裸 sleep，8 线程并发打开连跑 30 次通过。迁移：`migrations/V###__name.sql` 用 include_str! 编进 `MIGRATIONS`，单元测试保证目录里的文件与注册表一致；`schema_migrations` 记录 version/name/sha256/applied_at（applied_at 取注入的 Clock）；整次迁移在一个 IMMEDIATE 事务里，失败则全部回滚；已应用的迁移被改动、库里有本版本不认识的迁移、在已应用版本之下插入新迁移，都会报错 |

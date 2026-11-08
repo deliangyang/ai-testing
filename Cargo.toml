@@ -13,7 +13,7 @@ members = [
 [workspace.package]
 version = "0.1.0"
 edition = "2021"
-rust-version = "1.80"
+rust-version = "1.89"
 license = "UNLICENSED"
 publish = false
 
@@ -33,6 +33,8 @@ schemars = "1"
 jsonschema = { version = "0.33", default-features = false }
 proptest = "1"
 regex = "1"
+rusqlite = { version = "0.41", features = ["bundled"] }
+tempfile = "3"
 yaml_serde = "0.10"
 thiserror = "2"
 time = { version = "0.3", features = ["formatting", "parsing", "macros"] }
