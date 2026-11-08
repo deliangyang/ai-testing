@@ -48,7 +48,7 @@ M0 两周联合评审：P0-56。
 | P0-07 | `poll` 节点配置：被轮询请求、结构化 `condition`（path + op + expected，不允许自由表达式）、`backoff`（间隔序列，ms）、`timeout_ms`；缺 backoff/timeout 反序列化即失败 | `crates/model` | P0-06 | 缺字段用例失败；合法用例通过 | DONE |
 | P0-08 | `assert` 节点配置：`target`（引用上游输出）、`path`、`operator` 枚举（eq/ne/gt/gte/lt/lte/contains/exists/not_exists/regex/len_eq/type_is）、`expected` | `crates/model` | P0-05 | 每种 operator 均有反序列化用例 | DONE |
 | P0-09 | `db_query`/`subworkflow`/`cleanup` 配置类型（仅结构，执行在后续任务）：连接名+参数化 SQL+结果映射；`dag_ref{id,version_req}`+输入/输出 binding；cleanup 动作列表 | `crates/model` | P0-05 | 反序列化用例通过 | DONE |
-| P0-10 | 变量引用解析器：`${node.output.a.b[0]}`、`${env:VAR}`、`${auth.name}`、`$${` 转义；输出 AST，可从任意模板中提取全部引用 | `crates/model` | P0-05 | 表驱动单测 ≥20 例，含嵌套数组、非法语法定位到字符偏移 | TODO |
+| P0-10 | 变量引用解析器：`${node.output.a.b[0]}`、`${env:VAR}`、`${auth.name}`、`$${` 转义；输出 AST，可从任意模板中提取全部引用 | `crates/model` | P0-05 | 表驱动单测 ≥20 例，含嵌套数组、非法语法定位到字符偏移 | DONE |
 | P0-11 | 规范化 JSON（键排序、数字规范化、无多余空白）与内容哈希（sha256） | `crates/model` | P0-05 | 键顺序不同的等价对象哈希相同；属性测试（proptest） | TODO |
 | P0-12 | 由类型导出 JSON Schema（schemars）到 `schemas/dag.schema.json`；测试校验文件与代码同步 | `crates/model`、`schemas/` | P0-09 | 修改类型不更新 schema 时测试失败 | TODO |
 
@@ -338,3 +338,4 @@ M0 两周联合评审：P0-56。
 | 2026-11-08 | P0-07 | TODO→DONE | 字段名为 `request`/`condition`/`backoff_ms`/`timeout_ms`，另有可选 `max_attempts`、`response_schema`；`Condition{path, op, expected?}` 与 `Operator` 枚举供 assert 复用；路径为作用于 `{status, headers, body}` 的 JSONPath；backoff 为空数组的情况留给闸门规则 P0-18 处理 |
 | 2026-11-08 | P0-08 | TODO→DONE | 与任务描述的偏差：一个 assert 节点为 `target` + `assertions: [Condition]` 列表（而非单条 path/operator/expected），以支持逐条结果；运算符字段名为 `op`，与 poll 条件一致 |
 | 2026-11-08 | P0-09 | TODO→DONE | db_query 使用位置参数 `params` 和 `result: rows/first_row/scalar`；子工作流引用为 `dag: {id, version?}`（不填版本表示运行时取 active），子 DAG 通过保留节点 id `input` 读取输入（`${input.output.x}`），父 DAG 只能看到 `outputs` 映射；cleanup 在阶段 0 为按顺序执行的 HTTP 请求列表。保留 id `input`/`env`/`auth` 需由闸门规则禁止用作节点 id（并入 P0-14） |
+| 2026-11-08 | P0-10 | TODO→DONE | 路径段支持 `.key`、`[n]`、`["key"]`/`['key']`；非 ASCII 字段名必须用引号形式；`refs_in_value` 按文档顺序返回引用及其 JSON Pointer；`as_single_ref` 供渲染器在整串只有一个引用时保留原 JSON 类型 |
