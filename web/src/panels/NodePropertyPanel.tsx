@@ -2,6 +2,8 @@ import { useMemo, useState, type ReactNode } from 'react'
 
 import type { DagVersionDto } from '../data/types'
 import type { Condition, Dag, HttpMethod, Node, Operator } from '../types/generated'
+import { upstreamVariableSuggestions } from './dagAncestors'
+import { TemplateField } from './TemplateField'
 import { findNode, replaceNode } from './updateDagNode'
 import './panels.css'
 
@@ -25,12 +27,15 @@ function Field(props: { label: string; children: ReactNode }) {
 }
 
 function HttpFields({
+  dag,
   node,
   onChange,
 }: {
+  dag: Dag
   node: Extract<Node, { type: 'http' }>
   onChange: (node: Node) => void
 }) {
+  const suggestions = upstreamVariableSuggestions(dag, node.id)
   return (
     <>
       <Field label="方法">
@@ -48,16 +53,15 @@ function HttpFields({
           ))}
         </select>
       </Field>
-      <Field label="路径">
-        <input
-          data-testid="prop-http-path"
-          type="text"
-          value={node.path}
-          onChange={(e) => {
-            onChange({ ...node, path: e.target.value })
-          }}
-        />
-      </Field>
+      <TemplateField
+        label="路径"
+        testId="prop-http-path"
+        value={node.path}
+        suggestions={suggestions}
+        onChange={(path) => {
+          onChange({ ...node, path })
+        }}
+      />
       <Field label="名称">
         <input
           data-testid="prop-http-name"
@@ -73,13 +77,16 @@ function HttpFields({
 }
 
 function PollFields({
+  dag,
   node,
   onChange,
 }: {
+  dag: Dag
   node: Extract<Node, { type: 'poll' }>
   onChange: (node: Node) => void
 }) {
   const condition = node.condition as Condition
+  const suggestions = upstreamVariableSuggestions(dag, node.id)
   return (
     <>
       <Field label="轮询方法">
@@ -100,19 +107,18 @@ function PollFields({
           ))}
         </select>
       </Field>
-      <Field label="轮询路径">
-        <input
-          data-testid="prop-poll-path"
-          type="text"
-          value={node.request.path}
-          onChange={(e) => {
-            onChange({
-              ...node,
-              request: { ...node.request, path: e.target.value },
-            })
-          }}
-        />
-      </Field>
+      <TemplateField
+        label="轮询路径"
+        testId="prop-poll-path"
+        value={node.request.path}
+        suggestions={suggestions}
+        onChange={(path) => {
+          onChange({
+            ...node,
+            request: { ...node.request, path },
+          })
+        }}
+      />
       <Field label="条件 path">
         <input
           data-testid="prop-poll-condition-path"
@@ -279,8 +285,8 @@ export function NodePropertyPanel({ dag, selectedNodeId, onDagChange, onSave }: 
         <span className="node-property__type">{node.type}</span>
       </header>
       <div className="node-property__form">
-        {node.type === 'http' ? <HttpFields node={node} onChange={patch} /> : null}
-        {node.type === 'poll' ? <PollFields node={node} onChange={patch} /> : null}
+        {node.type === 'http' ? <HttpFields dag={dag} node={node} onChange={patch} /> : null}
+        {node.type === 'poll' ? <PollFields dag={dag} node={node} onChange={patch} /> : null}
         {node.type === 'assert' ? <AssertFields node={node} onChange={patch} /> : null}
         {node.type !== 'http' && node.type !== 'poll' && node.type !== 'assert' ? (
           <p className="node-property__unsupported">此节点类型暂不支持在 UI 中编辑</p>

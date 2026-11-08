@@ -20,12 +20,13 @@ describe('NodePropertyPanel', () => {
     render(
       <NodePropertyPanel
         dag={SERIAL_DAG}
-        selectedNodeId="create"
+        selectedNodeId="pay"
         onDagChange={onDagChange}
         onSave={onSave}
       />,
     )
 
+    expect(screen.getByTestId('prop-http-path-suggestions')).toHaveTextContent('${create.output.body}')
     fireEvent.change(screen.getByTestId('prop-http-path'), { target: { value: '/orders/v2' } })
     expect(onDagChange).toHaveBeenCalled()
     fireEvent.click(screen.getByTestId('node-property-save'))

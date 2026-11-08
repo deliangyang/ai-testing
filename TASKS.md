@@ -160,7 +160,7 @@ M0 两周联合评审：P0-56。
 | P1-20 | UI 节点级重跑：右键「从此节点重跑」、回放视图「重跑此节点及下游」 | `web/src/canvas` | P1-19、P1-05 | E2E 用例 | DONE |
 | P1-21 | 编辑视图交互：增删节点、连线、右键菜单、自动布局按钮 | `web/src/canvas` | P1-09 | 组件测试 | DONE |
 | P1-22 | 右面板属性表单：http/poll/assert 三类节点编辑，保存为 pending 新版本 | `web/src/panels` | P1-21、P1-05 | E2E：编辑后保存生成新版本 | DONE |
-| P1-23 | Body/路径模板变量高亮与补全，列出上游可用变量 | `web/src/panels` | P1-22 | 只补全祖先节点变量 | TODO |
+| P1-23 | Body/路径模板变量高亮与补全，列出上游可用变量 | `web/src/panels` | P1-22 | 只补全祖先节点变量 | DONE |
 | P1-24 | 实时校验：编辑时调用校验 API，徽标 ✓/⚠/✗，问题列表点击定位节点 | `web/src` | P1-22 | E2E 用例 | TODO |
 | P1-25 | 报告回放视图：最终态叠加、摘要条（通过率/耗时/与上次对比/触发方式）、时间轴滑块回放 | `web/src/canvas` | P1-10、P1-03 | 组件测试 | TODO |
 | P1-26 | 布局持久化：迁移新增 `ui_layouts`、`workspace_presets` 表；按场景记住缩放/位置/面板宽度/抽屉状态 | `crates/store`、`crates/server`、`web/` | P1-07、P1-03 | 重开后布局恢复 | TODO |
@@ -387,6 +387,7 @@ M0 两周联合评审：P0-56。
 | 2026-11-08 | P1-15 | TODO→DONE | `StatusBar` + `buildStatusBarModel`（SSE/SQLite、n/N·并行·轮询中、环境、耗时）；`asyncPollFail` run fixture；`statusBarModel.test.ts` |
 | 2026-11-08 | P1-16 | TODO→DONE | `web/src/nav`：`LeftNav` 场景状态点+通过率条、计划 ✓/⚠/✗、报告列表；`FIXTURE_NAV_CATALOG`；接入 `AppShell` |
 | 2026-11-08 | P1-17 | TODO→DONE | `WorkspaceTabBar` + `resolveWorkspaceForTab`；左导航双击打开场景/报告标签；`AppShell.tabs.test.tsx` |
+| 2026-11-09 | P1-23 | TODO→DONE | `TemplateField` 高亮 + datalist；`dagAncestors` 仅祖先 output 建议 |
 | 2026-11-09 | P1-22 | TODO→DONE | `NodePropertyPanel` http/poll/assert 表单；`DagEditWorkbench` + `?edit=1`；`e2e/node-property-save.spec.ts` |
 | 2026-11-09 | P1-21 | TODO→DONE | `dagEdit` 纯函数；`DagEditCanvas` 连线/删边/拖拽/右键增删节点/自动布局；组件与单测 |
 | 2026-11-09 | P1-20 | TODO→DONE | `RunNodeContextMenu`/`RunReplayActions`；`DagRunCanvas` 右键与报告回放条；AppShell 接线 `partialRerunNode`；`e2e/partial-rerun.spec.ts` |

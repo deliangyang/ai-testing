@@ -93,6 +93,46 @@
     color: #9aa3b2;
 }
 
+.template-field__wrap {
+    position: relative;
+}
+
+.template-field__mirror {
+    position: absolute;
+    inset: 0;
+    padding: 0.35rem 0.45rem;
+    font-size: 0.82rem;
+    pointer-events: none;
+    white-space: nowrap;
+    overflow: hidden;
+    color: transparent;
+}
+
+.template-field__var {
+    color: transparent;
+    background: rgba(91, 141, 239, 0.35);
+    border-radius: 2px;
+}
+
+.template-field__input {
+    position: relative;
+    width: 100%;
+    background: transparent;
+}
+
+.template-field__suggestions {
+    margin: 0.15rem 0 0;
+    padding-left: 1rem;
+    font-size: 0.72rem;
+    color: #9aa3b2;
+    max-height: 4.5rem;
+    overflow: auto;
+}
+
+.template-field__suggestions code {
+    color: #c4daf8;
+}
+
 .execution-detail {
     display: flex;
     flex-direction: column;
