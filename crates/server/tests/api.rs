@@ -159,3 +159,54 @@ async fn read_only_api_lists_dags_runs_and_executions() {
     let execs = body_json(res).await;
     assert_eq!(execs[0]["node_id"], "ping");
 }
+
+#[tokio::test]
+async fn ui_layout_put_and_get() {
+    let tmp = tempfile::tempdir().unwrap();
+    let app = app(&tmp);
+    let body = serde_json::json!({
+        "layout": {
+            "nav_collapsed": true,
+            "right_width_px": 300,
+            "drawer_height_px": 120,
+            "drawer_collapsed": true
+        }
+    });
+    let res = app
+        .clone()
+        .oneshot(
+            Request::put("/api/ui/layouts/scenario:serial")
+                .header("content-type", "application/json")
+                .body(Body::from(body.to_string()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(res.status(), StatusCode::OK);
+
+    let res = app
+        .oneshot(
+            Request::get("/api/ui/layouts/scenario:serial")
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(res.status(), StatusCode::OK);
+    let json = body_json(res).await;
+    assert_eq!(json["scope_key"], "scenario:serial");
+    assert_eq!(json["layout"]["right_width_px"], 300);
+}
+
+#[tokio::test]
+async fn workspace_presets_are_listed() {
+    let tmp = tempfile::tempdir().unwrap();
+    let app = app(&tmp);
+    let res = app
+        .oneshot(Request::get("/api/ui/presets").body(Body::empty()).unwrap())
+        .await
+        .unwrap();
+    assert_eq!(res.status(), StatusCode::OK);
+    let json = body_json(res).await;
+    assert!(json.as_array().is_some_and(|a| a.len() >= 3));
+}

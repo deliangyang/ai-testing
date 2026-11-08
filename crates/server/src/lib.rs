@@ -8,6 +8,7 @@ mod routes;
 mod run_control;
 mod sse;
 mod state;
+mod ui;
 mod write;
 
 pub use error::ApiError;

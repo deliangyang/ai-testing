@@ -14,6 +14,9 @@ import { FIXTURE_NAV_CATALOG, LeftNav } from '../nav'
 import '../nav/nav.css'
 import { ExecutionDetailPanel } from '../panels'
 import { clampBottomDrawerHeight, clampRightPanelWidth, leftNavWidthPx } from './layout'
+import { loadShellLayout, saveShellLayout } from './layoutStorage'
+import { mergeShellLayout, workspaceScopeKey } from './shellLayout'
+import { workspacePresetById } from './workspacePresets'
 import { resolveWorkspaceForTab } from './resolveWorkspace'
 import { StatusBar } from './StatusBar'
 import { buildStatusBarModel } from './statusBarModel'
@@ -152,6 +155,42 @@ export function AppShell() {
   const [drawerHeight, setDrawerHeight] = useState<number>(shellTokens.bottomDrawerHeightPx)
   const [drawerCollapsed, setDrawerCollapsed] = useState(false)
 
+  const layoutScopeKey = activeTab
+    ? workspaceScopeKey(activeTab.kind, activeTab.refId)
+    : workspaceScopeKey(INITIAL_WORKSPACE_TAB.kind, INITIAL_WORKSPACE_TAB.refId)
+
+  useEffect(() => {
+    const stored = loadShellLayout(layoutScopeKey)
+    if (!stored) {
+      return
+    }
+    setNavCollapsed(stored.nav_collapsed)
+    setRightWidth(clampRightPanelWidth(stored.right_width_px))
+    setDrawerHeight(clampBottomDrawerHeight(stored.drawer_height_px))
+    setDrawerCollapsed(stored.drawer_collapsed)
+  }, [layoutScopeKey])
+
+  useEffect(() => {
+    saveShellLayout(layoutScopeKey, {
+      nav_collapsed: navCollapsed,
+      right_width_px: rightWidth,
+      drawer_height_px: drawerHeight,
+      drawer_collapsed: drawerCollapsed,
+    })
+  }, [layoutScopeKey, navCollapsed, rightWidth, drawerHeight, drawerCollapsed])
+
+  const handleWorkspacePreset = useCallback((presetId: string) => {
+    const preset = workspacePresetById(presetId)
+    if (!preset) {
+      return
+    }
+    const layout = mergeShellLayout(preset.layout)
+    setNavCollapsed(layout.nav_collapsed)
+    setRightWidth(clampRightPanelWidth(layout.right_width_px))
+    setDrawerHeight(clampBottomDrawerHeight(layout.drawer_height_px))
+    setDrawerCollapsed(layout.drawer_collapsed)
+  }, [])
+
   const rightDrag = useRef<{ startX: number; startWidth: number } | null>(null)
   const drawerDrag = useRef<{ startY: number; startHeight: number } | null>(null)
 
@@ -190,6 +229,7 @@ export function AppShell() {
     <div
       className={`app-shell${navCollapsed ? ' app-shell--nav-collapsed' : ''}`}
       data-testid="app-shell"
+      data-layout-scope={layoutScopeKey}
     >
       <header className="app-shell__top" role="banner">
         <TopBar
@@ -203,6 +243,7 @@ export function AppShell() {
           onModeChange={(mode) => {
             dispatchRunControl({ type: 'set_mode', mode })
           }}
+          onWorkspacePreset={handleWorkspacePreset}
         />
       </header>
 

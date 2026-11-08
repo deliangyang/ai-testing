@@ -7,6 +7,7 @@ pub mod failures;
 pub mod migrate;
 pub mod nodes;
 pub mod runs;
+pub mod ui_layout;
 
 pub use dags::{DagRecord, DagRepository, DagStatus, DagVersionInfo};
 pub use db::Db;
@@ -17,3 +18,6 @@ pub use nodes::{
     ExecutionKey, Failure, NodeExecution, NodeExecutionRepository, NodeStatus, NodeUpdate,
 };
 pub use runs::{NewRun, RunMode, RunQuery, RunRecord, RunRepository, RunStatus};
+pub use ui_layout::{
+    UiLayoutRecord, UiLayoutRepository, WorkspacePresetRecord,
+};

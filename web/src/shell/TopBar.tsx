@@ -1,6 +1,7 @@
 import { EnvironmentSelect } from './EnvironmentSelect'
 import { RunControlBar } from './RunControlBar'
 import type { RunControlState, RunMode } from './runControl'
+import { WorkspacePresetSelect } from './WorkspacePresetSelect'
 
 export interface TopBarProps {
   runControl: RunControlState
@@ -9,6 +10,7 @@ export interface TopBarProps {
   onStop: () => void
   onRerunFailed: () => void
   onModeChange: (mode: RunMode) => void
+  onWorkspacePreset: (presetId: string) => void
 }
 
 export function TopBar(props: TopBarProps) {
@@ -24,6 +26,7 @@ export function TopBar(props: TopBarProps) {
         onModeChange={props.onModeChange}
       />
       <span className="top-bar__spacer" />
+      <WorkspacePresetSelect onSelect={props.onWorkspacePreset} />
       <span className="top-bar__meta">搜索 · 设置</span>
     </div>
   )

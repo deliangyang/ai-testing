@@ -5,6 +5,7 @@ use serde::Serialize;
 use serde_json::Value;
 use store::{
     DagRecord, DagStatus, DagVersionInfo, Failure, NodeExecution, RunMode, RunRecord, RunStatus,
+    UiLayoutRecord, WorkspacePresetRecord,
 };
 
 #[derive(Debug, Clone, Serialize)]
@@ -149,4 +150,40 @@ pub fn run_status_label(s: RunStatus) -> &'static str {
 #[allow(dead_code)]
 pub fn run_mode_label(s: RunMode) -> &'static str {
     s.as_str()
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct UiLayoutDto {
+    pub scope_key: String,
+    pub layout: Value,
+    pub updated_at: Timestamp,
+}
+
+impl From<UiLayoutRecord> for UiLayoutDto {
+    fn from(record: UiLayoutRecord) -> Self {
+        Self {
+            scope_key: record.scope_key,
+            layout: record.layout,
+            updated_at: record.updated_at,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct WorkspacePresetDto {
+    pub id: String,
+    pub name: String,
+    pub layout: Value,
+    pub updated_at: Timestamp,
+}
+
+impl From<WorkspacePresetRecord> for WorkspacePresetDto {
+    fn from(record: WorkspacePresetRecord) -> Self {
+        Self {
+            id: record.id,
+            name: record.name,
+            layout: record.layout,
+            updated_at: record.updated_at,
+        }
+    }
 }

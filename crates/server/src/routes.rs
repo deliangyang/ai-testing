@@ -8,6 +8,7 @@ use crate::dto::{DagDetailDto, DagVersionDto, NodeExecutionDto, RunDto};
 use crate::error::{ApiError, ApiResult};
 use crate::sse::run_event_stream;
 use crate::state::AppState;
+use crate::ui::{get_ui_layout, get_workspace_preset, list_workspace_presets, put_ui_layout};
 use crate::write::{activate_dag, cancel_run, save_dag, start_run, validate_dag};
 
 pub fn router(state: AppState) -> Router {
@@ -29,6 +30,9 @@ pub fn router(state: AppState) -> Router {
         .route("/api/runs/{run_id}/cancel", post(cancel_run))
         .route("/api/runs/{run_id}/executions", get(list_executions))
         .route("/api/runs/{run_id}/events", get(run_event_stream))
+        .route("/api/ui/layouts/{scope_key}", get(get_ui_layout).put(put_ui_layout))
+        .route("/api/ui/presets", get(list_workspace_presets))
+        .route("/api/ui/presets/{id}", get(get_workspace_preset))
         .with_state(state)
 }
 
