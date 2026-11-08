@@ -1,0 +1,7 @@
+# expect: completeness.empty_field
+id: bad-23
+nodes:
+  - { id: create, type: http, method: POST, path: /orders }
+  - { id: lookup, type: db_query, connection: orders-ro, sql: "  " }
+edges:
+  - { from: create, to: lookup }

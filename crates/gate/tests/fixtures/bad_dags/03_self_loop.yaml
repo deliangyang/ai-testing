@@ -1,0 +1,8 @@
+# expect: structure.self_loop
+id: bad-03
+nodes:
+  - { id: a, type: http, method: GET, path: /a }
+  - { id: b, type: http, method: GET, path: /b }
+edges:
+  - { from: a, to: b }
+  - { from: a, to: a }

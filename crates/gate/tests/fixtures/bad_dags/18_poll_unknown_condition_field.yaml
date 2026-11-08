@@ -1,0 +1,16 @@
+# expect: condition.unknown_field
+id: bad-18
+nodes:
+  - { id: create, type: http, method: POST, path: /jobs }
+  - id: wait
+    type: poll
+    request: { method: GET, path: /jobs/1 }
+    condition: { path: $.body.status, op: eq, expected: done }
+    backoff_ms: [500]
+    timeout_ms: 10000
+    response_schema:
+      type: object
+      properties:
+        state: { type: string }
+edges:
+  - { from: create, to: wait }

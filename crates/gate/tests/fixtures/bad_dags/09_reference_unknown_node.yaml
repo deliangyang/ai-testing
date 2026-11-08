@@ -1,0 +1,7 @@
+# expect: reference.unknown_node
+id: bad-09
+nodes:
+  - { id: a, type: http, method: GET, path: /a }
+  - { id: b, type: http, method: GET, path: "/orders/${ghost.output.body.id}" }
+edges:
+  - { from: a, to: b }

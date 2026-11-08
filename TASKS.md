@@ -63,7 +63,7 @@ M0 两周联合评审：P0-56。
 | P0-17 | 字段存在规则：被引用字段路径必须在上游 `response_schema` 中存在；上游无 schema 时降级为 warn | `crates/gate` | P0-16、P0-06 | 不存在字段报 error；无 schema 报 warn | DONE |
 | P0-18 | 轮询可判定规则：condition 路径可解析、op 与 expected 类型匹配、backoff 非空且单调非减、timeout ≥ backoff 首项 | `crates/gate` | P0-07、P0-13 | 4 类违规各一例 | DONE |
 | P0-19 | 完整性规则：必填字段、孤立节点（无边且非唯一节点）、cleanup 必须无出边、每个 http 节点至少被一个 assert 引用（warn） | `crates/gate` | P0-13 | 各违规一例 | DONE |
-| P0-20 | 坏 DAG 语料：`tests/fixtures/bad_dags/` ≥20 个（环/无效引用/轮询不可判定/孤立节点/缺字段…），每个文件头注明期望 issue code；全量拦截测试 | `crates/gate/tests` | P0-14 ~ P0-19 | 100% 被拦截且命中期望 code | TODO |
+| P0-20 | 坏 DAG 语料：`tests/fixtures/bad_dags/` ≥20 个（环/无效引用/轮询不可判定/孤立节点/缺字段…），每个文件头注明期望 issue code；全量拦截测试 | `crates/gate/tests` | P0-14 ~ P0-19 | 100% 被拦截且命中期望 code | DONE |
 
 ### 0.4 持久化（§3.1，§2.2）
 
@@ -348,3 +348,4 @@ M0 两周联合评审：P0-56。
 | 2026-11-08 | P0-17 | TODO→DONE | 约定节点输出结构：http/poll 为封闭对象 {status, headers, body, timing}，body 由 response_schema 描述；db_query 为 rows/row/value（schema 描述单行）；subworkflow 为 outputs 的键；assert 为 {results}；cleanup 无输出。schema 遍历（`gate::schema_path`）支持 properties/additionalProperties/items/prefixItems/本地 $ref/allOf/anyOf/oneOf。无 schema 时报 `reference.unverified_field`（warn）；只检查祖先目标，非法目标交给 ReferenceRule。poll/assert 条件里 JSONPath 的字段检查延后 |
 | 2026-11-08 | P0-18 | TODO→DONE | 新增 `DecidabilityRule`（规则名 decidability），同时作用于 poll 的 condition 和 assert 的每条 assertion：路径必须是 singular JSONPath，且在已知 schema 中存在（poll 查自身输出，assert 查祖先 target 的输出）；需要 expected 的操作符缺 expected、exists/not_exists 带 expected、gt/gte/lt/lte 非数字、len_eq 非非负整数、regex 无法编译（Rust regex 方言）、type_is 不在 7 种 JSON 类型内，均报错；含模板引用的 expected 留到运行时判断。poll 另查：backoff_ms 非空、单调非减（定位到第一个下降处）、timeout_ms ≥ backoff 首项、max_attempts ≠ 0。顺带修复 model：显式 `expected: null` 原先被反序列化为缺失，现保留为 null。输出结构辅助函数移到 `gate::output` 与 FieldRule 共用 |
 | 2026-11-08 | P0-19 | TODO→DONE | 新增 `CompletenessRule`（规则名 completeness）。必填字段（serde 已保证字段存在，这里查空白/空集合）：DAG id、nodes，http path、poll request.path、assert target 与 assertions、db_query connection 与 sql、subworkflow dag.id、cleanup requests 及每个 request 的 path。孤立节点：节点数 ≥ 2 时，没有任何有效边（悬空边、自环不计）的节点报错；cleanup 不豁免。cleanup 的每条出边报错，定位到 /edges/i。http 节点既不是任何 assert 的 target、也没被 assert 中的模板引用时报 warn。测试辅助函数 `validate` 改为过滤掉 completeness.*，供只关注单条规则的测试使用；完整报告用 `validate_all` |
+| 2026-11-08 | P0-20 | TODO→DONE | 语料位于 `crates/gate/tests/fixtures/bad_dags/`，共 27 个：结构 6、环 2、引用 5（含 assert target 非祖先）、字段 1、轮询 5、断言 2、完整性 3、加载失败 3（缺 timeout_ms、未知节点类型、配置键拼错）。文件头 `# expect: code[, code]`，`parse` 表示必须在反序列化阶段失败。判定要求 error code 集合与期望完全相等（warn 不计），防止样例靠别的错误被拦截；已用改错期望的方式验证测试会失败。另加 `good_dags/order_pay.yaml`，用覆盖全部节点类型的完整流程防止误杀 |

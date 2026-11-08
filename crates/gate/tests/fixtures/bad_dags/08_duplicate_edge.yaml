@@ -1,0 +1,8 @@
+# expect: structure.duplicate_edge
+id: bad-08
+nodes:
+  - { id: a, type: http, method: GET, path: /a }
+  - { id: b, type: http, method: GET, path: /b }
+edges:
+  - { from: a, to: b }
+  - { from: a, to: b }

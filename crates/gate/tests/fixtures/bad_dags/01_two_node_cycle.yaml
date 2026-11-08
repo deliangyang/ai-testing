@@ -1,0 +1,9 @@
+# expect: graph.cycle
+# Two nodes depending on each other.
+id: bad-01
+nodes:
+  - { id: a, type: http, method: GET, path: /a }
+  - { id: b, type: http, method: GET, path: /b }
+edges:
+  - { from: a, to: b }
+  - { from: b, to: a }

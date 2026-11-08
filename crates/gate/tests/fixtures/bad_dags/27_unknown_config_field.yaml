@@ -1,0 +1,8 @@
+# expect: parse
+# `timeout` is a typo for `timeout_ms`; unknown keys are rejected rather than ignored.
+id: bad-27
+nodes:
+  - { id: a, type: http, method: GET, path: /a, timeout: 1000 }
+  - { id: b, type: http, method: GET, path: /b }
+edges:
+  - { from: a, to: b }

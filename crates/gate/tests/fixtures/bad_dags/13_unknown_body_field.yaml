@@ -1,0 +1,15 @@
+# expect: reference.unknown_field
+# The schema declares `id`, the reference uses `orderId`.
+id: bad-13
+nodes:
+  - id: create
+    type: http
+    method: POST
+    path: /orders
+    response_schema:
+      type: object
+      properties:
+        id: { type: string }
+  - { id: pay, type: http, method: POST, path: "/orders/${create.output.body.orderId}/pay" }
+edges:
+  - { from: create, to: pay }

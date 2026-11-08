@@ -1,0 +1,13 @@
+# expect: condition.invalid_path
+# Wildcards select many values; a condition needs exactly one.
+id: bad-17
+nodes:
+  - { id: create, type: http, method: POST, path: /jobs }
+  - id: wait
+    type: poll
+    request: { method: GET, path: /jobs/1 }
+    condition: { path: "$.body.items[*].state", op: eq, expected: done }
+    backoff_ms: [500]
+    timeout_ms: 10000
+edges:
+  - { from: create, to: wait }

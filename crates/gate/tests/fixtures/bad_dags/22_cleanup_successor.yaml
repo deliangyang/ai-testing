@@ -1,0 +1,12 @@
+# expect: completeness.cleanup_has_successor
+id: bad-22
+nodes:
+  - { id: create, type: http, method: POST, path: /orders }
+  - id: teardown
+    type: cleanup
+    requests:
+      - { method: DELETE, path: "/orders/${create.output.body.id}" }
+  - { id: after, type: http, method: GET, path: /health }
+edges:
+  - { from: create, to: teardown }
+  - { from: teardown, to: after }

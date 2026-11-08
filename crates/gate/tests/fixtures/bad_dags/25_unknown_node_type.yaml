@@ -1,0 +1,7 @@
+# expect: parse
+id: bad-25
+nodes:
+  - { id: a, type: http, method: GET, path: /a }
+  - { id: b, type: grpc, service: Orders, method: Get }
+edges:
+  - { from: a, to: b }

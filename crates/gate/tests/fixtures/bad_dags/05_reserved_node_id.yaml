@@ -1,0 +1,8 @@
+# expect: structure.reserved_node_id
+# `input` is reserved for subworkflow inputs.
+id: bad-05
+nodes:
+  - { id: input, type: http, method: GET, path: /a }
+  - { id: b, type: http, method: GET, path: /b }
+edges:
+  - { from: input, to: b }

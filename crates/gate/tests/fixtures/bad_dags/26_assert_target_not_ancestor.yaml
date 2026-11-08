@@ -1,0 +1,12 @@
+# expect: reference.not_ancestor
+# The assert runs before the node it checks.
+id: bad-26
+nodes:
+  - id: check
+    type: assert
+    target: create
+    assertions:
+      - { path: $.status, op: eq, expected: 201 }
+  - { id: create, type: http, method: POST, path: /orders }
+edges:
+  - { from: check, to: create }

@@ -1,0 +1,13 @@
+# expect: graph.cycle
+# A cycle behind an acyclic entry node.
+id: bad-02
+nodes:
+  - { id: login, type: http, method: POST, path: /login }
+  - { id: a, type: http, method: GET, path: /a }
+  - { id: b, type: http, method: GET, path: /b }
+  - { id: c, type: http, method: GET, path: /c }
+edges:
+  - { from: login, to: a }
+  - { from: a, to: b }
+  - { from: b, to: c }
+  - { from: c, to: a }

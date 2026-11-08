@@ -1,0 +1,12 @@
+# expect: parse
+# A poll without timeout_ms could wait forever; the document is rejected on load.
+id: bad-24
+nodes:
+  - { id: create, type: http, method: POST, path: /jobs }
+  - id: wait
+    type: poll
+    request: { method: GET, path: /jobs/1 }
+    condition: { path: $.body.state, op: eq, expected: done }
+    backoff_ms: [500]
+edges:
+  - { from: create, to: wait }

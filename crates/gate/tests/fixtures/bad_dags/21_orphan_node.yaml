@@ -1,0 +1,8 @@
+# expect: completeness.orphan_node
+id: bad-21
+nodes:
+  - { id: a, type: http, method: GET, path: /a }
+  - { id: b, type: http, method: GET, path: /b }
+  - { id: forgotten, type: http, method: GET, path: /c }
+edges:
+  - { from: a, to: b }

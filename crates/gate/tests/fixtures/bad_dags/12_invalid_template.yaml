@@ -1,0 +1,7 @@
+# expect: reference.invalid_template
+id: bad-12
+nodes:
+  - { id: a, type: http, method: GET, path: /a }
+  - { id: b, type: http, method: GET, path: "/b/${a.output.body.id" }
+edges:
+  - { from: a, to: b }

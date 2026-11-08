@@ -1,0 +1,11 @@
+# expect: reference.not_ancestor
+id: bad-11
+nodes:
+  - id: a
+    type: http
+    method: GET
+    path: /a
+    headers: { x-code: "${b.output.status}" }
+  - { id: b, type: http, method: GET, path: /b }
+edges:
+  - { from: a, to: b }

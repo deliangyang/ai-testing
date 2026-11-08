@@ -1,0 +1,12 @@
+# expect: poll.backoff_decreasing
+id: bad-15
+nodes:
+  - { id: create, type: http, method: POST, path: /jobs }
+  - id: wait
+    type: poll
+    request: { method: GET, path: /jobs/1 }
+    condition: { path: $.body.state, op: eq, expected: done }
+    backoff_ms: [500, 2000, 1000]
+    timeout_ms: 10000
+edges:
+  - { from: create, to: wait }

@@ -1,0 +1,10 @@
+# expect: reference.not_ancestor
+# b and c run in parallel after login; c cannot read b.
+id: bad-10
+nodes:
+  - { id: login, type: http, method: POST, path: /login }
+  - { id: b, type: http, method: GET, path: /b }
+  - { id: c, type: http, method: GET, path: "/c?code=${b.output.status}" }
+edges:
+  - { from: login, to: b }
+  - { from: login, to: c }

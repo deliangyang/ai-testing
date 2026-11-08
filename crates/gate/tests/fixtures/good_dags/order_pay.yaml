@@ -1,0 +1,79 @@
+# A complete flow that every rule must accept without errors.
+id: order-pay
+name: create, pay and verify an order
+nodes:
+  - id: login
+    type: subworkflow
+    dag: { id: auth-login, version: 3 }
+    inputs: { user: "${env:TEST_USER}" }
+    outputs: { token: "${session.output.body.token}" }
+  - id: create
+    type: http
+    method: POST
+    path: /orders
+    headers: { authorization: "Bearer ${login.output.token}" }
+    body: { sku: A-1, qty: 2 }
+    response_schema:
+      type: object
+      required: [id]
+      properties:
+        id: { type: string }
+        items:
+          type: array
+          items: { type: object, properties: { sku: { type: string } } }
+  - id: pay
+    type: http
+    method: POST
+    path: "/orders/${create.output.body.id}/pay"
+    headers: { authorization: "Bearer ${login.output.token}" }
+  - id: wait_paid
+    type: poll
+    request: { method: GET, path: "/orders/${create.output.body.id}" }
+    condition: { path: $.body.status, op: eq, expected: PAID }
+    backoff_ms: [200, 500, 1000]
+    timeout_ms: 30000
+    max_attempts: 50
+    response_schema:
+      type: object
+      properties:
+        status: { type: string }
+  - id: check_created
+    type: assert
+    target: create
+    assertions:
+      - { path: $.status, op: eq, expected: 201 }
+      - { path: $.body.id, op: regex, expected: "^ord_[0-9a-z]+$" }
+      - { path: "$.body.items[0].sku", op: eq, expected: A-1 }
+  - id: check_paid
+    type: assert
+    target: pay
+    assertions:
+      - { path: $.status, op: lt, expected: 300 }
+  - id: lookup
+    type: db_query
+    connection: orders-ro
+    sql: select status from orders where id = ?
+    params: ["${create.output.body.id}"]
+    result: first_row
+    response_schema:
+      type: object
+      properties:
+        status: { type: string }
+  - id: check_db
+    type: assert
+    target: lookup
+    assertions:
+      - { path: $.row.status, op: eq, expected: PAID }
+  - id: teardown
+    type: cleanup
+    requests:
+      - { method: DELETE, path: "/orders/${create.output.body.id}" }
+edges:
+  - { from: login, to: create }
+  - { from: create, to: check_created }
+  - { from: create, to: pay }
+  - { from: pay, to: check_paid }
+  - { from: pay, to: wait_paid }
+  - { from: wait_paid, to: lookup }
+  - { from: lookup, to: check_db }
+  - { from: check_db, to: teardown }

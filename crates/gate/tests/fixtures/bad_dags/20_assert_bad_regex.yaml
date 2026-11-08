@@ -1,0 +1,11 @@
+# expect: condition.expected_type
+id: bad-20
+nodes:
+  - { id: create, type: http, method: POST, path: /orders }
+  - id: check
+    type: assert
+    target: create
+    assertions:
+      - { path: $.headers.location, op: regex, expected: "^/orders/([0-9]+$" }
+edges:
+  - { from: create, to: check }

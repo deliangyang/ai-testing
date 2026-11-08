@@ -1,0 +1,11 @@
+# expect: condition.missing_expected
+id: bad-19
+nodes:
+  - { id: create, type: http, method: POST, path: /orders }
+  - id: check
+    type: assert
+    target: create
+    assertions:
+      - { path: $.status, op: eq }
+edges:
+  - { from: create, to: check }

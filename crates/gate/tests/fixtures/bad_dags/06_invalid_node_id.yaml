@@ -1,0 +1,7 @@
+# expect: structure.invalid_node_id
+id: bad-06
+nodes:
+  - { id: "create order", type: http, method: POST, path: /orders }
+  - { id: b, type: http, method: GET, path: /b }
+edges:
+  - { from: "create order", to: b }
