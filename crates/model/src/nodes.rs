@@ -126,10 +126,13 @@ pub struct PollConfig {
     pub response_schema: Option<Value>,
 }
 
+/// `assert` node: checks evaluated against the output of `target`, reported one by one.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct AssertConfig {
+    /// Id of the node whose output is checked; must be an ancestor.
     pub target: String,
+    pub assertions: Vec<Condition>,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]

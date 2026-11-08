@@ -20,6 +20,8 @@ nodes:
   - id: check
     type: assert
     target: create
+    assertions:
+      - { path: $.status, op: eq, expected: 201 }
   - id: lookup
     type: db_query
     connection: orders-ro

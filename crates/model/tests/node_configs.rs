@@ -174,3 +174,84 @@ timeout_ms: 30000"#;
         assert!(Operator::Eq.needs_expected());
     }
 }
+
+mod assert {
+    use super::*;
+    use model::nodes::{AssertConfig, Operator};
+
+    fn parse(assertions_yaml: &str) -> Result<NodeKind, ModelError> {
+        single_node(&format!(
+            "id: check\ntype: assert\ntarget: create\nassertions:\n{assertions_yaml}"
+        ))
+    }
+
+    fn config(kind: NodeKind) -> AssertConfig {
+        match kind {
+            NodeKind::Assert(cfg) => cfg,
+            other => panic!("expected assert node, got {}", other.type_name()),
+        }
+    }
+
+    #[test]
+    fn every_operator_deserializes() {
+        let cases = [
+            ("eq", Operator::Eq, "201"),
+            ("ne", Operator::Ne, "500"),
+            ("gt", Operator::Gt, "0"),
+            ("gte", Operator::Gte, "1"),
+            ("lt", Operator::Lt, "100"),
+            ("lte", Operator::Lte, "99"),
+            ("contains", Operator::Contains, "VIP"),
+            ("exists", Operator::Exists, ""),
+            ("not_exists", Operator::NotExists, ""),
+            ("regex", Operator::Regex, "'^ORD-\\d+$'"),
+            ("len_eq", Operator::LenEq, "3"),
+            ("type_is", Operator::TypeIs, "string"),
+        ];
+        for (name, op, expected) in cases {
+            let line = if expected.is_empty() {
+                format!("  - {{ path: $.body.x, op: {name} }}")
+            } else {
+                format!("  - {{ path: $.body.x, op: {name}, expected: {expected} }}")
+            };
+            let cfg = config(parse(&line).unwrap());
+            assert_eq!(cfg.target, "create");
+            assert_eq!(cfg.assertions.len(), 1);
+            assert_eq!(cfg.assertions[0].op, op, "{name}");
+            assert_eq!(
+                cfg.assertions[0].expected.is_some(),
+                op.needs_expected(),
+                "{name}"
+            );
+        }
+    }
+
+    #[test]
+    fn multiple_assertions_keep_order_and_value_types() {
+        let cfg = config(
+            parse(
+                "  - { path: $.status, op: eq, expected: 201 }\n  - { path: $.body.tags, op: eq, expected: [a, b] }\n  - { path: $.body.vip, op: eq, expected: true }",
+            )
+            .unwrap(),
+        );
+        let expected: Vec<_> = cfg.assertions.iter().map(|a| a.expected.clone()).collect();
+        assert_eq!(
+            expected,
+            vec![Some(json!(201)), Some(json!(["a", "b"])), Some(json!(true))]
+        );
+    }
+
+    #[test]
+    fn missing_target_or_assertions_is_rejected() {
+        let msg = error_message(single_node("id: c\ntype: assert\nassertions: []"));
+        assert!(msg.contains("target"), "{msg}");
+        let msg = error_message(single_node("id: c\ntype: assert\ntarget: a"));
+        assert!(msg.contains("assertions"), "{msg}");
+    }
+
+    #[test]
+    fn misspelled_operator_key_is_rejected() {
+        let msg = error_message(parse("  - { path: $.status, operator: eq, expected: 1 }"));
+        assert!(msg.contains("operator"), "{msg}");
+    }
+}
