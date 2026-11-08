@@ -1,0 +1,12 @@
+# Pure serial flow: create order, pay, assert pay response status.
+id: serial
+nodes:
+  - { id: create, type: http, method: POST, path: /orders }
+  - { id: pay, type: http, method: POST, path: "/orders/${create.output.body.id}/pay" }
+  - id: check
+    type: assert
+    target: pay
+    assertions: [{ path: $.status, op: eq, expected: 200 }]
+edges:
+  - { from: create, to: pay }
+  - { from: pay, to: check }

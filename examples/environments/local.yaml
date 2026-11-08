@@ -1,0 +1,2 @@
+# Point base_url at mock-sut (default listen 127.0.0.1:8787).
+base_url: http://127.0.0.1:8787

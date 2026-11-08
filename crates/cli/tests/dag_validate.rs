@@ -176,3 +176,20 @@ fn unreadable_file_exits_2() {
     assert_eq!(out.status.code(), Some(2));
     assert!(String::from_utf8_lossy(&out.stderr).contains("cannot read"));
 }
+
+#[test]
+fn spike_examples_pass_gate() {
+    let examples = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../examples");
+    for name in ["serial.yaml", "parallel.yaml", "async-poll.yaml"] {
+        let path = examples.join(name);
+        let out = mytool(&["dag", "validate", path.to_str().unwrap()]);
+        assert_eq!(
+            out.status.code(),
+            Some(0),
+            "{}: {}{}",
+            name,
+            stdout(&out),
+            String::from_utf8_lossy(&out.stderr)
+        );
+    }
+}

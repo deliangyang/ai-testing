@@ -1,0 +1,19 @@
+# Async payment: poll order status until PAID after pay.
+id: async-poll
+nodes:
+  - { id: create, type: http, method: POST, path: /orders }
+  - { id: pay, type: http, method: POST, path: "/orders/${create.output.body.id}/pay" }
+  - id: wait_paid
+    type: poll
+    request: { method: GET, path: "/orders/${create.output.body.id}" }
+    condition: { path: $.body.status, op: eq, expected: PAID }
+    backoff_ms: [10, 20]
+    timeout_ms: 5000
+  - id: check
+    type: assert
+    target: pay
+    assertions: [{ path: $.status, op: eq, expected: 200 }]
+edges:
+  - { from: create, to: pay }
+  - { from: pay, to: wait_paid }
+  - { from: pay, to: check }
