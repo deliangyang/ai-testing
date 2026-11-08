@@ -74,7 +74,7 @@ M0 两周联合评审：P0-56。
 | P0-22 | 迁移 V001：`api_specs`、`dag_definitions`、`dag_runs`、`node_executions`、`failure_records`（按 §3.1，补必要索引） | `crates/store/migrations` | P0-21 | 迁移后 schema 快照测试 | DONE |
 | P0-23 | `DagRepository`：保存新版本（pending）、激活（同 id 仅一个 active，旧版 archived）、按版本/取 active/列版本 | `crates/store` | P0-22、P0-05 | 并发激活只有一个成功；旧版本仍可读取 | DONE |
 | P0-24 | `RunRepository`：创建运行、状态迁移（非法迁移返回错误）、查询 | `crates/store` | P0-22 | 状态迁移矩阵表驱动测试 | DONE |
-| P0-25 | `NodeExecutionRepository`：按 (run, node, attempt) 写入；终态行不可再修改 | `crates/store` | P0-22 | 修改终态行返回错误 | TODO |
+| P0-25 | `NodeExecutionRepository`：按 (run, node, attempt) 写入；终态行不可再修改 | `crates/store` | P0-22 | 修改终态行返回错误 | DONE |
 | P0-26 | `FailureRecordRepository`：写入与按 run/category 查询 | `crates/store` | P0-22 | 单测 | TODO |
 
 ### 0.5 确定性执行引擎（§4.2，§3.2）
@@ -356,3 +356,4 @@ M0 两周联合评审：P0-56。
 | 2026-11-08 | P0-24 | TODO→DONE | `RunRepository::new(&Connection, &dyn Clock, &dyn IdGen)`，提供 create/transition/get/list。合法迁移：PENDING→RUNNING/FAILED/CANCELLED，RUNNING→COMPLETED/FAILED/CANCELLED；终态不能再迁移。允许 PENDING→FAILED，用于启动前就失败的情况，比如环境解析失败。进入 RUNNING 时写 started_at，进入终态时写 finished_at，时间都取注入的 Clock。UPDATE 带上原状态作条件，被并发改掉时返回 Conflict。非法迁移返回 `StoreError::InvalidTransition`；创建时 DAG 版本不存在返回 NotFound。list 支持按 dag_id/status/limit 过滤，按 id 倒序，id 为 UUIDv7，按时间有序，因此不用加 created_at 列。矩阵测试覆盖全部 25 种 (from, to) 组合，期望结果单独列出，不依赖被测函数推导 |
 | 2026-11-08 | P0-03 | BLOCKED→DOING | Q7 已答复：远程为 GitHub `deliangyang/ai-testing`。远程上原有一个只含 MIT LICENSE 的初始提交，用 `--allow-unrelated-histories` 合并进来，没有改写本地历史，也没有强推；随后把 Cargo 的 license 从 UNLICENSED 改为 MIT，与仓库一致 |
 | 2026-11-08 | P0-02-fix1 | 新增→DONE | 首次 Linux CI 报 fmt 失败（P0-24 提交的 runs.rs 未格式化），本地 check.ps1 却显示全绿。原因：`Invoke-Native` 里 `& $Command` 的 stdout 进入函数返回值，变成`输出行 + 布尔值`组成的数组，非空数组恒为真，所以写 stdout 的 fmt/test 步骤失败从不被判定；clippy 写 stderr，因此之前能抓到。改为 `| Out-Host`，并用 stash 回 HEAD 版 runs.rs 的方式验证：未格式化时退出码 1、格式化后为 0。用修好的脚本重跑完整 check 也通过，说明此前没有被掩盖的测试失败，只有这一处格式问题。一并提交 runs.rs 的格式化。Windows CI 首轮的通过同样不可信，以修复后的结果为准 |
+| 2026-11-08 | P0-25 | TODO→DONE | `NodeExecutionRepository::new(&Connection, &dyn Clock)`，提供 insert/update/get/latest/list_for_run。新的尝试必须 attempt ≥ 1 且为非终态，(run, node, attempt) 已存在返回 Conflict。状态机按 §3.2：PENDING→READY/SKIPPED，READY→RUNNING/SKIPPED，RUNNING→POLLING/COMPLETED/FAILED，POLLING→COMPLETED/FAILED；允许非终态原地更新（轮询期间更新 poll_trace）。终态行再修改返回 `StoreError::TerminalRow`；FAILED 必须带 failure_category 和 error_code，非 FAILED 不能带。进入 RUNNING 时写 started_at，进入终态时写 finished_at。数据库层另加 V002 迁移：触发器禁止修改终态行、禁止写入未分类的 FAILED 行，绕过仓储直接写 SQL 也会被拦下。list_for_run 按 (node_id, attempt) 排序，不受并行完成顺序影响。input_resolved 中凭据的打码由调用方（引擎）负责 |

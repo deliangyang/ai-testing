@@ -11,6 +11,7 @@ publish.workspace = true
 common = { workspace = true }
 model = { workspace = true }
 rusqlite = { workspace = true }
+serde_json = { workspace = true }
 sha2 = { workspace = true }
 thiserror = { workspace = true }
 

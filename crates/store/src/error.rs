@@ -23,6 +23,14 @@ pub enum StoreError {
         to: String,
     },
 
+    /// Terminal evidence rows are immutable.
+    #[error("terminal row: {0}")]
+    TerminalRow(String),
+
+    /// The caller asked for something the data model does not allow.
+    #[error("invalid: {0}")]
+    Invalid(String),
+
     #[error("not found: {0}")]
     NotFound(String),
 

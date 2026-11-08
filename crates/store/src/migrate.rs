@@ -29,7 +29,10 @@ macro_rules! migration {
 }
 
 /// Every migration of this build, in version order.
-pub const MIGRATIONS: &[Migration] = &[migration!("V001__core.sql")];
+pub const MIGRATIONS: &[Migration] = &[
+    migration!("V001__core.sql"),
+    migration!("V002__node_execution_guards.sql"),
+];
 
 const VERSION_TABLE: &str = "CREATE TABLE IF NOT EXISTS schema_migrations (
     version    INTEGER PRIMARY KEY,
