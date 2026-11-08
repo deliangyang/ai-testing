@@ -30,7 +30,10 @@ pub fn router(state: AppState) -> Router {
         .route("/api/runs/{run_id}/cancel", post(cancel_run))
         .route("/api/runs/{run_id}/executions", get(list_executions))
         .route("/api/runs/{run_id}/events", get(run_event_stream))
-        .route("/api/ui/layouts/{scope_key}", get(get_ui_layout).put(put_ui_layout))
+        .route(
+            "/api/ui/layouts/{scope_key}",
+            get(get_ui_layout).put(put_ui_layout),
+        )
         .route("/api/ui/presets", get(list_workspace_presets))
         .route("/api/ui/presets/{id}", get(get_workspace_preset))
         .with_state(state)

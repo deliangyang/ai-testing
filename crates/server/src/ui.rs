@@ -20,7 +20,8 @@ pub async fn get_ui_layout(
     let state = state.clone();
     let key = scope_key.clone();
     let record = tokio::task::spawn_blocking(move || {
-        state.with_locked_db(|db| UiLayoutRepository::new(db.conn(), state.clock.as_ref()).get(&key))
+        state
+            .with_locked_db(|db| UiLayoutRepository::new(db.conn(), state.clock.as_ref()).get(&key))
     })
     .await
     .map_err(|e| ApiError::Internal(e.to_string()))??
@@ -51,7 +52,9 @@ pub async fn list_workspace_presets(
 ) -> ApiResult<Json<Vec<WorkspacePresetDto>>> {
     let state = state.clone();
     let rows = tokio::task::spawn_blocking(move || {
-        state.with_locked_db(|db| UiLayoutRepository::new(db.conn(), state.clock.as_ref()).list_presets())
+        state.with_locked_db(|db| {
+            UiLayoutRepository::new(db.conn(), state.clock.as_ref()).list_presets()
+        })
     })
     .await
     .map_err(|e| ApiError::Internal(e.to_string()))??;
@@ -65,7 +68,9 @@ pub async fn get_workspace_preset(
     let state = state.clone();
     let preset_id = id.clone();
     let row = tokio::task::spawn_blocking(move || {
-        state.with_locked_db(|db| UiLayoutRepository::new(db.conn(), state.clock.as_ref()).get_preset(&preset_id))
+        state.with_locked_db(|db| {
+            UiLayoutRepository::new(db.conn(), state.clock.as_ref()).get_preset(&preset_id)
+        })
     })
     .await
     .map_err(|e| ApiError::Internal(e.to_string()))??

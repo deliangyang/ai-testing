@@ -7,6 +7,7 @@ import {
 } from './fixtures/serial'
 import { FixtureDataSource } from './fixture'
 import { HttpDataSource } from './http'
+import { NshDataSource } from './nsh'
 import { exerciseDataSourceContract } from './contract'
 
 function jsonResponse(data: unknown, status = 200): Response {
@@ -102,6 +103,19 @@ describe('DataSource contract', () => {
     vi.stubGlobal('EventSource', MockEventSource)
     await exerciseDataSourceContract(() => new HttpDataSource('http://127.0.0.1:8790'))
     expect(MockEventSource.instances.length).toBeGreaterThan(0)
+    vi.unstubAllGlobals()
+  })
+
+  it('NshDataSource', async () => {
+    installHttpMock()
+    MockEventSource.instances = []
+    vi.stubGlobal('EventSource', MockEventSource)
+    await exerciseDataSourceContract(
+      () =>
+        new NshDataSource({
+          ensureApi: async () => 'http://127.0.0.1:8790',
+        }),
+    )
     vi.unstubAllGlobals()
   })
 })

@@ -11,6 +11,10 @@ mod state;
 mod ui;
 mod write;
 
+pub use dto::{
+    DagDetailDto, DagVersionDto, FailureDto, GateResponse, NodeExecutionDto, RunDto, UiLayoutDto,
+    WorkspacePresetDto,
+};
 pub use error::ApiError;
 pub use event_hub::{forward_engine_events, RunEventHub};
 pub use routes::router;

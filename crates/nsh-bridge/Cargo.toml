@@ -5,14 +5,23 @@ edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
 publish = false
-description = "Store/engine JSON bridge for a future NSH native_module (P1-30 spike)"
+description = "Store/engine JSON bridge for NSH native_module DataSource (P1-31)"
 
 [dependencies]
 common = { workspace = true }
+gate = { workspace = true }
+model = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
+server = { path = "../server" }
 store = { workspace = true }
 thiserror = { workspace = true }
+tokio = { workspace = true, features = ["rt-multi-thread", "net", "macros", "sync"] }
+tower-http = { version = "0.6", features = ["trace"] }
+tracing = { workspace = true }
+
+[dependencies.axum]
+workspace = true
 
 [dev-dependencies]
 common = { workspace = true }

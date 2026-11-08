@@ -1,20 +1,20 @@
 /**
- * NSH headless test (run with `nsh test app/aitest` once the mixed project is initialized).
- *
- * Until `nsh init` merges Cargo/nsh.json, this file documents the intended contract:
- * open the shell entry and assert the host mounted.
+ * NSH headless tests (`nsh test app/aitest`).
  */
 import { mount, signal, Text, View } from 'nsh'
+import { DataSource } from 'aitest/native'
 
-function SpikeHost() {
-  const label = signal('aitest spike')
+function ContractSmoke() {
+  const status = signal('pending')
+  const base = DataSource.ensureApi()
+  const payload = DataSource.list_dags()
+  status.set(payload.startsWith('[') ? 'ok' : 'bad-json')
   return (
-    <View class="flex-1 items-center justify-center bg-background">
-      <Text data-testid="spike-label" class="text-foreground">
-        {label()}
-      </Text>
+    <View class="flex-1 items-center justify-center bg-background" data-testid="nsh-contract">
+      <Text data-testid="api-base">{base}</Text>
+      <Text data-testid="contract-status">{status()}</Text>
     </View>
   )
 }
 
-mount(SpikeHost)
+mount(ContractSmoke)

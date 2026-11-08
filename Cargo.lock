@@ -1293,13 +1293,19 @@ dependencies = [
 name = "nsh-bridge"
 version = "0.1.0"
 dependencies = [
+ "axum",
  "common",
+ "gate",
  "model",
  "serde",
  "serde_json",
+ "server",
  "store",
  "tempfile",
  "thiserror",
+ "tokio",
+ "tower-http",
+ "tracing",
 ]
 
 [[package]]

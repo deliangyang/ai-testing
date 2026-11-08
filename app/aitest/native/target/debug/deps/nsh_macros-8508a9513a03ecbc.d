@@ -1,0 +1,11 @@
+H:\work\ai-testing\app\aitest\native\target\debug\deps\nsh_macros-8508a9513a03ecbc.d: C:\Users\rcl\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\nsh-macros-0.4.0\src\lib.rs C:\Users\rcl\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\nsh-macros-0.4.0\src\assets.rs C:\Users\rcl\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\nsh-macros-0.4.0\src\class.rs C:\Users\rcl\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\nsh-macros-0.4.0\src\host_props.rs C:\Users\rcl\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\nsh-macros-0.4.0\src\js_ops.rs C:\Users\rcl\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\nsh-macros-0.4.0\src\native_components.rs C:\Users\rcl\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\nsh-macros-0.4.0\src\native_module.rs
+
+H:\work\ai-testing\app\aitest\native\target\debug\deps\nsh_macros-8508a9513a03ecbc.dll: C:\Users\rcl\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\nsh-macros-0.4.0\src\lib.rs C:\Users\rcl\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\nsh-macros-0.4.0\src\assets.rs C:\Users\rcl\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\nsh-macros-0.4.0\src\class.rs C:\Users\rcl\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\nsh-macros-0.4.0\src\host_props.rs C:\Users\rcl\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\nsh-macros-0.4.0\src\js_ops.rs C:\Users\rcl\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\nsh-macros-0.4.0\src\native_components.rs C:\Users\rcl\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\nsh-macros-0.4.0\src\native_module.rs
+
+C:\Users\rcl\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\nsh-macros-0.4.0\src\lib.rs:
+C:\Users\rcl\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\nsh-macros-0.4.0\src\assets.rs:
+C:\Users\rcl\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\nsh-macros-0.4.0\src\class.rs:
+C:\Users\rcl\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\nsh-macros-0.4.0\src\host_props.rs:
+C:\Users\rcl\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\nsh-macros-0.4.0\src\js_ops.rs:
+C:\Users\rcl\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\nsh-macros-0.4.0\src\native_components.rs:
+C:\Users\rcl\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\nsh-macros-0.4.0\src\native_module.rs:

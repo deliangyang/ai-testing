@@ -18,6 +18,4 @@ pub use nodes::{
     ExecutionKey, Failure, NodeExecution, NodeExecutionRepository, NodeStatus, NodeUpdate,
 };
 pub use runs::{NewRun, RunMode, RunQuery, RunRecord, RunRepository, RunStatus};
-pub use ui_layout::{
-    UiLayoutRecord, UiLayoutRepository, WorkspacePresetRecord,
-};
+pub use ui_layout::{UiLayoutRecord, UiLayoutRepository, WorkspacePresetRecord};

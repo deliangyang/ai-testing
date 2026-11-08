@@ -59,10 +59,12 @@ impl<'a> UiLayoutRepository<'a> {
     }
 
     pub fn list_presets(&self) -> Result<Vec<WorkspacePresetRecord>> {
-        let mut stmt = self
-            .conn
-            .prepare("SELECT id, name, layout_json, updated_at FROM workspace_presets ORDER BY id")?;
-        let rows = stmt.query_map([], map_preset)?.collect::<rusqlite::Result<Vec<_>>>()?;
+        let mut stmt = self.conn.prepare(
+            "SELECT id, name, layout_json, updated_at FROM workspace_presets ORDER BY id",
+        )?;
+        let rows = stmt
+            .query_map([], map_preset)?
+            .collect::<rusqlite::Result<Vec<_>>>()?;
         Ok(rows)
     }
 
@@ -77,7 +79,8 @@ impl<'a> UiLayoutRepository<'a> {
 }
 
 fn decode_layout(scope_key: String, json: String, updated_at: String) -> Result<UiLayoutRecord> {
-    let layout: Value = serde_json::from_str(&json).map_err(|e| StoreError::Corrupt(e.to_string()))?;
+    let layout: Value =
+        serde_json::from_str(&json).map_err(|e| StoreError::Corrupt(e.to_string()))?;
     let updated_at: Timestamp = updated_at
         .parse()
         .map_err(|e| StoreError::Corrupt(format!("ui_layout.updated_at: {e}")))?;
@@ -94,8 +97,14 @@ fn map_layout(row: &Row<'_>) -> rusqlite::Result<UiLayoutRecord> {
     })
 }
 
-fn decode_preset(id: String, name: String, json: String, updated_at: String) -> Result<WorkspacePresetRecord> {
-    let layout: Value = serde_json::from_str(&json).map_err(|e| StoreError::Corrupt(e.to_string()))?;
+fn decode_preset(
+    id: String,
+    name: String,
+    json: String,
+    updated_at: String,
+) -> Result<WorkspacePresetRecord> {
+    let layout: Value =
+        serde_json::from_str(&json).map_err(|e| StoreError::Corrupt(e.to_string()))?;
     let updated_at: Timestamp = updated_at
         .parse()
         .map_err(|e| StoreError::Corrupt(format!("workspace_presets.updated_at: {e}")))?;
