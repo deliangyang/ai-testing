@@ -3,10 +3,14 @@
 use std::collections::BTreeMap;
 use std::future::Future;
 use std::pin::Pin;
+use std::sync::Arc;
 
 use model::Node;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
+
+use crate::environment::Environment;
+use crate::render::VarContext;
 
 pub type ExecFuture<'a> = Pin<Box<dyn Future<Output = Result<Value, ExecError>> + Send + 'a>>;
 
@@ -62,6 +66,16 @@ pub struct ExecContext {
     pub run_id: String,
     /// Outputs of the node's completed ancestors, and only those, keyed by node id.
     pub outputs: BTreeMap<String, Value>,
+    pub env: Arc<Environment>,
+}
+
+impl ExecContext {
+    pub fn vars(&self) -> VarContext<'_> {
+        VarContext {
+            env: &self.env,
+            outputs: &self.outputs,
+        }
+    }
 }
 
 pub trait NodeExecutor: Send + Sync {

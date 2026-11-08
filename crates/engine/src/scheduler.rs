@@ -8,6 +8,7 @@ use serde::Serialize;
 use serde_json::Value;
 use tokio::task::JoinSet;
 
+use crate::environment::Environment;
 use crate::executor::{ExecContext, ExecError, NodeExecutor};
 use crate::state::{InvalidTransition, NodeStatus};
 
@@ -89,15 +90,23 @@ pub enum SchedulerError {
 pub struct Scheduler {
     executor: Arc<dyn NodeExecutor>,
     max_parallel: usize,
+    env: Arc<Environment>,
 }
 
 impl Scheduler {
-    /// Serial by default.
+    /// Serial by default, with an empty environment.
     pub fn new(executor: Arc<dyn NodeExecutor>) -> Self {
         Self {
             executor,
             max_parallel: 1,
+            env: Arc::new(Environment::default()),
         }
+    }
+
+    #[must_use]
+    pub fn with_environment(mut self, env: Environment) -> Self {
+        self.env = Arc::new(env);
+        self
     }
 
     /// Values below 1 are treated as 1.
@@ -150,6 +159,7 @@ impl Scheduler {
                         .into_iter()
                         .filter_map(|a| Some((a.to_owned(), nodes.get(a)?.output.clone()?)))
                         .collect(),
+                    env: Arc::clone(&self.env),
                 };
                 self.result(&mut nodes, id)?
                     .advance(id, NodeStatus::Running)?;

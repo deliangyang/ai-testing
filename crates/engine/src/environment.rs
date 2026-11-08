@@ -143,7 +143,8 @@ struct RawEnvironment {
     variables: BTreeMap<String, String>,
 }
 
-/// A loaded environment with every `${env:VAR}` substituted.
+/// A loaded environment with every `${env:VAR}` substituted. The default is an environment
+/// named `default` with no variables and an empty base URL.
 #[derive(Clone, PartialEq)]
 pub struct Environment {
     name: String,
@@ -152,7 +153,37 @@ pub struct Environment {
     from_process: BTreeSet<String>,
 }
 
+impl Default for Environment {
+    fn default() -> Self {
+        Self {
+            name: "default".into(),
+            variables: BTreeMap::new(),
+            from_process: BTreeSet::new(),
+        }
+    }
+}
+
 impl Environment {
+    /// An environment built in code; values are taken literally.
+    pub fn new(
+        name: &str,
+        base_url: &str,
+        variables: BTreeMap<String, String>,
+    ) -> Result<Self, EnvError> {
+        if variables.contains_key(BASE_URL_VAR) {
+            return Err(EnvError::BaseUrlConflict {
+                name: name.to_owned(),
+            });
+        }
+        let mut variables = variables;
+        variables.insert(BASE_URL_VAR.to_owned(), base_url.to_owned());
+        Ok(Self {
+            name: name.to_owned(),
+            variables,
+            from_process: BTreeSet::new(),
+        })
+    }
+
     /// Loads `<root>/environments/<name>.yaml`.
     pub fn load(root: &Path, name: &str, env: &dyn ProcessEnv) -> Result<Self, EnvError> {
         if name.is_empty()

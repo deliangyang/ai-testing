@@ -15,7 +15,7 @@ pub fn node_refs(node: &Node) -> Result<Vec<LocatedRef>, LocatedTemplateError> {
 }
 
 /// A sparse copy of the node holding only template-bearing values at their original pointers.
-fn template_view(node: &Node) -> Value {
+pub fn template_view(node: &Node) -> Value {
     match &node.kind {
         NodeKind::Http(cfg) => request_view(&cfg.request()),
         NodeKind::Poll(cfg) => json!({
