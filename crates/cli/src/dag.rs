@@ -1,22 +1,20 @@
 //! `mytool dag ...`
 
 use std::path::Path;
-use std::sync::{Arc, Mutex, MutexGuard};
 
 use anyhow::anyhow;
-use common::clock::{Clock, SystemClock};
 use gate::{Gate, Report};
-use model::{to_canonical_json, Dag};
+use model::to_canonical_json;
 use serde_json::json;
-use store::{DagRepository, DagVersionInfo, Db};
+use store::{DagRepository, DagVersionInfo};
 
 use crate::args::OutputFormat;
 use crate::exit;
 use crate::input::{load_dag, Loaded};
-use crate::store::{open_db, StoreCatalog};
+use crate::store::Store;
 
 /// Recorded as `created_by` for versions saved from the command line.
-const CREATED_BY: &str = "cli";
+pub const CREATED_BY: &str = "cli";
 
 /// Exit 0 when the gate passes (warnings allowed), 3 when it reports errors or the file is not
 /// a DAG.
@@ -103,33 +101,7 @@ pub fn list(db_path: &Path, format: OutputFormat) -> anyhow::Result<u8> {
     Ok(exit::SUCCESS)
 }
 
-struct Store {
-    db: Arc<Mutex<Db>>,
-    clock: Arc<dyn Clock>,
-}
-
-impl Store {
-    fn open(path: &Path) -> anyhow::Result<Self> {
-        let clock: Arc<dyn Clock> = Arc::new(SystemClock);
-        let db = open_db(path, clock.as_ref())?;
-        Ok(Self {
-            db: Arc::new(Mutex::new(db)),
-            clock,
-        })
-    }
-
-    fn lock(&self) -> anyhow::Result<MutexGuard<'_, Db>> {
-        self.db.lock().map_err(|_| anyhow!("store lock poisoned"))
-    }
-
-    /// The catalog takes the lock per lookup, so no guard may be held while this runs.
-    fn gate(&self, dag: &Dag) -> Report {
-        let catalog = StoreCatalog::new(self.db.clone(), self.clock.clone());
-        Gate::for_save(Arc::new(catalog)).validate(dag)
-    }
-}
-
-fn rejected(label: &str, report: &Report) -> anyhow::Result<u8> {
+pub fn rejected(label: &str, report: &Report) -> anyhow::Result<u8> {
     print_report(label, report, OutputFormat::Text)?;
     Ok(exit::INVALID)
 }
@@ -163,7 +135,7 @@ fn print_report(label: &str, report: &Report, format: OutputFormat) -> anyhow::R
     Ok(())
 }
 
-fn print_issues(report: &Report) {
+pub fn print_issues(report: &Report) {
     for issue in &report.issues {
         println!("{issue}");
     }

@@ -4,11 +4,11 @@ mod args;
 mod dag;
 mod exit;
 mod input;
+mod run;
 mod store;
 
 use std::process::ExitCode;
 
-use anyhow::bail;
 use clap::Parser;
 
 use args::{Cli, Command, DagCommand};
@@ -34,6 +34,6 @@ fn dispatch(cli: &Cli) -> anyhow::Result<u8> {
         Command::Dag(DagCommand::Save { file }) => dag::save(&cli.db, file),
         Command::Dag(DagCommand::Activate { id, version }) => dag::activate(&cli.db, id, *version),
         Command::Dag(DagCommand::List { format }) => dag::list(&cli.db, *format),
-        Command::Run(_) => bail!("`run` is not implemented yet"),
+        Command::Run(args) => run::run(&cli.db, args),
     }
 }

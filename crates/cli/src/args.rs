@@ -100,13 +100,22 @@ pub enum DagCommand {
 
 #[derive(Debug, Args)]
 pub struct RunArgs {
-    /// Stored DAG id (its active version) or a DAG file.
+    /// Stored DAG id (its active version) or a DAG file. A file must pass the gate and is
+    /// recorded as a pending version first (ADR-005).
     #[arg(long)]
     pub dag: String,
 
-    /// Environment name, loaded from `environments/<name>.yaml`.
+    /// Environment name, loaded from `<env-root>/environments/<name>.yaml`.
     #[arg(long)]
     pub env: String,
+
+    /// Directory holding the `environments/` folder.
+    #[arg(long, default_value = ".")]
+    pub env_root: PathBuf,
+
+    /// Maximum number of nodes running at once.
+    #[arg(long, default_value_t = 4, value_parser = clap::value_parser!(u16).range(1..))]
+    pub parallel: u16,
 
     /// Never call a language model (the only mode so far).
     #[arg(long)]
