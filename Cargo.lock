@@ -1234,6 +1234,7 @@ name = "store"
 version = "0.1.0"
 dependencies = [
  "common",
+ "model",
  "rusqlite",
  "sha2",
  "tempfile",
