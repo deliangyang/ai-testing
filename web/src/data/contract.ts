@@ -71,4 +71,11 @@ export async function exerciseDataSourceContract(make: () => DataSource): Promis
     items: [],
   })
   expect(commit.added).toBeGreaterThanOrEqual(0)
+
+  const copilot = await ds.copilotChat({
+    context: { dag_id: 'serial', selected_node_id: 'pay' },
+    message: '补健康检查',
+  })
+  expect(copilot.message.role).toBe('assistant')
+  expect(copilot.message.actions?.some((a) => a.type === 'insert_canvas')).toBe(true)
 }

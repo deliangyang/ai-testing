@@ -5,6 +5,7 @@ use serde::Deserialize;
 use store::{DagRepository, DagStatus, NodeExecutionRepository, RunQuery, RunRepository};
 
 use crate::api_import::{commit_api_import, preview_api_import};
+use crate::copilot::copilot_chat;
 use crate::dag_repair::repair_dag_with_ai;
 use crate::dto::{DagDetailDto, DagVersionDto, NodeExecutionDto, RunDto};
 use crate::error::{ApiError, ApiResult};
@@ -45,6 +46,7 @@ pub fn router(state: AppState) -> Router {
         .route("/api/ui/presets/{id}", get(get_workspace_preset))
         .route("/api/api-specs/import/preview", post(preview_api_import))
         .route("/api/api-specs/import/commit", post(commit_api_import))
+        .route("/api/copilot/chat", post(copilot_chat))
         .with_state(state)
 }
 

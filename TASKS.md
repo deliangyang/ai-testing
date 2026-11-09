@@ -203,7 +203,7 @@ M0 两周联合评审：P0-56。
 | P2-21 | 激活流程：激活前重新执行闸门 + 自动校准，通过才产生 active 新版本 | `crates/store`、`crates/server`、`crates/cli` | P2-20、P2-19 | 绕过闸门的激活请求被拒绝 | DONE |
 | P2-22 | UI：AI 候选半透明预览、校验徽标、激活按钮、与当前 active 版本 diff | `web/` | P2-20、P1-24 | E2E 用例 | DONE |
 | P2-23 | UI：校验失败问题列表「交给 AI 修正」 | `web/`、`crates/server` | P2-22、P2-18 | E2E 用例 | DONE |
-| P2-24 | AI 副驾 Tab：对话界面；每条输出绑定工件（插入画布/定位节点/采纳断言）；顶部显示当前上下文 | `web/`、`crates/server` | P2-22 | E2E 用例（Mock 回放） | TODO |
+| P2-24 | AI 副驾 Tab：对话界面；每条输出绑定工件（插入画布/定位节点/采纳断言）；顶部显示当前上下文 | `web/`、`crates/server` | P2-22 | E2E 用例（Mock 回放） | DONE |
 | P2-25 | 生成评测 harness：3 条链路描述 × N 次，统计闸门首次接受率与最终接受率（目标 ≥70%） | `scripts/`、`docs/reviews/` | P2-18 | 输出评测报告 | DONE |
 | P2-26 | 一致性测试：AI 生成并激活的 DAG 与手工 DAG 在 mock-sut 上确定性报告一致 | `crates/cli/tests` | P2-21、P0-53 | 测试通过 | DONE |
 | P2-27 | **阶段 2 验收** | `docs/reviews/phase2.md` | P2-23 ~ P2-26、P2-13 | 验收通过 | DONE |
@@ -216,8 +216,8 @@ M0 两周联合评审：P0-56。
 
 | ID | 任务 | 位置 | 依赖 | 验收标准 | 状态 |
 |---|---|---|---|---|---|
-| P3-01 | 迁移新增 `skills`、`skill_references` | `crates/store` | P0-21 | schema 快照测试 | TODO |
-| P3-02 | Skill 工件包格式：manifest（名称/semver/依赖）、类型化输入输出契约、内部 DAG、自带断言；JSON Schema 导出 | `crates/skills` | P0-05 | round-trip 与 schema 同步测试 | TODO |
+| P3-01 | 迁移新增 `skills`、`skill_references` | `crates/store` | P0-21 | schema 快照测试 | DONE |
+| P3-02 | Skill 工件包格式：manifest（名称/semver/依赖）、类型化输入输出契约、内部 DAG、自带断言；JSON Schema 导出 | `crates/skills` | P0-05 | round-trip 与 schema 同步测试 | DONE |
 | P3-03 | `SkillRepository` + CLI `mytool skill save/activate/list`；保存前对内部 DAG 跑闸门 | `crates/skills`、`crates/cli` | P3-01、P3-02 | 单测 + CLI 用例 | TODO |
 | P3-04 | subworkflow 引用 Skill：`skill_id` + semver 约束解析到具体版本 | `crates/engine` | P3-03、P0-37 | 多版本共存时解析正确 | TODO |
 | P3-05 | 闸门规则：Skill 输入绑定与契约类型匹配、必填输入齐全、输出引用存在于契约 | `crates/gate` | P3-04 | 正反例 | TODO |
@@ -401,6 +401,10 @@ M0 两周联合评审：P0-56。
 | 2026-11-09 | P2-09/10/14/17 | DOING→DONE | HAR/merge/`api_spec_id`+`ApiSpecLookup`/`generate_dag`+`parse_dag_from_llm_content`；check 全绿 |
 | 2026-11-09 | P2-18 | DOING→DONE | `generate_dag_with_gate`（`Gate::standard()` + 错误级 Issue 规范化 JSON 回喂；默认 `max_rounds=3`；`GenerateDagWithGateResult::NeedsManualReview`）；cassette 修正/三轮仍失败用例；`reference.not_ancestor` 定位节点 `a`；未提交；`./scripts/check.sh` 全绿 |
 | 2026-11-09 | P2-11 | DOING→DONE | `importer::markdown`（`ApiSpecDraft{spec,confidence,source_lines}`）；`CassetteProvider` 回放 + `persist_api_spec_drafts` 仅 `save`/draft；未提交；`./scripts/check.sh` 全绿 |
+| 2026-11-09 | P2-24 | DOING→DONE | → 待 `git log`：`CopilotPanel`、fixture `copilotChat`、`POST /api/copilot/chat`、E2E |
+| 2026-11-09 | P2-24/P3-01/P3-02 | TODO→DOING | 编排：三 subagent 并行；完成后主线程逐个提交 |
+| 2026-11-09 | P3-02 | DOING→DONE | → `e4a3a57`：`crates/skills` + `schemas/skill.schema.json` |
+| 2026-11-09 | P3-01 | DOING→DONE | → `8835ac9`：`V006__skills.sql` + schema 快照 |
 | 2026-11-09 | P2-27 | DOING→DONE | → `92bca22`：`docs/reviews/phase2.md`；§8.3 证据 + 本机 Playwright 3/3；P2-24 遗留 |
 | 2026-11-09 | P2-27 | TODO→DOING | 认领阶段 2 验收 |
 | 2026-11-09 | P2-25..P2-23,P2-27 | — | 批量提交 `92bca22` |

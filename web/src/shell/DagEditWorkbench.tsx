@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 
 import { DagEditCanvas } from '../canvas'
+import { CopilotPanel } from '../copilot'
 import { FixtureDataSource } from '../data/fixture'
 import type { GateResponse } from '../data/types'
 import { DagValidationPanel, NodePropertyPanel } from '../panels'
@@ -9,6 +10,8 @@ import './shell.css'
 
 const dataSource = new FixtureDataSource('serial')
 
+type RightPanelTab = 'props' | 'copilot'
+
 export function DagEditWorkbench() {
   const [dag, setDag] = useState<Dag | null>(null)
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null)
@@ -16,6 +19,7 @@ export function DagEditWorkbench() {
   const [gateReport, setGateReport] = useState<GateResponse | null>(null)
   const [repairing, setRepairing] = useState(false)
   const [repairHint, setRepairHint] = useState<string | null>(null)
+  const [rightTab, setRightTab] = useState<RightPanelTab>('props')
 
   useEffect(() => {
     void dataSource.getActiveDag('serial').then((detail) => {
@@ -81,24 +85,61 @@ export function DagEditWorkbench() {
         />
       </main>
       <aside className="dag-edit-workbench__panel" data-testid="dag-edit-property-panel">
-        <DagValidationPanel
-          report={gateReport}
-          onFocusNode={(nodeId) => {
-            setFocusNodeId(nodeId)
-            setSelectedNodeId(nodeId)
-          }}
-          onAiRepair={() => {
-            void repairWithAi()
-          }}
-          repairing={repairing}
-          repairHint={repairHint}
-        />
-        <NodePropertyPanel
-          dag={dag}
-          selectedNodeId={selectedNodeId}
-          onDagChange={setDag}
-          onSave={saveDag}
-        />
+        <div className="dag-edit-panel-tabs" role="tablist" aria-label="右面板">
+          <button
+            type="button"
+            role="tab"
+            aria-selected={rightTab === 'props'}
+            data-testid="right-tab-props"
+            onClick={() => {
+              setRightTab('props')
+            }}
+          >
+            属性
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={rightTab === 'copilot'}
+            data-testid="right-tab-copilot"
+            onClick={() => {
+              setRightTab('copilot')
+            }}
+          >
+            AI 副驾
+          </button>
+        </div>
+        {rightTab === 'props' ? (
+          <>
+            <DagValidationPanel
+              report={gateReport}
+              onFocusNode={(nodeId) => {
+                setFocusNodeId(nodeId)
+                setSelectedNodeId(nodeId)
+              }}
+              onAiRepair={() => {
+                void repairWithAi()
+              }}
+              repairing={repairing}
+              repairHint={repairHint}
+            />
+            <NodePropertyPanel
+              dag={dag}
+              selectedNodeId={selectedNodeId}
+              onDagChange={setDag}
+              onSave={saveDag}
+            />
+          </>
+        ) : (
+          <CopilotPanel
+            dag={dag}
+            selectedNodeId={selectedNodeId}
+            dataSource={dataSource}
+            onDagChange={setDag}
+            onFocusNode={setFocusNodeId}
+            onSelectNode={setSelectedNodeId}
+          />
+        )}
       </aside>
     </div>
   )

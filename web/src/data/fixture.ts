@@ -1,6 +1,7 @@
 import type { DataSource, RunEventHandler, SubscribeRunEventsOptions } from './datasource'
 import { DataSourceError } from './errors'
 import { DEFAULT_SCENARIO, SCENARIOS, type ScenarioFixture } from './fixtures'
+import { copilotFixtureResponse } from '../copilot/fixtures'
 import { MARKDOWN_IMPORT_PREVIEW } from '../import/fixtures'
 import { SERIAL_AI_PENDING_DETAIL, SERIAL_AI_PENDING_VERSION } from '../pending/fixtures'
 import type {
@@ -8,6 +9,8 @@ import type {
   ApiImportPersistSummary,
   ApiImportPreviewRequest,
   ApiImportPreviewResponse,
+  CopilotChatRequest,
+  CopilotChatResponse,
   DagAiRepairResponse,
   CreateRunRequest,
   CreateRunResponse,
@@ -141,6 +144,10 @@ export class FixtureDataSource implements DataSource {
       options?.signal?.removeEventListener('abort', onAbort)
       this.liveTokens.delete(runId)
     }
+  }
+
+  copilotChat(request: CopilotChatRequest): Promise<CopilotChatResponse> {
+    return Promise.resolve(copilotFixtureResponse(request))
   }
 
   async repairDagWithAi(dag: Dag): Promise<DagAiRepairResponse> {

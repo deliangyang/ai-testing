@@ -73,6 +73,10 @@ export class NshDataSource implements DataSource {
     return this.ds().then((d) => d.repairDagWithAi(...args))
   }
 
+  copilotChat(...args: Parameters<DataSource['copilotChat']>) {
+    return this.ds().then((d) => d.copilotChat(...args))
+  }
+
   saveDag(...args: Parameters<DataSource['saveDag']>) {
     return this.ds().then((d) => d.saveDag(...args))
   }

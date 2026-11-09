@@ -8,7 +8,9 @@ import {
 import { FixtureDataSource } from './fixture'
 import { HttpDataSource } from './http'
 import { NshDataSource } from './nsh'
+import { copilotFixtureResponse } from '../copilot/fixtures'
 import { exerciseDataSourceContract } from './contract'
+import type { CopilotChatRequest } from './types'
 import type { Dag } from '../types/generated'
 
 function readDagFromInit(init?: RequestInit): Dag | undefined {
@@ -102,6 +104,15 @@ function installHttpMock(): void {
     }
     if (pathname === '/api/api-specs/import/commit' && init?.method === 'POST') {
       return Promise.resolve(jsonResponse({ added: 0, updated: 0, unchanged: 0, saved_ids: [] }))
+    }
+    if (pathname === '/api/copilot/chat' && init !== undefined && init.method === 'POST') {
+      const body = init.body
+      const request =
+        typeof body === 'string' ? (JSON.parse(body) as CopilotChatRequest) : undefined
+      if (request === undefined) {
+        return Promise.resolve(jsonResponse({ error: 'bad body' }, 400))
+      }
+      return Promise.resolve(jsonResponse(copilotFixtureResponse(request)))
     }
     return Promise.resolve(jsonResponse({ error: `unexpected ${pathname}` }, 404))
   })

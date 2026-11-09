@@ -5,6 +5,8 @@ import type {
   ApiImportPersistSummary,
   ApiImportPreviewRequest,
   ApiImportPreviewResponse,
+  CopilotChatRequest,
+  CopilotChatResponse,
   DagAiRepairResponse,
   CreateRunRequest,
   CreateRunResponse,
@@ -171,6 +173,15 @@ export class HttpDataSource implements DataSource {
       options?.signal?.removeEventListener('abort', abort)
       source.close()
     }
+  }
+
+  async copilotChat(request: CopilotChatRequest): Promise<CopilotChatResponse> {
+    const response = await this.fetchFn(this.url('/api/copilot/chat'), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(request),
+    })
+    return this.parseJson(response)
   }
 
   async repairDagWithAi(dag: Dag): Promise<DagAiRepairResponse> {

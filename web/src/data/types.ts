@@ -1,6 +1,6 @@
 /** API DTO shapes aligned with `crates/server/src/dto.rs` (not yet schema-generated). */
 
-import type { Dag } from '../types/generated'
+import type { Condition, Dag, Edge, Node } from '../types/generated'
 
 export type Timestamp = string
 
@@ -156,4 +156,45 @@ export type EngineEvent =
 export interface StoredRunEvent {
   seq: number
   event: EngineEvent
+}
+
+/** AI 副驾绑定的可执行工件（develop.md §5.2）。 */
+export type CopilotAction =
+  | {
+      type: 'insert_canvas'
+      node: Node
+      edges?: Edge[]
+    }
+  | {
+      type: 'focus_node'
+      node_id: string
+    }
+  | {
+      type: 'adopt_assertion'
+      node_id: string
+      assertions: Condition[]
+    }
+
+export interface CopilotChatMessage {
+  role: 'user' | 'assistant'
+  content: string
+  /** 消息内可点击定位的节点引用。 */
+  node_refs?: string[]
+  actions?: CopilotAction[]
+}
+
+export interface CopilotChatContext {
+  dag_id: string
+  dag_version?: number
+  selected_node_id?: string | null
+}
+
+export interface CopilotChatRequest {
+  context: CopilotChatContext
+  message: string
+  history?: CopilotChatMessage[]
+}
+
+export interface CopilotChatResponse {
+  message: CopilotChatMessage
 }
