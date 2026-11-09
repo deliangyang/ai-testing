@@ -401,7 +401,7 @@ M0 两周联合评审：P0-56。
 | 2026-11-09 | P2-09/10/14/17 | DOING→DONE | HAR/merge/`api_spec_id`+`ApiSpecLookup`/`generate_dag`+`parse_dag_from_llm_content`；check 全绿 |
 | 2026-11-09 | P2-18 | DOING→DONE | `generate_dag_with_gate`（`Gate::standard()` + 错误级 Issue 规范化 JSON 回喂；默认 `max_rounds=3`；`GenerateDagWithGateResult::NeedsManualReview`）；cassette 修正/三轮仍失败用例；`reference.not_ancestor` 定位节点 `a`；未提交；`./scripts/check.sh` 全绿 |
 | 2026-11-09 | P2-11 | DOING→DONE | `importer::markdown`（`ApiSpecDraft{spec,confidence,source_lines}`）；`CassetteProvider` 回放 + `persist_api_spec_drafts` 仅 `save`/draft；未提交；`./scripts/check.sh` 全绿 |
-| 2026-11-09 | P2-24 | DOING→DONE | → 待 `git log`：`CopilotPanel`、fixture `copilotChat`、`POST /api/copilot/chat`、E2E |
+| 2026-11-09 | P2-24 | DOING→DONE | → `56bd077`：`CopilotPanel`、fixture `copilotChat`、`POST /api/copilot/chat`、`e2e/copilot.spec.ts` |
 | 2026-11-09 | P2-24/P3-01/P3-02 | TODO→DOING | 编排：三 subagent 并行；完成后主线程逐个提交 |
 | 2026-11-09 | P3-02 | DOING→DONE | → `e4a3a57`：`crates/skills` + `schemas/skill.schema.json` |
 | 2026-11-09 | P3-01 | DOING→DONE | → `8835ac9`：`V006__skills.sql` + schema 快照 |
