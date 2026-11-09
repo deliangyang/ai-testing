@@ -403,6 +403,8 @@ M0 两周联合评审：P0-56。
 | 2026-11-09 | P2-11 | DOING→DONE | `importer::markdown`（`ApiSpecDraft{spec,confidence,source_lines}`）；`CassetteProvider` 回放 + `persist_api_spec_drafts` 仅 `save`/draft；未提交；`./scripts/check.sh` 全绿 |
 | 2026-11-09 | P3-03 | DOING→DONE | → `e5be339`（CLI）+ `fb84723`（`SkillRepository`） |
 | 2026-11-09 | P3-09 | DOING→DONE | → `fb84723`：`V007` + `ConnectionRepository` + `environment_connections` |
+| 2026-11-09 | P3-10 | DOING→DONE | → `ad781f0`：`db_query` sqlx SQLite、`read_only` 写拒绝 |
+| 2026-11-09 | P3-04 | DOING→DONE | → `b8120fd`：`SubworkflowTarget` skill semver、`skill_subworkflow` 测试 |
 | 2026-11-09 | P3-04/P3-10 | TODO→DOING | 编排：双 subagent 并行 |
 | 2026-11-09 | P3-03/P3-09 | TODO→DOING | → `fb84723`/`e5be339`/`190231c` |
 | 2026-11-09 | P2-24 | DOING→DONE | → `56bd077`：`CopilotPanel`、fixture `copilotChat`、`POST /api/copilot/chat`、`e2e/copilot.spec.ts` |
