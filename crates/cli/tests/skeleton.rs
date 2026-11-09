@@ -27,6 +27,7 @@ fn help_lists_the_command_groups_and_global_options() {
     for expected in [
         "api",
         "dag",
+        "skill",
         "run",
         "--db <DB>",
         "--log-level <LOG_LEVEL>",
@@ -42,6 +43,16 @@ fn dag_help_lists_its_subcommands() {
     assert!(out.status.success());
     let help = stdout(&out);
     for sub in ["validate", "save", "activate", "list"] {
+        assert!(help.contains(sub), "missing {sub:?} in:\n{help}");
+    }
+}
+
+#[test]
+fn skill_help_lists_its_subcommands() {
+    let out = mytool(&["skill", "--help"]);
+    assert!(out.status.success());
+    let help = stdout(&out);
+    for sub in ["save", "activate", "list"] {
         assert!(help.contains(sub), "missing {sub:?} in:\n{help}");
     }
 }

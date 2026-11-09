@@ -68,6 +68,9 @@ pub enum Command {
     Api(ApiCommand),
     /// Run a DAG against an environment, or inspect a recorded run.
     Run(RunArgs),
+    /// Validate, store and activate Skill packages.
+    #[command(subcommand)]
+    Skill(SkillCommand),
 }
 
 #[derive(Debug, Subcommand)]
@@ -122,6 +125,30 @@ pub enum DagCommand {
     },
     /// List AI-generated DAG versions awaiting review (`created_by=ai`, `pending`).
     Pending {
+        /// Output format.
+        #[arg(long, value_enum, default_value_t = OutputFormat::Text)]
+        format: OutputFormat,
+    },
+}
+
+#[derive(Debug, Subcommand)]
+pub enum SkillCommand {
+    /// Store a Skill file as a new pending revision; refused (exit 3) unless its internal DAG
+    /// passes the standard gate.
+    Save {
+        /// Skill file (`.json` is read as JSON, anything else as YAML).
+        file: PathBuf,
+    },
+    /// Re-check the internal DAG with the gate and make this revision active.
+    Activate {
+        /// Skill id (`manifest.id`).
+        id: String,
+        /// Activation revision (not the manifest semver).
+        #[arg(id = "skill_revision", value_name = "REVISION")]
+        version: u32,
+    },
+    /// List stored Skills and their revisions.
+    List {
         /// Output format.
         #[arg(long, value_enum, default_value_t = OutputFormat::Text)]
         format: OutputFormat,

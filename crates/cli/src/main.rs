@@ -7,13 +7,14 @@ mod exit;
 mod input;
 mod report;
 mod run;
+mod skill;
 mod store;
 
 use std::process::ExitCode;
 
 use clap::Parser;
 
-use args::{ApiCommand, Cli, Command, DagCommand};
+use args::{ApiCommand, Cli, Command, DagCommand, SkillCommand};
 
 fn main() -> ExitCode {
     let cli = Cli::parse();
@@ -37,6 +38,11 @@ fn dispatch(cli: &Cli) -> anyhow::Result<u8> {
         Command::Dag(DagCommand::Activate { id, version }) => dag::activate(&cli.db, id, *version),
         Command::Dag(DagCommand::List { format }) => dag::list(&cli.db, *format),
         Command::Dag(DagCommand::Pending { format }) => dag::pending(&cli.db, *format),
+        Command::Skill(SkillCommand::Save { file }) => skill::save(&cli.db, file),
+        Command::Skill(SkillCommand::Activate { id, version }) => {
+            skill::activate(&cli.db, id, *version)
+        }
+        Command::Skill(SkillCommand::List { format }) => skill::list(&cli.db, *format),
         Command::Api(ApiCommand::Import {
             file,
             format,
