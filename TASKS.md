@@ -394,7 +394,7 @@ M0 两周联合评审：P0-56。
 | 2026-11-09 | P1-32 | 验收会话 | 功能证据：failure-evidence/gate-validation E2E、`DagReportReplayView` vitest、`cargo test -p nsh-bridge` 通过；`nsh test` SKIP；`check.ps1` exit 1 → `phase1.md` 结论不通过；新增 **P1-32-fix1**，P1-32 仍 DOING |
 | 2026-11-09 | P1-32-fix1 | DOING→DONE | → `d5b633b`：web prettier/eslint；`statusBar*.test` 重命名；server 测试 `TokioSleeper`；`mytool run` `multi_thread` runtime 修复 golden 死锁；golden 两次运行间重启 mock-sut；`schema.sql` 快照；`./scripts/check.ps1` exit 0 |
 | 2026-11-09 | P1-32 | DOING→DONE | → `d5b633b`：`phase1.md` #7 与结论**通过** |
-| 2026-11-09 | P2-01 | DOING→DONE | `secrets` 解析/resolve/写入 keyring（平台 native feature）；`ApiSpecRepository` `auth_scheme_ref` 守卫；`api_specs`/`keyring_windows` 集成测试；`./scripts/check.ps1` 全绿 |
+| 2026-11-09 | P2-01 | DOING→DONE | → `16428fa`：`secrets` 解析/resolve/写入 keyring（平台 native feature）；`ApiSpecRepository` `auth_scheme_ref` 守卫；`api_specs`/`keyring_windows` 集成测试；`./scripts/check.ps1` 全绿 |
 | 2026-11-09 | P2-01 | TODO→DOING | 编排认领阶段 2 首任务；subagent 实现 `secrets` + store `*_ref` 守卫 |
 | 2026-11-09 | P1-31 | DOING→DONE | `nsh-bridge` 嵌入式 `server` + sync reads；`app/aitest` mixed（`native` `DataSource`/`WebUiHost`）；`NshDataSource`+`api_base`；`cargo test -p nsh-bridge`；`nsh test` 需本机 CLI |
 | 2026-11-09 | P1-30 | TODO→DONE | ADR-006；`nsh-bridge` store 探针；`app/` 脚手架与 `scripts/nsh-spike.ps1`；React 经 WebView+server 复用 |
