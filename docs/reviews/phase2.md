@@ -4,7 +4,7 @@
 
 设计对照：[`develop.md`](../../develop.md) **§8.3** 阶段 2 行；阶段 2 里程碑表（§7.1 对应「AI 生成与校验闸门」）；M0 **Q3** 闸门接受率见 [`generation-eval.md`](./generation-eval.md)（**P2-25**，cassette 模式）。
 
-任务 **P2-27** 依赖 **P2-13**、**P2-23～P2-26**（不含 **P2-24** AI 副驾，仍为 `TODO`，记入遗留）。
+任务 **P2-27** 依赖 **P2-13**、**P2-23～P2-26**（**P2-24** 非验收依赖，已于 `56bd077` 单独交付）。
 
 **结论**：**通过**。§8.3 两条核心标准有自动化证据；阶段 2 质量门 `./scripts/check.sh` exit 0（2026-11-09 会话内复跑）。大量 P2 功能变更**尚未 git 提交**（见变更记录），与 [`phase1.md`](phase1.md) 当时「证据先行」口径一致。
 
@@ -38,7 +38,7 @@
 
 | 项 | 说明 | 跟进 |
 |---|---|---|
-| **P2-24** AI 副驾 Tab | 阶段 2 任务表内仍为 `TODO`，非 P2-27 依赖 | 阶段 3 并行或单独认领 |
+| **P2-24** AI 副驾 Tab | 验收后在 `56bd077` 完成（`e2e/copilot.spec.ts`） | 无 |
 | 未提交变更 | P2-13/21/23/25/26 等大量本地 `DONE` 未 commit | 人类指示后分批提交 |
 | 本机 Playwright | 已安装 chromium-headless-shell v1254（2026-11-09） | 新环境复现：`cd web && npx playwright install chromium` |
 | 接受率与真实 LLM | 当前报告为 **cassette** 确定性回放 | 上线前用 `AITEST_LIVE_LLM=1` 写一版 `generation-eval.md`（可选） |
