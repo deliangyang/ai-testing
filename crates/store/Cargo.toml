@@ -10,13 +10,17 @@ publish.workspace = true
 [dependencies]
 common = { workspace = true }
 model = { workspace = true }
+skills = { workspace = true }
 secrets = { workspace = true }
 rusqlite = { workspace = true }
+schemars = { workspace = true }
+serde = { workspace = true }
 serde_json = { workspace = true }
 sha2 = { workspace = true }
 thiserror = { workspace = true }
 
 [dev-dependencies]
+skills = { workspace = true }
 tempfile = { workspace = true }
 
 [lints]

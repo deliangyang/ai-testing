@@ -1,6 +1,7 @@
 //! SQLite persistence: migrations and repositories.
 
 pub mod api_specs;
+pub mod connections;
 pub mod dags;
 pub mod db;
 pub mod error;
@@ -9,11 +10,17 @@ pub mod llm_call_logs;
 pub mod migrate;
 pub mod nodes;
 pub mod runs;
+pub mod skills;
 pub mod ui_layout;
 
+pub use crate::skills::{SkillRecord, SkillRepository, SkillStatus, SkillVersionInfo};
 pub use api_specs::{
     ApiSpecRecord, ApiSpecRepository, ApiSpecSaveInput, ApiSpecStatus, ApiSpecVersionInfo,
     NewApiSpec,
+};
+pub use connections::{
+    ConnectionRepository, ConnectionStatus, ConnectionType, DbConnectionRecord,
+    DbConnectionSaveInput, EnvironmentConnectionBinding,
 };
 pub use dags::{DagRecord, DagRepository, DagStatus, DagVersionInfo, CREATED_BY_AI};
 pub use db::Db;
