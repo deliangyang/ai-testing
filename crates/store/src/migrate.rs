@@ -35,6 +35,7 @@ pub const MIGRATIONS: &[Migration] = &[
     migration!("V003__ui_layout.sql"),
     migration!("V004__llm_call_logs.sql"),
     migration!("V005__api_spec_versions.sql"),
+    migration!("V006__skills.sql"),
 ];
 
 const VERSION_TABLE: &str = "CREATE TABLE IF NOT EXISTS schema_migrations (
