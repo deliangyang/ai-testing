@@ -1,7 +1,7 @@
-#![allow(clippy::unwrap_used)]
+#![allow(clippy::unwrap_used, clippy::expect_used)]
 
 use common::clock::FixedClock;
-use model::nodes::{AssertConfig, Condition, HttpConfig};
+use model::nodes::{AssertConfig, Condition, HttpConfig, SkillRef};
 use model::nodes::{HttpMethod, Operator};
 use model::{Dag, Edge, Node, NodeKind};
 use skills::{
@@ -200,4 +200,103 @@ fn list_orders_by_id_then_revision() {
             ("b".to_owned(), 1),
         ],
     );
+}
+
+fn package_with_path(id: &str, semver: &str, path: &str) -> SkillPackage {
+    let mut pkg = sample_package(id, semver);
+    if let NodeKind::Http(ref mut cfg) = pkg.dag.nodes[0].kind {
+        cfg.path = path.into();
+    }
+    pkg
+}
+
+#[test]
+fn resolve_without_constraint_uses_active() {
+    let db = store::Db::open_in_memory(&clock()).unwrap();
+    let repo = SkillRepository::new(db.conn());
+    repo.save(&package_with_path("auth", "1.0.0", "/v1"))
+        .unwrap();
+    repo.activate("auth", 1, None).unwrap();
+    repo.save(&package_with_path("auth", "1.1.0", "/v2"))
+        .unwrap();
+    repo.activate("auth", 2, Some(1)).unwrap();
+
+    let got = repo
+        .resolve(&SkillRef {
+            id: "auth".into(),
+            version_req: None,
+        })
+        .unwrap()
+        .expect("active");
+    assert_eq!(got.info.manifest_version, "1.1.0");
+    assert_eq!(got.info.version, 2);
+}
+
+#[test]
+fn resolve_semver_constraint_picks_highest_match() {
+    let db = store::Db::open_in_memory(&clock()).unwrap();
+    let repo = SkillRepository::new(db.conn());
+    let v1 = repo
+        .save(&package_with_path("auth", "1.0.0", "/v1"))
+        .unwrap();
+    repo.activate("auth", v1.info.version, None).unwrap();
+    let v2 = repo
+        .save(&package_with_path("auth", "1.1.0", "/v2"))
+        .unwrap();
+    repo.activate("auth", v2.info.version, Some(1)).unwrap();
+    let v3 = repo
+        .save(&package_with_path("auth", "1.2.0", "/v3"))
+        .unwrap();
+    repo.activate("auth", v3.info.version, Some(2)).unwrap();
+
+    let got = repo
+        .resolve(&SkillRef {
+            id: "auth".into(),
+            version_req: Some("^1.0.0".into()),
+        })
+        .unwrap()
+        .expect("match");
+    assert_eq!(got.info.manifest_version, "1.2.0");
+    assert_eq!(got.info.version, 3);
+}
+
+#[test]
+fn resolve_exact_constraint_can_select_archived_revision() {
+    let db = store::Db::open_in_memory(&clock()).unwrap();
+    let repo = SkillRepository::new(db.conn());
+    let v1 = repo
+        .save(&package_with_path("auth", "1.0.0", "/v1"))
+        .unwrap();
+    repo.activate("auth", v1.info.version, None).unwrap();
+    let v2 = repo
+        .save(&package_with_path("auth", "1.1.0", "/v2"))
+        .unwrap();
+    repo.activate("auth", v2.info.version, Some(1)).unwrap();
+
+    let got = repo
+        .resolve(&SkillRef {
+            id: "auth".into(),
+            version_req: Some("=1.0.0".into()),
+        })
+        .unwrap()
+        .expect("match");
+    assert_eq!(got.info.manifest_version, "1.0.0");
+    assert_eq!(got.info.version, 1);
+    assert_eq!(got.info.status, SkillStatus::Archived);
+}
+
+#[test]
+fn pending_skill_never_resolves() {
+    let db = store::Db::open_in_memory(&clock()).unwrap();
+    let repo = SkillRepository::new(db.conn());
+    repo.save(&package_with_path("auth", "9.0.0", "/v9"))
+        .unwrap();
+
+    assert!(repo
+        .resolve(&SkillRef {
+            id: "auth".into(),
+            version_req: Some("^9.0.0".into()),
+        })
+        .unwrap()
+        .is_none());
 }

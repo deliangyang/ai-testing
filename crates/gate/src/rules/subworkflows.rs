@@ -89,7 +89,10 @@ impl SubworkflowCycleRule {
         stack.push(dag.id.clone());
         for node in &dag.nodes {
             if let NodeKind::Subworkflow(cfg) = &node.kind {
-                if let Some(child) = self.resolve(root, &cfg.dag) {
+                let Some(dag_ref) = cfg.dag.as_ref() else {
+                    continue;
+                };
+                if let Some(child) = self.resolve(root, dag_ref) {
                     if let Some(cycle) = self.find_cycle(root, &child, stack, explored) {
                         return Some(cycle);
                     }
@@ -114,10 +117,12 @@ impl Rule for SubworkflowCycleRule {
             let NodeKind::Subworkflow(cfg) = &node.kind else {
                 continue;
             };
+            let Some(dag_ref) = cfg.dag.as_ref() else {
+                continue;
+            };
             let at = format!("/nodes/{i}/dag");
-            let Some(child) = self.resolve(root, &cfg.dag) else {
-                let version = cfg
-                    .dag
+            let Some(child) = self.resolve(root, dag_ref) else {
+                let version = dag_ref
                     .version
                     .map_or("active version".to_owned(), |v| format!("version {v}"));
                 out.push(
@@ -125,7 +130,7 @@ impl Rule for SubworkflowCycleRule {
                         codes::SUBWORKFLOW_UNKNOWN_DAG,
                         format!(
                             "subworkflow DAG '{}' ({version}) does not exist",
-                            cfg.dag.id
+                            dag_ref.id
                         ),
                     )
                     .at_node(&node.id)

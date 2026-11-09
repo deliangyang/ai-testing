@@ -70,7 +70,7 @@ export type Node =
       type: "db_query";
     }
   | {
-      dag: DagRef;
+      dag?: DagRef | null;
       id: string;
       /**
        * Input name -> value; templates evaluated in the parent scope.
@@ -85,6 +85,7 @@ export type Node =
       outputs?: {
         [k: string]: string | undefined;
       };
+      skill?: SkillRef | null;
       type: "subworkflow";
     }
   | {
@@ -159,4 +160,12 @@ export interface HttpRequest {
 export interface DagRef {
   id: string;
   version?: number | null;
+}
+/**
+ * Pin to a stored Skill. `version_req: None` resolves to the active Skill at run time;
+ * otherwise the highest matching manifest semver among activated revisions wins.
+ */
+export interface SkillRef {
+  id: string;
+  version_req?: string | null;
 }

@@ -65,8 +65,14 @@ export function nodeSummary(node: Node): string {
       return `assert → ${node.target}`
     case 'db_query':
       return node.sql.trim().split(/\s+/).slice(0, 6).join(' ')
-    case 'subworkflow':
-      return `sub ${node.dag.id}`
+    case 'subworkflow': {
+      if (node.skill) {
+        const req = node.skill.version_req ? `@${node.skill.version_req}` : ''
+        return `skill ${node.skill.id}${req}`
+      }
+      const dag = node.dag
+      return dag ? `sub ${dag.id}` : 'subworkflow'
+    }
     case 'cleanup':
       return `cleanup ×${String(node.requests?.length ?? 0)}`
   }

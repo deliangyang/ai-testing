@@ -328,8 +328,9 @@ mod subworkflow {
         .unwrap() else {
             panic!("expected subworkflow node")
         };
-        assert_eq!(cfg.dag.id, "auth-login");
-        assert_eq!(cfg.dag.version, Some(3));
+        let dag = cfg.dag.as_ref().expect("dag");
+        assert_eq!(dag.id, "auth-login");
+        assert_eq!(dag.version, Some(3));
         assert_eq!(cfg.inputs["user"], json!("${env:USER}"));
         assert_eq!(cfg.inputs["retries"], json!(2));
         assert_eq!(cfg.outputs["token"], "${do_login.output.body.token}");
@@ -342,8 +343,23 @@ mod subworkflow {
         else {
             panic!("expected subworkflow node")
         };
-        assert_eq!(cfg.dag.version, None);
+        let dag = cfg.dag.as_ref().expect("dag");
+        assert_eq!(dag.version, None);
         assert!(cfg.inputs.is_empty() && cfg.outputs.is_empty());
+    }
+
+    #[test]
+    fn skill_reference_deserializes() {
+        let NodeKind::Subworkflow(cfg) = single_node(
+            "id: login\ntype: subworkflow\nskill: { id: auth-login, version_req: ^1.0.0 }\noutputs:\n  token: \"${call.output.path}\"",
+        )
+        .unwrap() else {
+            panic!("expected subworkflow node")
+        };
+        assert!(cfg.dag.is_none());
+        let skill = cfg.skill.as_ref().expect("skill");
+        assert_eq!(skill.id, "auth-login");
+        assert_eq!(skill.version_req.as_deref(), Some("^1.0.0"));
     }
 
     #[test]

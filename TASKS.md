@@ -219,13 +219,13 @@ M0 两周联合评审：P0-56。
 | P3-01 | 迁移新增 `skills`、`skill_references` | `crates/store` | P0-21 | schema 快照测试 | DONE |
 | P3-02 | Skill 工件包格式：manifest（名称/semver/依赖）、类型化输入输出契约、内部 DAG、自带断言；JSON Schema 导出 | `crates/skills` | P0-05 | round-trip 与 schema 同步测试 | DONE |
 | P3-03 | `SkillRepository` + CLI `mytool skill save/activate/list`；保存前对内部 DAG 跑闸门 | `crates/skills`、`crates/cli` | P3-01、P3-02 | 单测 + CLI 用例 | DONE |
-| P3-04 | subworkflow 引用 Skill：`skill_id` + semver 约束解析到具体版本 | `crates/engine` | P3-03、P0-37 | 多版本共存时解析正确 | TODO |
+| P3-04 | subworkflow 引用 Skill：`skill_id` + semver 约束解析到具体版本 | `crates/engine` | P3-03、P0-37 | 多版本共存时解析正确 | DONE |
 | P3-05 | 闸门规则：Skill 输入绑定与契约类型匹配、必填输入齐全、输出引用存在于契约 | `crates/gate` | P3-04 | 正反例 | TODO |
 | P3-06 | DAG 激活时维护 `skill_references` | `crates/store` | P3-04 | 单测 | TODO |
 | P3-07 | 影响分析：Skill 新版本激活时列出所有受影响 pin（DAG/版本/节点） | `crates/skills` | P3-06 | 阶段验收用例 | TODO |
 | P3-08 | 批量更新 pin：为受影响 DAG 生成 pending 新版本，支持逐个确认 | `crates/skills`、`crates/server`、`web/` | P3-07 | E2E 用例 | TODO |
 | P3-09 | 迁移新增 `db_connections`；`ConnectionRepository`；环境 → 连接绑定 | `crates/store` | P2-01 | 密码字段只允许引用（测试） | DONE |
-| P3-10 | db_query 执行器（sqlx：Postgres/MySQL/SQLite）：参数化查询、结果映射；`read_only` 连接强制只读事务并拒绝写语句 | `crates/engine` | P3-09、P0-09 | 只读连接执行 UPDATE 失败；testcontainers 或 SQLite 用例 | TODO |
+| P3-10 | db_query 执行器（sqlx：Postgres/MySQL/SQLite）：参数化查询、结果映射；`read_only` 连接强制只读事务并拒绝写语句 | `crates/engine` | P3-09、P0-09 | 只读连接执行 UPDATE 失败；testcontainers 或 SQLite 用例 | DONE |
 | P3-11 | 认证方案：环境级 API Key/Bearer/Basic/OAuth2 client credentials；`${auth.x}` 运行时注入，值不入日志与快照（脱敏） | `crates/engine`、`crates/secrets` | P2-01、P0-32 | 快照中凭据为 `****` | TODO |
 | P3-12 | 认证 Skill + token 复用（同运行/同环境内缓存，过期刷新） | `skills/`、`crates/engine` | P3-11、P3-04 | 多次调用只登录一次 | TODO |
 | P3-13 | 条件查询 Skill：结构化查询意图 → Skill 模板匹配 → 只读查询，产出实体 ID | `skills/`、`crates/skills` | P3-10、P3-04 | 换条件不改 DAG（阶段验收用例） | TODO |
@@ -401,9 +401,10 @@ M0 两周联合评审：P0-56。
 | 2026-11-09 | P2-09/10/14/17 | DOING→DONE | HAR/merge/`api_spec_id`+`ApiSpecLookup`/`generate_dag`+`parse_dag_from_llm_content`；check 全绿 |
 | 2026-11-09 | P2-18 | DOING→DONE | `generate_dag_with_gate`（`Gate::standard()` + 错误级 Issue 规范化 JSON 回喂；默认 `max_rounds=3`；`GenerateDagWithGateResult::NeedsManualReview`）；cassette 修正/三轮仍失败用例；`reference.not_ancestor` 定位节点 `a`；未提交；`./scripts/check.sh` 全绿 |
 | 2026-11-09 | P2-11 | DOING→DONE | `importer::markdown`（`ApiSpecDraft{spec,confidence,source_lines}`）；`CassetteProvider` 回放 + `persist_api_spec_drafts` 仅 `save`/draft；未提交；`./scripts/check.sh` 全绿 |
-| 2026-11-09 | P3-03 | DOING→DONE | → `CLI_HASH`：`mytool skill` + `cli/tests/skill_store.rs`（store 半在 `fb84723`） |
+| 2026-11-09 | P3-03 | DOING→DONE | → `e5be339`（CLI）+ `fb84723`（`SkillRepository`） |
 | 2026-11-09 | P3-09 | DOING→DONE | → `fb84723`：`V007` + `ConnectionRepository` + `environment_connections` |
-| 2026-11-09 | P3-03/P3-09 | TODO→DOING | 编排：双 subagent 并行；完成后主线程逐个提交 |
+| 2026-11-09 | P3-04/P3-10 | TODO→DOING | 编排：双 subagent 并行 |
+| 2026-11-09 | P3-03/P3-09 | TODO→DOING | → `fb84723`/`e5be339`/`190231c` |
 | 2026-11-09 | P2-24 | DOING→DONE | → `56bd077`：`CopilotPanel`、fixture `copilotChat`、`POST /api/copilot/chat`、`e2e/copilot.spec.ts` |
 | 2026-11-09 | P2-24/P3-01/P3-02 | TODO→DOING | 编排：三 subagent 并行；完成后主线程逐个提交 |
 | 2026-11-09 | P3-02 | DOING→DONE | → `e4a3a57`：`crates/skills` + `schemas/skill.schema.json` |

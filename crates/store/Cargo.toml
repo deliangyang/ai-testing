@@ -13,6 +13,7 @@ model = { workspace = true }
 skills = { workspace = true }
 secrets = { workspace = true }
 rusqlite = { workspace = true }
+semver = { workspace = true }
 schemars = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }

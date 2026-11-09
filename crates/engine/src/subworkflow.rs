@@ -9,10 +9,10 @@
 use std::sync::{Arc, Mutex};
 
 use common::Clock;
-use model::nodes::DagRef;
+use model::nodes::{DagRef, SkillRef};
 use model::{Dag, Node, NodeKind};
 use serde_json::{json, Map, Value};
-use store::{DagRepository, DagStatus, Db};
+use store::{DagRepository, DagStatus, Db, SkillRepository};
 
 use crate::executor::{
     ExecContext, ExecError, ExecErrorKind, ExecFuture, ExecOutput, Frame, NodeExecutor,
@@ -21,10 +21,61 @@ use crate::render::{RenderError, VarContext};
 use crate::scheduler::{Scheduler, INPUT_NODE_ID};
 use crate::state::NodeStatus;
 
+/// What a subworkflow node loads: either a stored DAG or a Skill package's inner DAG.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum SubworkflowTarget {
+    Dag(DagRef),
+    Skill(SkillRef),
+}
+
+impl SubworkflowTarget {
+    pub fn from_config(cfg: &model::nodes::SubworkflowConfig) -> Result<Self, String> {
+        cfg.validate_target()?;
+        match (&cfg.dag, &cfg.skill) {
+            (Some(d), None) => Ok(Self::Dag(d.clone())),
+            (None, Some(s)) => Ok(Self::Skill(s.clone())),
+            _ => unreachable!("validate_target"),
+        }
+    }
+}
+
+/// Loaded child: the DAG to run plus the store revision used for frame metadata.
+#[derive(Debug, Clone, PartialEq)]
+pub struct SubworkflowLoad {
+    pub dag: Dag,
+    pub revision: u32,
+    pub skill: Option<ResolvedSkill>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ResolvedSkill {
+    pub id: String,
+    pub revision: u32,
+    pub manifest_version: String,
+}
+
 /// Where child DAGs come from.
 pub trait DagSource: Send + Sync {
     /// The DAG and its resolved version. `version: None` means the active version.
     fn load(&self, dag: &DagRef) -> Result<(Dag, u32), String>;
+
+    /// Resolves a subworkflow target (default: DAG-only sources reject Skill refs).
+    fn load_target(&self, target: &SubworkflowTarget) -> Result<SubworkflowLoad, String> {
+        match target {
+            SubworkflowTarget::Dag(dag) => {
+                let (dag, revision) = self.load(dag)?;
+                Ok(SubworkflowLoad {
+                    dag,
+                    revision,
+                    skill: None,
+                })
+            }
+            SubworkflowTarget::Skill(skill) => Err(format!(
+                "skill '{}' is not supported by this subworkflow source",
+                skill.id
+            )),
+        }
+    }
 }
 
 /// Loads child DAGs from the store. A pinned version must have been activated at some point
@@ -38,35 +89,80 @@ impl StoreDagSource {
     pub fn new(db: Arc<Mutex<Db>>, clock: Arc<dyn Clock>) -> Self {
         Self { db, clock }
     }
+
+    fn with_conn<T>(&self, f: impl FnOnce(&mut Db) -> Result<T, String>) -> Result<T, String> {
+        let mut db = self
+            .db
+            .lock()
+            .map_err(|_| "store lock poisoned".to_owned())?;
+        f(&mut db)
+    }
 }
 
 impl DagSource for StoreDagSource {
     fn load(&self, dag: &DagRef) -> Result<(Dag, u32), String> {
-        let db = self
-            .db
-            .lock()
-            .map_err(|_| "store lock poisoned".to_owned())?;
-        let repo = DagRepository::new(db.conn(), self.clock.as_ref());
-        let record = match dag.version {
-            None => repo
-                .active(&dag.id)
-                .map_err(|e| e.to_string())?
-                .ok_or_else(|| format!("DAG '{}' has no active version", dag.id))?,
-            Some(version) => {
-                let record = repo
-                    .get(&dag.id, version)
+        self.with_conn(|db| {
+            let repo = DagRepository::new(db.conn(), self.clock.as_ref());
+            let record = match dag.version {
+                None => repo
+                    .active(&dag.id)
                     .map_err(|e| e.to_string())?
-                    .ok_or_else(|| format!("DAG '{}' has no version {version}", dag.id))?;
-                if record.info.status == DagStatus::Pending {
-                    return Err(format!(
-                        "DAG '{}' version {version} is pending and has never been activated",
-                        dag.id
-                    ));
+                    .ok_or_else(|| format!("DAG '{}' has no active version", dag.id))?,
+                Some(version) => {
+                    let record = repo
+                        .get(&dag.id, version)
+                        .map_err(|e| e.to_string())?
+                        .ok_or_else(|| format!("DAG '{}' has no version {version}", dag.id))?;
+                    if record.info.status == DagStatus::Pending {
+                        return Err(format!(
+                            "DAG '{}' version {version} is pending and has never been activated",
+                            dag.id
+                        ));
+                    }
+                    record
                 }
-                record
+            };
+            Ok((record.dag, record.info.version))
+        })
+    }
+
+    fn load_target(&self, target: &SubworkflowTarget) -> Result<SubworkflowLoad, String> {
+        match target {
+            SubworkflowTarget::Dag(dag) => {
+                let (dag, revision) = self.load(dag)?;
+                Ok(SubworkflowLoad {
+                    dag,
+                    revision,
+                    skill: None,
+                })
             }
-        };
-        Ok((record.dag, record.info.version))
+            SubworkflowTarget::Skill(skill) => self.with_conn(|db| {
+                let repo = SkillRepository::new(db.conn());
+                let record = repo
+                    .resolve(skill)
+                    .map_err(|e| e.to_string())?
+                    .ok_or_else(|| {
+                        if skill.version_req.is_none() {
+                            format!("Skill '{}' has no active version", skill.id)
+                        } else {
+                            format!(
+                                "no activated Skill '{}' matches version_req '{}'",
+                                skill.id,
+                                skill.version_req.as_deref().unwrap_or_default()
+                            )
+                        }
+                    })?;
+                Ok(SubworkflowLoad {
+                    dag: record.package.dag.clone(),
+                    revision: record.info.version,
+                    skill: Some(ResolvedSkill {
+                        id: record.info.id,
+                        revision: record.info.version,
+                        manifest_version: record.info.manifest_version,
+                    }),
+                })
+            }),
+        }
     }
 }
 
@@ -106,6 +202,8 @@ impl NodeExecutor for SubworkflowExecutor {
             let runner = ctx.runner.clone().ok_or_else(|| {
                 ExecError::new(ExecErrorKind::Internal, "no runner for the child DAG")
             })?;
+            let target = SubworkflowTarget::from_config(cfg)
+                .map_err(|message| ExecError::new(ExecErrorKind::Internal, message))?;
 
             let vars = ctx.vars();
             let mut inputs = Map::new();
@@ -117,17 +215,21 @@ impl NodeExecutor for SubworkflowExecutor {
             }
 
             let source = Arc::clone(&self.source);
-            let dag_ref = cfg.dag.clone();
-            let (child, version) = tokio::task::spawn_blocking(move || source.load(&dag_ref))
+            let target_for_load = target.clone();
+            let loaded = tokio::task::spawn_blocking(move || source.load_target(&target_for_load))
                 .await
                 .map_err(|e| ExecError::new(ExecErrorKind::Internal, e.to_string()))?
                 .map_err(|message| {
                     ExecError::new(
                         ExecErrorKind::Internal,
-                        format!("cannot load subworkflow DAG: {message}"),
+                        format!("cannot load subworkflow target: {message}"),
                     )
-                    .with_detail(json!({"dag": cfg.dag.id, "version": cfg.dag.version}))
+                    .with_detail(load_error_detail(&target, &message))
                 })?;
+
+            let target_info = target_detail(&target, &loaded);
+            let child = loaded.dag;
+            let version = loaded.revision;
 
             if ctx.frames.iter().any(|f| f.dag == child.id) {
                 let mut chain: Vec<&str> = ctx.frames.iter().map(|f| f.dag.as_str()).collect();
@@ -156,7 +258,11 @@ impl NodeExecutor for SubworkflowExecutor {
                 .run(&ctx.run_id, &child)
                 .await
                 .map_err(|e| ExecError::new(ExecErrorKind::Internal, e.to_string()))?;
-            let dag_info = json!({"id": child.id, "version": version});
+            let dag_info = json!({
+                "id": child.id,
+                "version": version,
+                "target": target_info,
+            });
 
             if !outcome.succeeded() {
                 let failed: Vec<(&String, Option<ExecErrorKind>)> = outcome
@@ -226,6 +332,39 @@ impl NodeExecutor for SubworkflowExecutor {
                 children: outcome.nodes,
             })
         })
+    }
+}
+
+fn target_detail(target: &SubworkflowTarget, loaded: &SubworkflowLoad) -> Value {
+    match target {
+        SubworkflowTarget::Dag(dag) => json!({
+            "kind": "dag",
+            "id": dag.id,
+            "pin": dag.version,
+            "store_revision": loaded.revision,
+        }),
+        SubworkflowTarget::Skill(skill) => {
+            let resolved = loaded.skill.as_ref();
+            json!({
+                "kind": "skill",
+                "id": skill.id,
+                "version_req": skill.version_req,
+                "store_revision": loaded.revision,
+                "manifest_version": resolved.map(|s| s.manifest_version.as_str()),
+            })
+        }
+    }
+}
+
+fn load_error_detail(target: &SubworkflowTarget, _message: &str) -> Value {
+    match target {
+        SubworkflowTarget::Dag(dag) => json!({"dag": {"id": dag.id, "version": dag.version}}),
+        SubworkflowTarget::Skill(skill) => json!({
+            "skill": {
+                "id": skill.id,
+                "version_req": skill.version_req,
+            }
+        }),
     }
 }
 

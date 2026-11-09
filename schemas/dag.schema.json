@@ -344,7 +344,14 @@
           "type": "object",
           "properties": {
             "dag": {
-              "$ref": "#/$defs/DagRef"
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/DagRef"
+                },
+                {
+                  "type": "null"
+                }
+              ]
             },
             "id": {
               "type": "string",
@@ -365,6 +372,16 @@
                 "type": "string"
               }
             },
+            "skill": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/SkillRef"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
             "type": {
               "const": "subworkflow"
             }
@@ -372,8 +389,7 @@
           "additionalProperties": false,
           "required": [
             "id",
-            "type",
-            "dag"
+            "type"
           ]
         },
         {
@@ -440,6 +456,25 @@
           "type": "string",
           "const": "scalar"
         }
+      ]
+    },
+    "SkillRef": {
+      "description": "Pin to a stored Skill. `version_req: None` resolves to the active Skill at run time;\notherwise the highest matching manifest semver among activated revisions wins.",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "version_req": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "id"
       ]
     }
   }

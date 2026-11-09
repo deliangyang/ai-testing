@@ -196,6 +196,16 @@ pub struct DagRef {
     pub version: Option<u32>,
 }
 
+/// Pin to a stored Skill. `version_req: None` resolves to the active Skill at run time;
+/// otherwise the highest matching manifest semver among activated revisions wins.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+pub struct SkillRef {
+    pub id: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub version_req: Option<String>,
+}
+
 /// `subworkflow` node: runs a child DAG in its own variable scope.
 ///
 /// The child sees only `inputs`, as the reserved node id `input` (`${input.output.<name>}`).
@@ -203,13 +213,27 @@ pub struct DagRef {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct SubworkflowConfig {
-    pub dag: DagRef,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub dag: Option<DagRef>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub skill: Option<SkillRef>,
     /// Input name -> value; templates evaluated in the parent scope.
     #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
     pub inputs: BTreeMap<String, Value>,
     /// Output name -> template evaluated in the child scope, e.g. `${login.output.body.token}`.
     #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
     pub outputs: BTreeMap<String, String>,
+}
+
+impl SubworkflowConfig {
+    /// Exactly one of [`Self::dag`] or [`Self::skill`] must be set.
+    pub fn validate_target(&self) -> Result<(), String> {
+        match (&self.dag, &self.skill) {
+            (Some(_), None) | (None, Some(_)) => Ok(()),
+            (Some(_), Some(_)) => Err("subworkflow cannot set both dag and skill".into()),
+            (None, None) => Err("subworkflow requires dag or skill".into()),
+        }
+    }
 }
 
 /// `cleanup` node: always runs when the DAG reaches a terminal state.

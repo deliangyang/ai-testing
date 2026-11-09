@@ -63,9 +63,15 @@ fn check_required(dag: &Dag, out: &mut Vec<Issue>) {
                 ));
                 fields.push((format!("{base}/sql"), "sql", is_blank(&cfg.sql)));
             }
-            NodeKind::Subworkflow(cfg) => {
-                fields.push((format!("{base}/dag/id"), "dag id", is_blank(&cfg.dag.id)));
-            }
+            NodeKind::Subworkflow(cfg) => match (&cfg.dag, &cfg.skill) {
+                (Some(dag), None) => {
+                    fields.push((format!("{base}/dag/id"), "dag id", is_blank(&dag.id)));
+                }
+                (None, Some(skill)) => {
+                    fields.push((format!("{base}/skill/id"), "skill id", is_blank(&skill.id)));
+                }
+                _ => fields.push((format!("{base}/target"), "dag or skill", true)),
+            },
             NodeKind::Cleanup(cfg) => {
                 fields.push((
                     format!("{base}/requests"),

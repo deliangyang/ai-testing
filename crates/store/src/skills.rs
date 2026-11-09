@@ -3,8 +3,10 @@
 use std::fmt;
 use std::str::FromStr;
 
+use model::nodes::SkillRef;
 use model::{to_canonical_json, Dag};
 use rusqlite::{params, Connection, OptionalExtension, Row, Transaction, TransactionBehavior};
+use semver::{Version, VersionReq};
 use serde::{Deserialize, Serialize};
 use skills::{BundledAssertion, SkillIoContract, SkillManifest, SkillPackage};
 
@@ -209,6 +211,47 @@ impl<'a> SkillRepository<'a> {
 
     pub fn active_version(&self, id: &str) -> Result<Option<u32>> {
         active_version(self.conn, id)
+    }
+
+    /// Resolves a subworkflow Skill reference.
+    ///
+    /// Without `version_req`, returns the active revision. With a constraint, picks the highest
+    /// matching manifest semver among revisions that have been activated (`active` or `archived`);
+    /// `pending` never runs.
+    pub fn resolve(&self, skill: &SkillRef) -> Result<Option<SkillRecord>> {
+        let Some(version_req) = skill.version_req.as_deref() else {
+            return self.active(&skill.id);
+        };
+        let req = VersionReq::parse(version_req)
+            .map_err(|e| StoreError::Corrupt(format!("invalid skill version_req: {e}")))?;
+        let mut best: Option<(Version, u32)> = None;
+        for info in self.versions(&skill.id)? {
+            if info.status == SkillStatus::Pending {
+                continue;
+            }
+            let Ok(manifest) = Version::parse(&info.manifest_version) else {
+                return Err(StoreError::Corrupt(format!(
+                    "Skill '{}' revision {} has invalid manifest version '{}'",
+                    skill.id, info.version, info.manifest_version
+                )));
+            };
+            if !req.matches(&manifest) {
+                continue;
+            }
+            let replace = match &best {
+                None => true,
+                Some((best_v, best_rev)) => {
+                    manifest > *best_v || (manifest == *best_v && info.version > *best_rev)
+                }
+            };
+            if replace {
+                best = Some((manifest, info.version));
+            }
+        }
+        match best {
+            None => Ok(None),
+            Some((_, rev)) => self.get(&skill.id, rev),
+        }
     }
 }
 

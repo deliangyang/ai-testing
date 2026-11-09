@@ -169,7 +169,19 @@ async fn child_cannot_read_parent_outputs() {
     assert_eq!(err.message, "subworkflow 'leaky' failed at leak");
     assert_eq!(
         err.detail,
-        Some(json!({"dag": {"id": "leaky", "version": 1}, "failed": ["leak"]}))
+        Some(json!({
+            "dag": {
+                "id": "leaky",
+                "version": 1,
+                "target": {
+                    "id": "leaky",
+                    "kind": "dag",
+                    "pin": null,
+                    "store_revision": 1
+                }
+            },
+            "failed": ["leak"]
+        }))
     );
     assert!(
         err.children.is_empty(),
