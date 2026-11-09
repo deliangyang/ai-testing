@@ -5,6 +5,7 @@ members = [
     "crates/model",
     "crates/gate",
     "crates/secrets",
+    "crates/llm-gateway",
     "crates/store",
     "crates/classifier",
     "crates/engine",
@@ -26,6 +27,7 @@ common = { path = "crates/common" }
 model = { path = "crates/model" }
 gate = { path = "crates/gate" }
 secrets = { path = "crates/secrets" }
+llm-gateway = { path = "crates/llm-gateway" }
 store = { path = "crates/store" }
 classifier = { path = "crates/classifier" }
 engine = { path = "crates/engine" }

@@ -1,0 +1,1 @@
+{"request":{"messages":[{"content":"You are terse.","role":"system"},{"content":"Say pong.","role":"user"}],"model":"gpt-4o-mini"},"response":{"content":"pong","finish_reason":"stop","model":"gpt-4o-mini","usage":{"completion_tokens":4,"prompt_tokens":8,"total_tokens":12}},"version":1}
