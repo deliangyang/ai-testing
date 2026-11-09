@@ -15,6 +15,7 @@ members = [
     "crates/server",
     "crates/nsh-bridge",
     "crates/importer",
+    "crates/skills",
 ]
 
 [workspace.package]
@@ -35,6 +36,7 @@ store = { path = "crates/store" }
 classifier = { path = "crates/classifier" }
 engine = { path = "crates/engine" }
 importer = { path = "crates/importer" }
+skills = { path = "crates/skills" }
 
 anyhow = "1"
 clap = { version = "4", features = ["derive", "env"] }
