@@ -2,6 +2,7 @@ import type { DataSource, RunEventHandler, SubscribeRunEventsOptions } from './d
 import { DataSourceError } from './errors'
 import { DEFAULT_SCENARIO, SCENARIOS, type ScenarioFixture } from './fixtures'
 import { MARKDOWN_IMPORT_PREVIEW } from '../import/fixtures'
+import { SERIAL_AI_PENDING_DETAIL, SERIAL_AI_PENDING_VERSION } from '../pending/fixtures'
 import type {
   ApiImportCommitRequest,
   ApiImportPersistSummary,
@@ -39,6 +40,13 @@ export class FixtureDataSource implements DataSource {
     return Promise.resolve(clone([...this.scenario.dagVersions, ...this.pendingVersions]))
   }
 
+  listPendingAiDags(): Promise<DagVersionDto[]> {
+    if (this.scenario.id !== 'serial') {
+      return Promise.resolve([])
+    }
+    return Promise.resolve(clone([SERIAL_AI_PENDING_VERSION, ...this.pendingVersions]))
+  }
+
   getActiveDag(dagId: string): Promise<DagDetailDto> {
     if (dagId !== this.scenario.activeDag.id) {
       return Promise.reject(
@@ -49,6 +57,13 @@ export class FixtureDataSource implements DataSource {
   }
 
   getDagVersion(dagId: string, version: number): Promise<DagDetailDto> {
+    if (
+      dagId === SERIAL_AI_PENDING_DETAIL.id &&
+      version === SERIAL_AI_PENDING_DETAIL.version &&
+      this.scenario.id === 'serial'
+    ) {
+      return Promise.resolve(clone(SERIAL_AI_PENDING_DETAIL))
+    }
     if (dagId === this.scenario.activeDag.id && version === this.scenario.activeDag.version) {
       return Promise.resolve(clone(this.scenario.activeDag))
     }

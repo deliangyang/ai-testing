@@ -77,6 +77,11 @@ export class HttpDataSource implements DataSource {
     return this.parseJson(response)
   }
 
+  async listPendingAiDags(): Promise<DagVersionDto[]> {
+    const response = await this.fetchFn(this.url('/api/dags/pending'))
+    return this.parseJson(response)
+  }
+
   async getActiveDag(dagId: string): Promise<DagDetailDto> {
     const response = await this.fetchFn(this.url(`/api/dags/${encodeURIComponent(dagId)}/active`))
     return this.parseJson(response)

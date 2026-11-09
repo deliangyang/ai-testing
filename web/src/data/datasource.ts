@@ -30,6 +30,7 @@ export interface SubscribeRunEventsOptions {
 /** UI data access; components must not call `fetch` directly. */
 export interface DataSource {
   listDags(): Promise<DagVersionDto[]>
+  listPendingAiDags(): Promise<DagVersionDto[]>
   getActiveDag(dagId: string): Promise<DagDetailDto>
   getDagVersion(dagId: string, version: number): Promise<DagDetailDto>
 

@@ -28,6 +28,10 @@ export class NshDataSource implements DataSource {
     return this.ds().then((d) => d.listDags(...args))
   }
 
+  listPendingAiDags(...args: Parameters<DataSource['listPendingAiDags']>) {
+    return this.ds().then((d) => d.listPendingAiDags(...args))
+  }
+
   getActiveDag(...args: Parameters<DataSource['getActiveDag']>) {
     return this.ds().then((d) => d.getActiveDag(...args))
   }

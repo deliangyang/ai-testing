@@ -201,7 +201,7 @@ M0 两周联合评审：P0-56。
 | P2-19 | 确定性自动校准器（§6.6）：可机械修复项（如引用了非相邻祖先补边、补默认 timeout）自动修复并记录每条修复 | `crates/gate` | P0-20 | 每类修复正反例；修复后再次闸门通过 | DONE |
 | P2-20 | 待审区：AI 候选以 `status=pending, created_by=ai` 保存；server/CLI 列表与详情 API | `crates/store`、`crates/server`、`crates/cli` | P2-18、P1-05 | AI 候选无法直接 active（测试） | DONE |
 | P2-21 | 激活流程：激活前重新执行闸门 + 自动校准，通过才产生 active 新版本 | `crates/store`、`crates/server`、`crates/cli` | P2-20、P2-19 | 绕过闸门的激活请求被拒绝 | DONE |
-| P2-22 | UI：AI 候选半透明预览、校验徽标、激活按钮、与当前 active 版本 diff | `web/` | P2-20、P1-24 | E2E 用例 | TODO |
+| P2-22 | UI：AI 候选半透明预览、校验徽标、激活按钮、与当前 active 版本 diff | `web/` | P2-20、P1-24 | E2E 用例 | DONE |
 | P2-23 | UI：校验失败问题列表「交给 AI 修正」 | `web/`、`crates/server` | P2-22、P2-18 | E2E 用例 | TODO |
 | P2-24 | AI 副驾 Tab：对话界面；每条输出绑定工件（插入画布/定位节点/采纳断言）；顶部显示当前上下文 | `web/`、`crates/server` | P2-22 | E2E 用例（Mock 回放） | TODO |
 | P2-25 | 生成评测 harness：3 条链路描述 × N 次，统计闸门首次接受率与最终接受率（目标 ≥70%） | `scripts/`、`docs/reviews/` | P2-18 | 输出评测报告 | TODO |
@@ -401,6 +401,8 @@ M0 两周联合评审：P0-56。
 | 2026-11-09 | P2-09/10/14/17 | DOING→DONE | HAR/merge/`api_spec_id`+`ApiSpecLookup`/`generate_dag`+`parse_dag_from_llm_content`；check 全绿 |
 | 2026-11-09 | P2-18 | DOING→DONE | `generate_dag_with_gate`（`Gate::standard()` + 错误级 Issue 规范化 JSON 回喂；默认 `max_rounds=3`；`GenerateDagWithGateResult::NeedsManualReview`）；cassette 修正/三轮仍失败用例；`reference.not_ancestor` 定位节点 `a`；未提交；`./scripts/check.sh` 全绿 |
 | 2026-11-09 | P2-11 | DOING→DONE | `importer::markdown`（`ApiSpecDraft{spec,confidence,source_lines}`）；`CassetteProvider` 回放 + `persist_api_spec_drafts` 仅 `save`/draft；未提交；`./scripts/check.sh` 全绿 |
+| 2026-11-09 | P2-22 | DOING→DONE | `web/pending`：`listPendingAiDags` 契约；半透明预览层、`DagValidationPanel`、节点级 diff、`activateDag`；`?pending=1` 工作台 + Vitest/Playwright；未提交；`./scripts/check.sh` 全绿 |
+| 2026-11-09 | P2-05..P2-21,P2-13 | — | 批量提交 `aee09d8` |
 | 2026-11-09 | P2-13 | DOING→DONE | `importer::preview` + `parse_import_text`；server `POST /api/api-specs/import/preview|commit`；`web/import` 预览卡片/低置信高亮/采纳修正/合并策略；`?import=1` 工作台 + Vitest + Playwright；未提交；`./scripts/check.sh` 全绿 |
 | 2026-11-09 | P2-21 | DOING→DONE | `prepare_for_activation`（calibrate→for_save gate）；`update_pending_content`；CLI/server activate 写回校准内容；`dag_store`/`activation` 测试；`golden.rs` `pay_delay_ms(5)` 消除 async-poll 竞态；未提交；check 全绿 |
 | 2026-11-09 | P2-21 | TODO→DOING | 认领激活前校准与闸门 |

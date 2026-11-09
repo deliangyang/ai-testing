@@ -24,6 +24,9 @@ function installHttpMock(): void {
     if (pathname === '/api/dags' && (init === undefined || init.method === undefined)) {
       return Promise.resolve(jsonResponse(SERIAL_DAG_VERSIONS))
     }
+    if (pathname === '/api/dags/pending') {
+      return Promise.resolve(jsonResponse([]))
+    }
     if (pathname === '/api/dags/serial/active') {
       return Promise.resolve(jsonResponse(SERIAL_DAG_ACTIVE))
     }

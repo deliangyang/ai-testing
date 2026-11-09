@@ -10,6 +10,9 @@ export async function exerciseDataSourceContract(make: () => DataSource): Promis
   const dags = await ds.listDags()
   expect(dags.some((d) => d.id === 'serial')).toBe(true)
 
+  const pendingAi = await ds.listPendingAiDags()
+  expect(Array.isArray(pendingAi)).toBe(true)
+
   const active = await ds.getActiveDag('serial')
   expect(active.dag.id).toBe('serial')
   expect(active.dag.nodes.length).toBeGreaterThan(0)
