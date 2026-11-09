@@ -23,4 +23,6 @@ pub enum LlmError {
     Json(#[from] serde_json::Error),
     #[error("canonical JSON error: {0}")]
     Canonical(#[from] CanonicalError),
+    #[error("failed to persist llm call log: {0}")]
+    LogPersist(String),
 }
