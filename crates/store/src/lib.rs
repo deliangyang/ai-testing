@@ -1,5 +1,6 @@
 //! SQLite persistence: migrations and repositories.
 
+pub mod api_specs;
 pub mod dags;
 pub mod db;
 pub mod error;
@@ -9,6 +10,7 @@ pub mod nodes;
 pub mod runs;
 pub mod ui_layout;
 
+pub use api_specs::{ApiSpecRepository, NewApiSpec};
 pub use dags::{DagRecord, DagRepository, DagStatus, DagVersionInfo};
 pub use db::Db;
 pub use error::{Result, StoreError};

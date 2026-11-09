@@ -4,6 +4,7 @@ members = [
     "crates/common",
     "crates/model",
     "crates/gate",
+    "crates/secrets",
     "crates/store",
     "crates/classifier",
     "crates/engine",
@@ -24,6 +25,7 @@ publish = false
 common = { path = "crates/common" }
 model = { path = "crates/model" }
 gate = { path = "crates/gate" }
+secrets = { path = "crates/secrets" }
 store = { path = "crates/store" }
 classifier = { path = "crates/classifier" }
 engine = { path = "crates/engine" }

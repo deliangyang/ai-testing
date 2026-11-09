@@ -10,6 +10,7 @@ publish.workspace = true
 [dependencies]
 common = { workspace = true }
 model = { workspace = true }
+secrets = { workspace = true }
 rusqlite = { workspace = true }
 serde_json = { workspace = true }
 sha2 = { workspace = true }
