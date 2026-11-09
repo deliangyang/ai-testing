@@ -6,9 +6,18 @@ import './panels.css'
 export interface DagValidationPanelProps {
   report: GateResponse | null
   onFocusNode?: (nodeId: string) => void
+  onAiRepair?: () => void
+  repairing?: boolean
+  repairHint?: string | null
 }
 
-export function DagValidationPanel({ report, onFocusNode }: DagValidationPanelProps) {
+export function DagValidationPanel({
+  report,
+  onFocusNode,
+  onAiRepair,
+  repairing = false,
+  repairHint,
+}: DagValidationPanelProps) {
   if (!report) {
     return (
       <div className="dag-validation dag-validation--loading" data-testid="dag-validation-panel">
@@ -23,6 +32,22 @@ export function DagValidationPanel({ report, onFocusNode }: DagValidationPanelPr
         <span>闸门校验</span>
         <ValidationBadge status={badge} />
       </div>
+      {!report.passed && onAiRepair ? (
+        <button
+          type="button"
+          className="dag-validation__ai-repair"
+          data-testid="gate-ai-repair"
+          disabled={repairing}
+          onClick={onAiRepair}
+        >
+          {repairing ? 'AI 修正中…' : '交给 AI 修正'}
+        </button>
+      ) : null}
+      {repairHint ? (
+        <p className="dag-validation__repair-hint" data-testid="gate-ai-repair-hint">
+          {repairHint}
+        </p>
+      ) : null}
       {report.issues.length === 0 ? (
         <p className="dag-validation__ok">无问题</p>
       ) : (

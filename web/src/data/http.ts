@@ -5,6 +5,7 @@ import type {
   ApiImportPersistSummary,
   ApiImportPreviewRequest,
   ApiImportPreviewResponse,
+  DagAiRepairResponse,
   CreateRunRequest,
   CreateRunResponse,
   DagDetailDto,
@@ -170,6 +171,19 @@ export class HttpDataSource implements DataSource {
       options?.signal?.removeEventListener('abort', abort)
       source.close()
     }
+  }
+
+  async repairDagWithAi(dag: Dag): Promise<DagAiRepairResponse> {
+    const response = await this.fetchFn(this.url('/api/dags/repair-ai'), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(dag),
+    })
+    if (response.status === 422) {
+      const body = (await response.json()) as GateResponse
+      throw new DataSourceError('gate rejected', { status: 422, body })
+    }
+    return this.parseJson(response)
   }
 
   async validateDag(dag: Dag): Promise<GateResponse> {

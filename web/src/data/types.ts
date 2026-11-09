@@ -56,6 +56,13 @@ export interface GateResponse {
   issues: GateIssue[]
 }
 
+export interface DagAiRepairResponse {
+  status: 'accepted' | 'needs_manual_review'
+  dag: Dag
+  gate: GateResponse
+  pending?: DagVersionDto | null
+}
+
 export interface GateIssue {
   code: string
   severity: 'error' | 'warn'

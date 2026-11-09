@@ -5,6 +5,7 @@ use serde::Deserialize;
 use store::{DagRepository, DagStatus, NodeExecutionRepository, RunQuery, RunRepository};
 
 use crate::api_import::{commit_api_import, preview_api_import};
+use crate::dag_repair::repair_dag_with_ai;
 use crate::dto::{DagDetailDto, DagVersionDto, NodeExecutionDto, RunDto};
 use crate::error::{ApiError, ApiResult};
 use crate::sse::run_event_stream;
@@ -20,6 +21,7 @@ pub fn router(state: AppState) -> Router {
         .route("/api/dags", get(list_dags).post(save_dag))
         .route("/api/dags/pending", get(list_pending_ai_dags))
         .route("/api/dags/candidates", post(save_ai_candidate))
+        .route("/api/dags/repair-ai", post(repair_dag_with_ai))
         .route("/api/dags/validate", post(validate_dag))
         .route("/api/dags/{dag_id}/active", get(get_active_dag))
         .route(

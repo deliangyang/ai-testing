@@ -57,7 +57,8 @@ async fn cassette_gate_loop_corrects_invalid_variable_reference() {
     .await
     .unwrap();
     match result {
-        GenerateDagWithGateResult::Accepted(dag) => {
+        GenerateDagWithGateResult::Accepted { dag, attempts } => {
+            assert_eq!(attempts, 2);
             assert_eq!(dag.id, "serial");
             let report = Gate::standard().validate(&dag);
             assert!(report.passed());
@@ -87,7 +88,7 @@ async fn cassette_gate_loop_needs_manual_review_when_still_invalid() {
     )
     .await
     .unwrap();
-    let GenerateDagWithGateResult::NeedsManualReview { dag, report } = result else {
+    let GenerateDagWithGateResult::NeedsManualReview { dag, report, .. } = result else {
         panic!("expected manual review after max rounds");
     };
     assert_eq!(dag.id, "bad-ref");

@@ -53,6 +53,16 @@ export async function exerciseDataSourceContract(make: () => DataSource): Promis
   const gate = await ds.validateDag(active.dag)
   expect(gate.passed).toBe(true)
 
+  const broken = structuredClone(active.dag)
+  const pay = broken.nodes.find((n) => n.id === 'pay')
+  if (pay && pay.type === 'http') {
+    pay.path = '/broken/${missing.output.body}'
+  }
+  const failGate = await ds.validateDag(broken)
+  expect(failGate.passed).toBe(false)
+  const repair = await ds.repairDagWithAi(broken)
+  expect(repair.gate.passed).toBe(true)
+
   const preview = await ds.previewApiImport({ format: 'openapi', content: '{}', strategy: 'merge' })
   expect(preview.items).toBeDefined()
 

@@ -9,6 +9,14 @@ import { FixtureDataSource } from './fixture'
 import { HttpDataSource } from './http'
 import { NshDataSource } from './nsh'
 import { exerciseDataSourceContract } from './contract'
+import type { Dag } from '../types/generated'
+
+function readDagFromInit(init?: RequestInit): Dag | undefined {
+  if (init === undefined || init.body === undefined || typeof init.body !== 'string') {
+    return undefined
+  }
+  return JSON.parse(init.body) as Dag
+}
 
 function jsonResponse(data: unknown, status = 200): Response {
   return new Response(JSON.stringify(data), {
@@ -43,7 +51,45 @@ function installHttpMock(): void {
       return Promise.resolve(jsonResponse(SERIAL_EXECUTIONS))
     }
     if (pathname === '/api/dags/validate' && init?.method === 'POST') {
+      const body = readDagFromInit(init)
+      const pay = body?.nodes.find((n) => n.id === 'pay')
+      if (pay?.type === 'http' && pay.path.includes('missing')) {
+        return Promise.resolve(
+          jsonResponse({
+            passed: false,
+            issues: [
+              {
+                code: 'template.unknown_node',
+                severity: 'error',
+                node_id: 'pay',
+                message: 'missing upstream',
+              },
+            ],
+          }),
+        )
+      }
       return Promise.resolve(jsonResponse({ passed: true, issues: [] }))
+    }
+    if (pathname === '/api/dags/repair-ai' && init?.method === 'POST') {
+      const body = readDagFromInit(init)
+      const pay = body?.nodes.find((n) => n.id === 'pay')
+      if (pay?.type === 'http') {
+        pay.path = '/orders/${create.output.body.id}/pay'
+      }
+      return Promise.resolve(
+        jsonResponse({
+          status: 'accepted',
+          dag: body ?? SERIAL_DAG_ACTIVE.dag,
+          gate: { passed: true, issues: [] },
+          pending: {
+            id: 'serial',
+            version: 2,
+            status: 'pending',
+            created_by: 'ai',
+            created_at: '2026-11-09T00:00:00.000Z',
+          },
+        }),
+      )
     }
     if (pathname === '/api/api-specs/import/preview' && init?.method === 'POST') {
       return Promise.resolve(

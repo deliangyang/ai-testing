@@ -184,6 +184,31 @@
     font-size: 0.78rem;
 }
 
+.dag-validation__ai-repair {
+    margin: 0.5rem 0;
+    padding: 0.4rem 0.75rem;
+    font: inherit;
+    font-size: 0.8rem;
+    border-radius: 6px;
+    border: 1px solid #3b82f6;
+    background: #1e3a5f;
+    color: #e8eaed;
+    cursor: pointer;
+    width: 100%;
+    text-align: left;
+}
+
+.dag-validation__ai-repair:disabled {
+    opacity: 0.6;
+    cursor: wait;
+}
+
+.dag-validation__repair-hint {
+    margin: 0.35rem 0 0;
+    font-size: 0.75rem;
+    color: #9aa3b2;
+}
+
 .execution-detail {
     display: flex;
     flex-direction: column;

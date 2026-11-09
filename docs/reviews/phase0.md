@@ -37,5 +37,5 @@ M0 联合评审（§7.3）见 [`m0.md`](./m0.md)（Q1 轮询、Q2 证据草稿�
 
 ## 遗留
 
-- **M0 评审**：详见 [`m0.md`](./m0.md)。**Q2**：UI 证据见 **P1-29** E2E（`failure-evidence.spec.ts`）；Q2 草稿已写入 `m0.md`，**Q8** 待人类签收是否可作为 M0 正式结论。**Q3**：线 C 在阶段 0 以坏 DAG 100% 拦截 + 分类器 unknown（[`classifier-coverage.md`](./classifier-coverage.md)）为据；模型闸门 **≥70% 接受率** 推迟至阶段 2 **P2-25**，不在本阶段验收。
+- **M0 评审**：详见 [`m0.md`](./m0.md)。**Q2**：UI 证据见 **P1-29** E2E（`failure-evidence.spec.ts`）；Q2 草稿已写入 `m0.md`，**Q8** 待人类签收是否可作为 M0 正式结论。**Q3**：线 C 在阶段 0 以坏 DAG 100% 拦截 + 分类器 unknown（[`classifier-coverage.md`](./classifier-coverage.md)）为据；模型闸门 **≥70% 接受率** 在阶段 2 **P2-25** 验收，见 [`generation-eval.md`](./generation-eval.md) 与 [`phase2.md`](./phase2.md)。
 - 阶段 1 任务在 **P0-57** 标 DONE 后按 `AGENTS.md` 阶段门启动。

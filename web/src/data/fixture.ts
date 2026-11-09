@@ -8,6 +8,7 @@ import type {
   ApiImportPersistSummary,
   ApiImportPreviewRequest,
   ApiImportPreviewResponse,
+  DagAiRepairResponse,
   CreateRunRequest,
   CreateRunResponse,
   DagDetailDto,
@@ -139,6 +140,29 @@ export class FixtureDataSource implements DataSource {
       ac.abort()
       options?.signal?.removeEventListener('abort', onAbort)
       this.liveTokens.delete(runId)
+    }
+  }
+
+  async repairDagWithAi(dag: Dag): Promise<DagAiRepairResponse> {
+    const report = await this.validateDag(dag)
+    if (report.passed) {
+      throw new DataSourceError('DAG already passes gate', { status: 400 })
+    }
+    const fixed = clone(dag)
+    const pay = fixed.nodes.find((n) => n.id === 'pay' && n.type === 'http')
+    if (pay && pay.type === 'http') {
+      pay.path = '/orders/${create.output.body.id}/pay'
+    }
+    const gate = await this.validateDag(fixed)
+    if (!gate.passed) {
+      return { status: 'needs_manual_review', dag: fixed, gate }
+    }
+    const pending = await this.saveDag(fixed)
+    return {
+      status: 'accepted',
+      dag: fixed,
+      gate,
+      pending: { ...pending, status: 'PENDING', created_by: 'ai' },
     }
   }
 

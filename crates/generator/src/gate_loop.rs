@@ -33,8 +33,16 @@ impl Default for DagGenerateWithGateOptions {
 /// Outcome when gate validation is part of generation.
 #[derive(Debug, Clone)]
 pub enum GenerateDagWithGateResult {
-    Accepted(Dag),
-    NeedsManualReview { dag: Dag, report: Report },
+    Accepted {
+        dag: Dag,
+        /// Number of LLM calls taken before gate passed (1 = first attempt accepted).
+        attempts: u32,
+    },
+    NeedsManualReview {
+        dag: Dag,
+        report: Report,
+        attempts: u32,
+    },
 }
 
 /// Canonical JSON of gate errors for appending to the user prompt (tests and cassette authoring).
@@ -78,11 +86,16 @@ pub async fn generate_dag_with_gate<P: LlmProvider + ?Sized>(
         let dag = parse_dag_from_llm_content(&response.content)?;
         let report = gate.validate(&dag);
 
+        let attempts = round + 1;
         if report.passed() {
-            return Ok(GenerateDagWithGateResult::Accepted(dag));
+            return Ok(GenerateDagWithGateResult::Accepted { dag, attempts });
         }
-        if round + 1 >= max_rounds {
-            return Ok(GenerateDagWithGateResult::NeedsManualReview { dag, report });
+        if attempts >= max_rounds {
+            return Ok(GenerateDagWithGateResult::NeedsManualReview {
+                dag,
+                report,
+                attempts,
+            });
         }
         correction_block = format_gate_feedback_json(&report)?;
     }

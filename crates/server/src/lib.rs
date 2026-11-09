@@ -2,6 +2,7 @@
 
 mod api_import;
 mod catalog;
+mod dag_repair;
 mod dto;
 mod error;
 mod event_hub;

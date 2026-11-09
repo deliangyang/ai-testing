@@ -202,11 +202,11 @@ M0 两周联合评审：P0-56。
 | P2-20 | 待审区：AI 候选以 `status=pending, created_by=ai` 保存；server/CLI 列表与详情 API | `crates/store`、`crates/server`、`crates/cli` | P2-18、P1-05 | AI 候选无法直接 active（测试） | DONE |
 | P2-21 | 激活流程：激活前重新执行闸门 + 自动校准，通过才产生 active 新版本 | `crates/store`、`crates/server`、`crates/cli` | P2-20、P2-19 | 绕过闸门的激活请求被拒绝 | DONE |
 | P2-22 | UI：AI 候选半透明预览、校验徽标、激活按钮、与当前 active 版本 diff | `web/` | P2-20、P1-24 | E2E 用例 | DONE |
-| P2-23 | UI：校验失败问题列表「交给 AI 修正」 | `web/`、`crates/server` | P2-22、P2-18 | E2E 用例 | TODO |
+| P2-23 | UI：校验失败问题列表「交给 AI 修正」 | `web/`、`crates/server` | P2-22、P2-18 | E2E 用例 | DONE |
 | P2-24 | AI 副驾 Tab：对话界面；每条输出绑定工件（插入画布/定位节点/采纳断言）；顶部显示当前上下文 | `web/`、`crates/server` | P2-22 | E2E 用例（Mock 回放） | TODO |
-| P2-25 | 生成评测 harness：3 条链路描述 × N 次，统计闸门首次接受率与最终接受率（目标 ≥70%） | `scripts/`、`docs/reviews/` | P2-18 | 输出评测报告 | TODO |
-| P2-26 | 一致性测试：AI 生成并激活的 DAG 与手工 DAG 在 mock-sut 上确定性报告一致 | `crates/cli/tests` | P2-21、P0-53 | 测试通过 | TODO |
-| P2-27 | **阶段 2 验收** | `docs/reviews/phase2.md` | P2-23 ~ P2-26、P2-13 | 验收通过 | TODO |
+| P2-25 | 生成评测 harness：3 条链路描述 × N 次，统计闸门首次接受率与最终接受率（目标 ≥70%） | `scripts/`、`docs/reviews/` | P2-18 | 输出评测报告 | DONE |
+| P2-26 | 一致性测试：AI 生成并激活的 DAG 与手工 DAG 在 mock-sut 上确定性报告一致 | `crates/cli/tests` | P2-21、P0-53 | 测试通过 | DONE |
+| P2-27 | **阶段 2 验收** | `docs/reviews/phase2.md` | P2-23 ~ P2-26、P2-13 | 验收通过 | DONE |
 
 ---
 
@@ -401,6 +401,11 @@ M0 两周联合评审：P0-56。
 | 2026-11-09 | P2-09/10/14/17 | DOING→DONE | HAR/merge/`api_spec_id`+`ApiSpecLookup`/`generate_dag`+`parse_dag_from_llm_content`；check 全绿 |
 | 2026-11-09 | P2-18 | DOING→DONE | `generate_dag_with_gate`（`Gate::standard()` + 错误级 Issue 规范化 JSON 回喂；默认 `max_rounds=3`；`GenerateDagWithGateResult::NeedsManualReview`）；cassette 修正/三轮仍失败用例；`reference.not_ancestor` 定位节点 `a`；未提交；`./scripts/check.sh` 全绿 |
 | 2026-11-09 | P2-11 | DOING→DONE | `importer::markdown`（`ApiSpecDraft{spec,confidence,source_lines}`）；`CassetteProvider` 回放 + `persist_api_spec_drafts` 仅 `save`/draft；未提交；`./scripts/check.sh` 全绿 |
+| 2026-11-09 | P2-27 | DOING→DONE | `docs/reviews/phase2.md`：§8.3 双标准 + P2-13/20–26 证据表；`check.sh` 全绿；P2-24 遗留；E2E 依 CI `web-e2e`；未提交 |
+| 2026-11-09 | P2-27 | TODO→DOING | 认领阶段 2 验收 |
+| 2026-11-09 | P2-25 | DOING→DONE | `generator::eval` + `scripts/generation-eval.{sh,ps1}` → `docs/reviews/generation-eval.md`；三链 cassette + `eval_harness` 断言 ≥70%；`GenerateDagWithGateResult` 含 `attempts`；未提交；`./scripts/check.sh` 全绿 |
+| 2026-11-09 | P2-26 | DOING→DONE | `cassette-dag-serial-parity` + `cli/tests/ai_serial_consistency.rs`；clippy 修 `expect`；未提交；`./scripts/check.sh` 全绿 |
+| 2026-11-09 | P2-23 | DOING→DONE | `repair_dag_with_gate` + cassette；`POST /api/dags/repair-ai` → `save_ai_candidate`；`DagValidationPanel`「交给 AI 修正」；`e2e/gate-ai-repair.spec.ts`；未提交；`./scripts/check.sh` 全绿 |
 | 2026-11-09 | P2-22 | DOING→DONE | `web/pending`：`listPendingAiDags` 契约；半透明预览层、`DagValidationPanel`、节点级 diff、`activateDag`；`?pending=1` 工作台 + Vitest/Playwright；提交 `f9bf15b`；`./scripts/check.sh` 全绿 |
 | 2026-11-09 | P2-05..P2-21,P2-13 | — | 批量提交 `aee09d8` |
 | 2026-11-09 | P2-13 | DOING→DONE | `importer::preview` + `parse_import_text`；server `POST /api/api-specs/import/preview|commit`；`web/import` 预览卡片/低置信高亮/采纳修正/合并策略；`?import=1` 工作台 + Vitest + Playwright；未提交；`./scripts/check.sh` 全绿 |

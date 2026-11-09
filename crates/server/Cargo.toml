@@ -20,6 +20,8 @@ common = { workspace = true }
 engine = { workspace = true }
 gate = { workspace = true }
 importer = { path = "../importer", default-features = false }
+generator = { path = "../generator" }
+llm-gateway = { workspace = true }
 futures-util = "0.3"
 model = { workspace = true }
 serde = { workspace = true }

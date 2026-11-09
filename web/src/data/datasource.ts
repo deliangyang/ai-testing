@@ -5,6 +5,7 @@ import type {
   ApiImportPreviewResponse,
   CreateRunRequest,
   CreateRunResponse,
+  DagAiRepairResponse,
   DagDetailDto,
   DagVersionDto,
   EngineEvent,
@@ -45,6 +46,7 @@ export interface DataSource {
   ): () => void
 
   validateDag(dag: Dag): Promise<GateResponse>
+  repairDagWithAi(dag: Dag): Promise<DagAiRepairResponse>
   saveDag(dag: Dag): Promise<DagVersionDto>
   activateDag(dagId: string, version: number): Promise<DagVersionDto>
   startRun(request: CreateRunRequest): Promise<CreateRunResponse>

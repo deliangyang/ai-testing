@@ -26,6 +26,8 @@ serde_json = { workspace = true }
 tokio = { workspace = true, features = ["signal", "rt-multi-thread"] }
 
 [dev-dependencies]
+generator = { path = "../generator" }
+llm-gateway = { workspace = true }
 importer = { path = "../importer", default-features = false }
 jsonschema = { workspace = true }
 mock-sut = { path = "../mock-sut" }

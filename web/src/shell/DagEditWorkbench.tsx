@@ -14,6 +14,8 @@ export function DagEditWorkbench() {
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null)
   const [focusNodeId, setFocusNodeId] = useState<string | null>(null)
   const [gateReport, setGateReport] = useState<GateResponse | null>(null)
+  const [repairing, setRepairing] = useState(false)
+  const [repairHint, setRepairHint] = useState<string | null>(null)
 
   useEffect(() => {
     void dataSource.getActiveDag('serial').then((detail) => {
@@ -22,6 +24,32 @@ export function DagEditWorkbench() {
   }, [])
 
   const saveDag = useCallback((next: Dag) => dataSource.saveDag(next), [])
+
+  const repairWithAi = useCallback(async () => {
+    if (!dag) {
+      return
+    }
+    setRepairing(true)
+    setRepairHint(null)
+    try {
+      const result = await dataSource.repairDagWithAi(dag)
+      setDag(result.dag)
+      setGateReport(result.gate)
+      if (result.status === 'accepted') {
+        setRepairHint(
+          result.pending
+            ? `已写入待审 v${String(result.pending.version)}，请激活后执行`
+            : '闸门已通过',
+        )
+      } else {
+        setRepairHint('仍需人工介入')
+      }
+    } catch (e) {
+      setRepairHint(e instanceof Error ? e.message : 'AI 修正失败')
+    } finally {
+      setRepairing(false)
+    }
+  }, [dag])
 
   useEffect(() => {
     if (!dag) {
@@ -59,6 +87,11 @@ export function DagEditWorkbench() {
             setFocusNodeId(nodeId)
             setSelectedNodeId(nodeId)
           }}
+          onAiRepair={() => {
+            void repairWithAi()
+          }}
+          repairing={repairing}
+          repairHint={repairHint}
         />
         <NodePropertyPanel
           dag={dag}

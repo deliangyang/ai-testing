@@ -69,6 +69,10 @@ export class NshDataSource implements DataSource {
     return this.ds().then((d) => d.validateDag(...args))
   }
 
+  repairDagWithAi(...args: Parameters<DataSource['repairDagWithAi']>) {
+    return this.ds().then((d) => d.repairDagWithAi(...args))
+  }
+
   saveDag(...args: Parameters<DataSource['saveDag']>) {
     return this.ds().then((d) => d.saveDag(...args))
   }
