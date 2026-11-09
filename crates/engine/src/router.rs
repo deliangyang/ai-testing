@@ -7,6 +7,7 @@ use model::{Node, NodeKind};
 
 use crate::assert::AssertExecutor;
 use crate::cleanup::CleanupExecutor;
+use crate::db_query::DbQueryExecutor;
 use crate::executor::{ExecContext, ExecError, ExecErrorKind, ExecFuture, NodeExecutor};
 use crate::http::HttpExecutor;
 use crate::poll::PollExecutor;
@@ -20,6 +21,7 @@ pub struct NodeRouter {
     poll: PollExecutor,
     cleanup: CleanupExecutor,
     subworkflow: Option<SubworkflowExecutor>,
+    db_query: Option<DbQueryExecutor>,
 }
 
 impl NodeRouter {
@@ -29,12 +31,19 @@ impl NodeRouter {
             cleanup: CleanupExecutor::new(Arc::clone(&http)),
             http,
             subworkflow: None,
+            db_query: None,
         }
     }
 
     #[must_use]
     pub fn with_subworkflows(mut self, executor: SubworkflowExecutor) -> Self {
         self.subworkflow = Some(executor);
+        self
+    }
+
+    #[must_use]
+    pub fn with_db_query(mut self, executor: DbQueryExecutor) -> Self {
+        self.db_query = Some(executor);
         self
     }
 }
@@ -50,7 +59,10 @@ impl NodeExecutor for NodeRouter {
                 Some(sub) => sub.execute(node, ctx),
                 None => unsupported(node),
             },
-            NodeKind::DbQuery(_) => unsupported(node),
+            NodeKind::DbQuery(_) => match &self.db_query {
+                Some(db) => db.execute(node, ctx),
+                None => unsupported(node),
+            },
         }
     }
 }

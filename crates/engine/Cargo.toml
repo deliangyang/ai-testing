@@ -14,17 +14,28 @@ regex = { workspace = true }
 reqwest = { workspace = true }
 rustls = { workspace = true }
 store = { workspace = true }
+secrets = { workspace = true }
+skills = { workspace = true }
 classifier = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
 serde_path_to_error = { workspace = true }
+rusqlite = { workspace = true }
+sqlx = { workspace = true, optional = true }
 thiserror = { workspace = true }
 tokio = { workspace = true }
 yaml_serde = { workspace = true }
 
 [dev-dependencies]
+skills = { workspace = true }
 tempfile = { workspace = true }
 wiremock = { workspace = true }
+rusqlite = { workspace = true }
+
+[features]
+default = []
+postgres = ["dep:sqlx", "sqlx/postgres"]
+mysql = ["dep:sqlx", "sqlx/mysql"]
 
 [lints]
 workspace = true
