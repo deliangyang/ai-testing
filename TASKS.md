@@ -401,7 +401,7 @@ M0 两周联合评审：P0-56。
 | 2026-11-09 | P2-09/10/14/17 | DOING→DONE | HAR/merge/`api_spec_id`+`ApiSpecLookup`/`generate_dag`+`parse_dag_from_llm_content`；check 全绿 |
 | 2026-11-09 | P2-18 | DOING→DONE | `generate_dag_with_gate`（`Gate::standard()` + 错误级 Issue 规范化 JSON 回喂；默认 `max_rounds=3`；`GenerateDagWithGateResult::NeedsManualReview`）；cassette 修正/三轮仍失败用例；`reference.not_ancestor` 定位节点 `a`；未提交；`./scripts/check.sh` 全绿 |
 | 2026-11-09 | P2-11 | DOING→DONE | `importer::markdown`（`ApiSpecDraft{spec,confidence,source_lines}`）；`CassetteProvider` 回放 + `persist_api_spec_drafts` 仅 `save`/draft；未提交；`./scripts/check.sh` 全绿 |
-| 2026-11-09 | P2-22 | DOING→DONE | `web/pending`：`listPendingAiDags` 契约；半透明预览层、`DagValidationPanel`、节点级 diff、`activateDag`；`?pending=1` 工作台 + Vitest/Playwright；未提交；`./scripts/check.sh` 全绿 |
+| 2026-11-09 | P2-22 | DOING→DONE | `web/pending`：`listPendingAiDags` 契约；半透明预览层、`DagValidationPanel`、节点级 diff、`activateDag`；`?pending=1` 工作台 + Vitest/Playwright；提交 `f9bf15b`；`./scripts/check.sh` 全绿 |
 | 2026-11-09 | P2-05..P2-21,P2-13 | — | 批量提交 `aee09d8` |
 | 2026-11-09 | P2-13 | DOING→DONE | `importer::preview` + `parse_import_text`；server `POST /api/api-specs/import/preview|commit`；`web/import` 预览卡片/低置信高亮/采纳修正/合并策略；`?import=1` 工作台 + Vitest + Playwright；未提交；`./scripts/check.sh` 全绿 |
 | 2026-11-09 | P2-21 | DOING→DONE | `prepare_for_activation`（calibrate→for_save gate）；`update_pending_content`；CLI/server activate 写回校准内容；`dag_store`/`activation` 测试；`golden.rs` `pay_delay_ms(5)` 消除 async-poll 竞态；未提交；check 全绿 |
