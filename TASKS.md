@@ -401,11 +401,12 @@ M0 两周联合评审：P0-56。
 | 2026-11-09 | P2-09/10/14/17 | DOING→DONE | HAR/merge/`api_spec_id`+`ApiSpecLookup`/`generate_dag`+`parse_dag_from_llm_content`；check 全绿 |
 | 2026-11-09 | P2-18 | DOING→DONE | `generate_dag_with_gate`（`Gate::standard()` + 错误级 Issue 规范化 JSON 回喂；默认 `max_rounds=3`；`GenerateDagWithGateResult::NeedsManualReview`）；cassette 修正/三轮仍失败用例；`reference.not_ancestor` 定位节点 `a`；未提交；`./scripts/check.sh` 全绿 |
 | 2026-11-09 | P2-11 | DOING→DONE | `importer::markdown`（`ApiSpecDraft{spec,confidence,source_lines}`）；`CassetteProvider` 回放 + `persist_api_spec_drafts` 仅 `save`/draft；未提交；`./scripts/check.sh` 全绿 |
-| 2026-11-09 | P2-27 | DOING→DONE | `docs/reviews/phase2.md`：§8.3 双标准 + P2-13/20–26 证据表；`check.sh` 全绿；P2-24 遗留；E2E 依 CI `web-e2e`；未提交 |
+| 2026-11-09 | P2-27 | DOING→DONE | → `92bca22`：`docs/reviews/phase2.md`；§8.3 证据 + 本机 Playwright 3/3；P2-24 遗留 |
 | 2026-11-09 | P2-27 | TODO→DOING | 认领阶段 2 验收 |
-| 2026-11-09 | P2-25 | DOING→DONE | `generator::eval` + `scripts/generation-eval.{sh,ps1}` → `docs/reviews/generation-eval.md`；三链 cassette + `eval_harness` 断言 ≥70%；`GenerateDagWithGateResult` 含 `attempts`；未提交；`./scripts/check.sh` 全绿 |
-| 2026-11-09 | P2-26 | DOING→DONE | `cassette-dag-serial-parity` + `cli/tests/ai_serial_consistency.rs`；clippy 修 `expect`；未提交；`./scripts/check.sh` 全绿 |
-| 2026-11-09 | P2-23 | DOING→DONE | `repair_dag_with_gate` + cassette；`POST /api/dags/repair-ai` → `save_ai_candidate`；`DagValidationPanel`「交给 AI 修正」；`e2e/gate-ai-repair.spec.ts`；未提交；`./scripts/check.sh` 全绿 |
+| 2026-11-09 | P2-25..P2-23,P2-27 | — | 批量提交 `92bca22` |
+| 2026-11-09 | P2-25 | DOING→DONE | → `92bca22`：`generator::eval`、`generation-eval` 脚本与报告、闸门 `attempts` |
+| 2026-11-09 | P2-26 | DOING→DONE | → `92bca22`：`ai_serial_consistency` + serial parity cassettes |
+| 2026-11-09 | P2-23 | DOING→DONE | → `92bca22`：`repair_dag_with_gate`、`POST /api/dags/repair-ai`、闸门面板 AI 修正 E2E |
 | 2026-11-09 | P2-22 | DOING→DONE | `web/pending`：`listPendingAiDags` 契约；半透明预览层、`DagValidationPanel`、节点级 diff、`activateDag`；`?pending=1` 工作台 + Vitest/Playwright；提交 `f9bf15b`；`./scripts/check.sh` 全绿 |
 | 2026-11-09 | P2-05..P2-21,P2-13 | — | 批量提交 `aee09d8` |
 | 2026-11-09 | P2-13 | DOING→DONE | `importer::preview` + `parse_import_text`；server `POST /api/api-specs/import/preview|commit`；`web/import` 预览卡片/低置信高亮/采纳修正/合并策略；`?import=1` 工作台 + Vitest + Playwright；未提交；`./scripts/check.sh` 全绿 |
