@@ -1,0 +1,87 @@
+{
+  "log": {
+    "version": "1.2",
+    "creator": {
+      "name": "ai-testing-fixture",
+      "version": "1.0"
+    },
+    "entries": [
+      {
+        "startedDateTime": "2026-01-02T10:00:00.000Z",
+        "request": {
+          "method": "GET",
+          "url": "https://api.example.com/v1/users?status=active",
+          "headers": [
+            { "name": "Accept", "value": "application/json" },
+            { "name": "Authorization", "value": "Bearer secret-token" }
+          ],
+          "queryString": [
+            { "name": "status", "value": "active" }
+          ]
+        },
+        "response": {
+          "status": 200,
+          "content": {
+            "mimeType": "application/json; charset=utf-8",
+            "text": "{\"users\":[{\"id\":1,\"email\":\"ada@example.com\"}]}"
+          }
+        }
+      },
+      {
+        "startedDateTime": "2026-01-02T10:01:00.000Z",
+        "request": {
+          "method": "GET",
+          "url": "https://api.example.com/v1/users?limit=20",
+          "headers": [
+            { "name": "Accept", "value": "application/json" }
+          ],
+          "queryString": [
+            { "name": "limit", "value": "20" }
+          ]
+        },
+        "response": {
+          "status": 200,
+          "content": {
+            "mimeType": "application/json",
+            "text": "{\"users\":[{\"id\":2,\"email\":\"bob@example.com\",\"nick\":\"b\"}]}"
+          }
+        }
+      },
+      {
+        "startedDateTime": "2026-01-02T10:02:00.000Z",
+        "request": {
+          "method": "POST",
+          "url": "https://api.example.com/v1/orders",
+          "headers": [
+            { "name": "Content-Type", "value": "application/json" }
+          ],
+          "postData": {
+            "mimeType": "application/json",
+            "text": "{\"sku\":\"W-1\",\"qty\":2}"
+          }
+        },
+        "response": {
+          "status": 201,
+          "content": {
+            "mimeType": "application/json",
+            "text": "{\"order_id\":\"ord_9\",\"total\":42.5}"
+          }
+        }
+      },
+      {
+        "startedDateTime": "2026-01-02T10:03:00.000Z",
+        "request": {
+          "method": "DELETE",
+          "url": "https://api.example.com/v1/orders/ord_9"
+        },
+        "response": {
+          "status": 204,
+          "content": {
+            "mimeType": "text/plain",
+            "text": ""
+          }
+        }
+      }
+    ]
+  }
+}

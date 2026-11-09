@@ -157,6 +157,13 @@
           "description": "`http` node: a request plus the expected shape of the response body.\n\nThe request fields are repeated instead of flattened so unknown keys are still rejected.",
           "type": "object",
           "properties": {
+            "api_spec_id": {
+              "description": "Active `api_specs` row to resolve response shape when set; overrides inline `response_schema` for gate checks.",
+              "type": [
+                "string",
+                "null"
+              ]
+            },
             "body": true,
             "headers": {
               "type": "object",

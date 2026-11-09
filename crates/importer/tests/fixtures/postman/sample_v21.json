@@ -1,0 +1,109 @@
+{
+  "info": {
+    "name": "Demo API",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_postman_id": "demo-collection"
+  },
+  "item": [
+    {
+      "name": "Health",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "https://api.example.com/health"
+      }
+    },
+    {
+      "name": "Users",
+      "item": [
+        {
+          "name": "List users",
+          "request": {
+            "method": "get",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "disabled": false
+              },
+              {
+                "key": "X-Debug",
+                "value": "1",
+                "disabled": true
+              }
+            ],
+            "url": {
+              "raw": "https://api.example.com/users?limit=10&sort=name",
+              "host": ["api", "example", "com"],
+              "path": ["users"],
+              "query": [
+                { "key": "limit", "value": "10", "disabled": false },
+                { "key": "sort", "value": "name", "disabled": false },
+                { "key": "cursor", "value": "", "disabled": true }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get user",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/users/:id",
+              "host": ["{{baseUrl}}"],
+              "path": ["users", ":id"],
+              "variable": [
+                { "key": "id", "value": "42" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Create user",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/x-www-form-urlencoded"
+              }
+            ],
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                { "key": "name", "value": "Ada" },
+                { "key": "role", "value": "admin", "disabled": false }
+              ]
+            },
+            "url": "/users"
+          }
+        },
+        {
+          "name": "Patch profile",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"displayName\": \"A. Lovelace\",\n  \"active\": true\n}"
+            },
+            "url": {
+              "path": ["users", "{{userId}}", "profile"]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

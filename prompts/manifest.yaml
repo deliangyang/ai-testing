@@ -1,0 +1,5 @@
+# Versioned prompt assets for the generator crate (develop.md §10.3).
+version: 1
+templates:
+  - id: dag_generate_main
+    file: dag_generate_main.prompt.md

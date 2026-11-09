@@ -32,7 +32,7 @@ impl Rule for FieldRule {
                     continue;
                 };
                 let pointer = format!("/nodes/{i}{}", located.pointer);
-                let issue = match output_shape(target_node) {
+                let issue = match output_shape(target_node, ctx.api_specs()) {
                     OutputShape::Schema(schema) => match lookup(&schema, path) {
                         Lookup::Found => None,
                         Lookup::Missing { segment, reason } => Some(Issue::error(

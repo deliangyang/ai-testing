@@ -1,7 +1,12 @@
 import type { DataSource, RunEventHandler, SubscribeRunEventsOptions } from './datasource'
 import { DataSourceError } from './errors'
 import { DEFAULT_SCENARIO, SCENARIOS, type ScenarioFixture } from './fixtures'
+import { MARKDOWN_IMPORT_PREVIEW } from '../import/fixtures'
 import type {
+  ApiImportCommitRequest,
+  ApiImportPersistSummary,
+  ApiImportPreviewRequest,
+  ApiImportPreviewResponse,
   CreateRunRequest,
   CreateRunResponse,
   DagDetailDto,
@@ -247,5 +252,25 @@ export class FixtureDataSource implements DataSource {
       )
     }
     return Promise.resolve({ cancelled: true })
+  }
+
+  previewApiImport(request: ApiImportPreviewRequest): Promise<ApiImportPreviewResponse> {
+    const strategy = request.strategy ?? 'merge'
+    return Promise.resolve(
+      clone({
+        ...MARKDOWN_IMPORT_PREVIEW,
+        strategy,
+      }),
+    )
+  }
+
+  commitApiImport(request: ApiImportCommitRequest): Promise<ApiImportPersistSummary> {
+    const accepted = request.items.filter((row) => row.accepted).length
+    return Promise.resolve({
+      added: accepted,
+      updated: 0,
+      unchanged: 0,
+      saved_ids: request.items.filter((row) => row.accepted).map((row) => row.spec.id),
+    })
   }
 }

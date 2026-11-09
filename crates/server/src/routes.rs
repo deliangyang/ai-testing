@@ -2,19 +2,24 @@ use axum::extract::{Path, Query, State};
 use axum::routing::{get, post};
 use axum::{Json, Router};
 use serde::Deserialize;
-use store::{DagRepository, NodeExecutionRepository, RunQuery, RunRepository};
+use store::{DagRepository, DagStatus, NodeExecutionRepository, RunQuery, RunRepository};
 
+use crate::api_import::{commit_api_import, preview_api_import};
 use crate::dto::{DagDetailDto, DagVersionDto, NodeExecutionDto, RunDto};
 use crate::error::{ApiError, ApiResult};
 use crate::sse::run_event_stream;
 use crate::state::AppState;
 use crate::ui::{get_ui_layout, get_workspace_preset, list_workspace_presets, put_ui_layout};
-use crate::write::{activate_dag, cancel_run, save_dag, start_run, validate_dag};
+use crate::write::{
+    activate_dag, cancel_run, save_ai_candidate, save_dag, start_run, validate_dag,
+};
 
 pub fn router(state: AppState) -> Router {
     Router::new()
         .route("/health", get(health))
         .route("/api/dags", get(list_dags).post(save_dag))
+        .route("/api/dags/pending", get(list_pending_ai_dags))
+        .route("/api/dags/candidates", post(save_ai_candidate))
         .route("/api/dags/validate", post(validate_dag))
         .route("/api/dags/{dag_id}/active", get(get_active_dag))
         .route(
@@ -36,6 +41,8 @@ pub fn router(state: AppState) -> Router {
         )
         .route("/api/ui/presets", get(list_workspace_presets))
         .route("/api/ui/presets/{id}", get(get_workspace_preset))
+        .route("/api/api-specs/import/preview", post(preview_api_import))
+        .route("/api/api-specs/import/commit", post(commit_api_import))
         .with_state(state)
 }
 
@@ -43,14 +50,46 @@ async fn health() -> &'static str {
     "ok"
 }
 
-async fn list_dags(State(state): State<AppState>) -> ApiResult<Json<Vec<DagVersionDto>>> {
+#[derive(Debug, Deserialize)]
+struct ListDagsQuery {
+    status: Option<String>,
+    created_by: Option<String>,
+}
+
+async fn list_dags(
+    State(state): State<AppState>,
+    Query(q): Query<ListDagsQuery>,
+) -> ApiResult<Json<Vec<DagVersionDto>>> {
     let state = state.clone();
+    let status = q.status.as_deref().and_then(parse_dag_status);
+    let created_by = q.created_by;
     let rows = tokio::task::spawn_blocking(move || {
-        state.with_locked_db(|db| DagRepository::new(db.conn(), state.clock.as_ref()).list())
+        let created_by = created_by.as_deref();
+        state.with_locked_db(|db| {
+            DagRepository::new(db.conn(), state.clock.as_ref()).list_filtered(status, created_by)
+        })
     })
     .await
     .map_err(|e| ApiError::Internal(e.to_string()))??;
     Ok(Json(rows.into_iter().map(Into::into).collect()))
+}
+
+async fn list_pending_ai_dags(
+    State(state): State<AppState>,
+) -> ApiResult<Json<Vec<DagVersionDto>>> {
+    let state = state.clone();
+    let rows = tokio::task::spawn_blocking(move || {
+        state.with_locked_db(|db| {
+            DagRepository::new(db.conn(), state.clock.as_ref()).list_pending_ai()
+        })
+    })
+    .await
+    .map_err(|e| ApiError::Internal(e.to_string()))??;
+    Ok(Json(rows.into_iter().map(Into::into).collect()))
+}
+
+fn parse_dag_status(s: &str) -> Option<DagStatus> {
+    s.parse().ok()
 }
 
 async fn get_active_dag(

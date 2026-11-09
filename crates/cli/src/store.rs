@@ -6,10 +6,12 @@ use std::sync::{Arc, Mutex, MutexGuard};
 use anyhow::{anyhow, Context as _};
 use common::clock::{Clock, SystemClock};
 use engine::subworkflow::{DagSource, StoreDagSource};
-use gate::rules::DagCatalog;
+use gate::rules::{ApiSpecLookup, ApiSpecLookupHandle, DagCatalog};
 use gate::{Gate, Report};
 use model::nodes::DagRef;
 use model::Dag;
+use serde_json::Value;
+use store::ApiSpecRepository;
 use store::Db;
 
 /// The database shared by the gate's catalog, the engine and the command itself.
@@ -38,11 +40,20 @@ impl Store {
         self.db.lock().map_err(|_| anyhow!("store lock poisoned"))
     }
 
+    /// Save/activation gate (catalog + API specs), same rules as the server.
+    pub fn for_save_gate(&self) -> Gate {
+        let catalog = StoreCatalog(StoreDagSource::new(self.db.clone(), self.clock.clone()));
+        let api_specs: ApiSpecLookupHandle = Arc::new(StoreApiSpecLookup {
+            db: self.db.clone(),
+            clock: self.clock.clone(),
+        });
+        Gate::for_save(Arc::new(catalog), Some(api_specs))
+    }
+
     /// The gate used before anything is stored or activated. The catalog takes the lock per
     /// lookup, so no guard may be held while this runs.
     pub fn gate(&self, dag: &Dag) -> Report {
-        let catalog = StoreCatalog(StoreDagSource::new(self.db.clone(), self.clock.clone()));
-        Gate::for_save(Arc::new(catalog)).validate(dag)
+        self.for_save_gate().validate(dag)
     }
 
     pub fn dag_source(&self) -> StoreDagSource {
@@ -57,5 +68,21 @@ struct StoreCatalog(StoreDagSource);
 impl DagCatalog for StoreCatalog {
     fn resolve(&self, dag: &DagRef) -> Option<Dag> {
         self.0.load(dag).ok().map(|(dag, _)| dag)
+    }
+}
+
+struct StoreApiSpecLookup {
+    db: Arc<Mutex<Db>>,
+    clock: Arc<dyn Clock>,
+}
+
+impl ApiSpecLookup for StoreApiSpecLookup {
+    fn response_schema(&self, id: &str) -> Option<Value> {
+        let guard = self.db.lock().ok()?;
+        let repo = ApiSpecRepository::new(guard.conn(), self.clock.as_ref());
+        repo.get_active(id)
+            .ok()
+            .flatten()
+            .and_then(|r| r.spec.response_schema)
     }
 }

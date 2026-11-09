@@ -1,0 +1,70 @@
+.api-import {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    padding: 1rem;
+    max-width: 56rem;
+}
+
+.api-import__toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    align-items: flex-end;
+}
+
+.api-import__field label {
+    display: block;
+    font-size: 0.75rem;
+    color: var(--shell-muted, #6b7280);
+    margin-bottom: 0.25rem;
+}
+
+.api-import__strategy {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.api-import__cards {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.api-import-card {
+    border: 1px solid var(--shell-border, #e5e7eb);
+    border-radius: 8px;
+    padding: 0.75rem 1rem;
+    background: var(--shell-panel, #fff);
+}
+
+.api-import-card--low-confidence {
+    background: #fffbeb;
+    border-color: #f59e0b;
+}
+
+.api-import-card__head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.5rem;
+}
+
+.api-import-card__meta {
+    font-size: 0.75rem;
+    color: var(--shell-muted, #6b7280);
+}
+
+.api-import-card__inputs {
+    display: grid;
+    grid-template-columns: 5rem 1fr 1fr;
+    gap: 0.5rem;
+}
+
+.api-import-card__inputs input {
+    font: inherit;
+    padding: 0.25rem 0.5rem;
+    border: 1px solid var(--shell-border, #d1d5db);
+    border-radius: 4px;
+}

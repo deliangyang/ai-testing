@@ -1,0 +1,6 @@
+---
+source: crates/importer/tests/openapi_snapshot.rs
+expression: specs_canonical_lines(&specs)
+---
+{"id":"api.items.id.get","method":"GET","name":"Get item","params":[{"location":"path","name":"id","required":true,"schema":{"type":"string"}}],"path":"/api/items/{id}","response_schema":{"properties":{"id":{"type":"string"},"label":{"type":"string"}},"type":"object"}}
+{"id":"listItems","method":"GET","name":"List items","params":[{"location":"query","name":"q","required":false,"schema":{"type":"string"}}],"path":"/api/items","response_schema":{"items":{"properties":{"id":{"type":"string"},"label":{"type":"string"}},"type":"object"},"type":"array"}}

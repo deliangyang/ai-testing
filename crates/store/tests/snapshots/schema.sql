@@ -1,15 +1,20 @@
-CREATE TABLE api_specs (
-    id                   TEXT PRIMARY KEY,
+CREATE TABLE "api_specs" (
+    id                   TEXT NOT NULL,
+    version              INTEGER NOT NULL CHECK (version >= 1),
     name                 TEXT NOT NULL,
     method               TEXT NOT NULL,
     path                 TEXT NOT NULL,
     params_json          TEXT CHECK (params_json IS NULL OR json_valid(params_json)),
     response_schema_json TEXT CHECK (response_schema_json IS NULL OR json_valid(response_schema_json)),
     auth_scheme_ref      TEXT,
-    version              INTEGER NOT NULL DEFAULT 1 CHECK (version >= 1),
     status               TEXT NOT NULL DEFAULT 'draft'
-                         CHECK (status IN ('draft', 'active', 'deprecated'))
+                         CHECK (status IN ('draft', 'active', 'deprecated')),
+    created_by           TEXT NOT NULL,
+    created_at           TEXT NOT NULL,
+    PRIMARY KEY (id, version)
 ) STRICT;
+
+CREATE UNIQUE INDEX api_specs_one_active ON api_specs (id) WHERE status = 'active';
 
 CREATE TABLE dag_definitions (
     id           TEXT NOT NULL,

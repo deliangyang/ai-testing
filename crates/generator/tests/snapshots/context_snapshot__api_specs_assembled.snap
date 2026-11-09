@@ -1,0 +1,8 @@
+---
+source: crates/generator/tests/context_snapshot.rs
+expression: ctx.dag
+---
+openapi_json: "[{\"auth_scheme_ref\":\"keychain://orders-bearer\",\"id\":\"orders.create\",\"method\":\"POST\",\"name\":\"Create order\",\"path\":\"/orders\",\"response_schema\":{\"properties\":{\"id\":{\"type\":\"string\"}},\"type\":\"object\"}},{\"id\":\"orders.get\",\"method\":\"GET\",\"name\":\"Get order\",\"path\":\"/orders/{id}\"}]"
+business_rules: 下单后查询详情
+skill_contracts: (empty)
+preference_rules: (empty)

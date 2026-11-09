@@ -1,0 +1,9 @@
+---
+source: crates/importer/tests/postman_snapshot.rs
+expression: snapshot
+---
+{"id":"get.health","method":"GET","name":"Demo API / Health","path":"/health"}
+{"id":"get.users","method":"GET","name":"Demo API / Users / List users","params":[{"location":"header","name":"Accept","required":false,"schema":{"default":"application/json","type":"string"}},{"location":"query","name":"limit","required":false,"schema":{"default":"10","type":"string"}},{"location":"query","name":"sort","required":false,"schema":{"default":"name","type":"string"}}],"path":"/users"}
+{"id":"get.users.id","method":"GET","name":"Demo API / Users / Get user","params":[{"location":"header","name":"Authorization","required":false,"schema":{"default":"Bearer {{token}}","type":"string"}},{"location":"path","name":"id","required":true}],"path":"/users/{id}"}
+{"id":"patch.users.userId.profile","method":"PATCH","name":"Demo API / Users / Patch profile","params":[{"location":"header","name":"Content-Type","required":false,"schema":{"default":"application/json","type":"string"}},{"location":"body","name":"active","required":false},{"location":"body","name":"displayName","required":false},{"location":"path","name":"userId","required":true}],"path":"/users/{userId}/profile"}
+{"id":"post.users","method":"POST","name":"Demo API / Users / Create user","params":[{"location":"header","name":"Content-Type","required":false,"schema":{"default":"application/x-www-form-urlencoded","type":"string"}},{"location":"body","name":"name","required":false,"schema":{"default":"Ada","type":"string"}},{"location":"body","name":"role","required":false,"schema":{"default":"admin","type":"string"}}],"path":"/users"}

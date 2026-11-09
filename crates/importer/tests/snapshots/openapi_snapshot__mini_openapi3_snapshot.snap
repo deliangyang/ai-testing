@@ -1,0 +1,7 @@
+---
+source: crates/importer/tests/openapi_snapshot.rs
+expression: specs_canonical_lines(&specs)
+---
+{"id":"getPetById","method":"GET","name":"getPetById","params":[{"location":"path","name":"petId","required":true,"schema":{"type":"string"}}],"path":"/pets/{petId}","response_schema":{"properties":{"id":{"type":"string"},"name":{"type":"string"}},"type":"object"}}
+{"id":"listPets","method":"GET","name":"List pets","params":[{"location":"query","name":"limit","required":false,"schema":{"type":"integer"}}],"path":"/pets","response_schema":{"items":{"properties":{"id":{"type":"string"},"name":{"type":"string"}},"type":"object"},"type":"array"}}
+{"id":"pets.post","method":"POST","name":"Create pet","params":[{"location":"body","name":"body","required":true,"schema":{"properties":{"name":{"type":"string"}},"required":["name"],"type":"object"}}],"path":"/pets","response_schema":{"properties":{"id":{"type":"string"},"name":{"type":"string"}},"type":"object"}}

@@ -63,8 +63,32 @@ pub enum Command {
     /// Validate and manage DAG definitions.
     #[command(subcommand)]
     Dag(DagCommand),
+    /// Import API definitions into the catalog.
+    #[command(subcommand)]
+    Api(ApiCommand),
     /// Run a DAG against an environment, or inspect a recorded run.
     Run(RunArgs),
+}
+
+#[derive(Debug, Subcommand)]
+pub enum ApiCommand {
+    /// Parse a file and store normalized API specs as drafts.
+    Import {
+        /// Input file for the selected `--format`.
+        file: PathBuf,
+        /// Source format (`md` uses cassette replay; set `AITEST_CASSETTE_DIR` or `--cassette-dir`).
+        #[arg(long, value_enum)]
+        format: crate::api::ImportFormat,
+        /// How imported specs combine with existing catalog rows.
+        #[arg(long, value_enum, default_value_t = crate::api::ImportStrategy::Merge)]
+        strategy: crate::api::ImportStrategy,
+        /// Directory of LLM cassettes (required for `--format md`).
+        #[arg(long, env = "AITEST_CASSETTE_DIR")]
+        cassette_dir: Option<PathBuf>,
+        /// Cassette model id for markdown import.
+        #[arg(long, default_value = "cassette-md-plain-json")]
+        md_model: String,
+    },
 }
 
 #[derive(Debug, Subcommand)]
@@ -92,6 +116,12 @@ pub enum DagCommand {
     },
     /// List stored DAGs and their versions.
     List {
+        /// Output format.
+        #[arg(long, value_enum, default_value_t = OutputFormat::Text)]
+        format: OutputFormat,
+    },
+    /// List AI-generated DAG versions awaiting review (`created_by=ai`, `pending`).
+    Pending {
         /// Output format.
         #[arg(long, value_enum, default_value_t = OutputFormat::Text)]
         format: OutputFormat,

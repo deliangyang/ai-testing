@@ -9,6 +9,9 @@ use rusqlite::{params, Connection, OptionalExtension, Row, Transaction, Transact
 
 use crate::error::{Result, StoreError};
 
+/// `created_by` value for LLM-generated DAG candidates in the review queue.
+pub const CREATED_BY_AI: &str = "ai";
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum DagStatus {
     Pending,
@@ -71,6 +74,11 @@ const INFO_COLUMNS: &str = "id, version, status, created_by, created_at";
 impl<'a> DagRepository<'a> {
     pub fn new(conn: &'a Connection, clock: &'a dyn Clock) -> Self {
         Self { conn, clock }
+    }
+
+    /// Persists a gate-accepted LLM candidate as `pending` with [`CREATED_BY_AI`].
+    pub fn save_ai_candidate(&self, dag: &Dag) -> Result<DagRecord> {
+        self.save(dag, CREATED_BY_AI)
     }
 
     /// Stores `dag` as the next version of `dag.id`, in `pending` state. Any `version` already
@@ -192,17 +200,91 @@ impl<'a> DagRepository<'a> {
 
     /// Every version of every DAG, ordered by id then version.
     pub fn list(&self) -> Result<Vec<DagVersionInfo>> {
-        let mut stmt = self.conn.prepare(&format!(
-            "SELECT {INFO_COLUMNS} FROM dag_definitions ORDER BY id, version"
-        ))?;
-        let rows = stmt.query_map([], raw_info)?;
-        rows.map(|r| r.map_err(StoreError::from).and_then(RawInfo::decode))
-            .collect()
+        self.list_filtered(None, None)
+    }
+
+    /// Subset of [`Self::list`] filtered by `status` and/or `created_by` (both optional).
+    pub fn list_filtered(
+        &self,
+        status: Option<DagStatus>,
+        created_by: Option<&str>,
+    ) -> Result<Vec<DagVersionInfo>> {
+        let mut sql = format!("SELECT {INFO_COLUMNS} FROM dag_definitions WHERE 1=1");
+        if status.is_some() {
+            sql.push_str(" AND status = ?");
+        }
+        if created_by.is_some() {
+            sql.push_str(" AND created_by = ?");
+        }
+        sql.push_str(" ORDER BY id, version");
+        let mut stmt = self.conn.prepare(&sql)?;
+        let status_str = status.map(DagStatus::as_str);
+        match (status_str, created_by) {
+            (Some(st), Some(by)) => {
+                let rows = stmt.query_map(params![st, by], raw_info)?;
+                collect_infos(rows)
+            }
+            (Some(st), None) => {
+                let rows = stmt.query_map([st], raw_info)?;
+                collect_infos(rows)
+            }
+            (None, Some(by)) => {
+                let rows = stmt.query_map([by], raw_info)?;
+                collect_infos(rows)
+            }
+            (None, None) => {
+                let rows = stmt.query_map([], raw_info)?;
+                collect_infos(rows)
+            }
+        }
+    }
+
+    /// AI-generated versions still awaiting human activation.
+    pub fn list_pending_ai(&self) -> Result<Vec<DagVersionInfo>> {
+        self.list_filtered(Some(DagStatus::Pending), Some(CREATED_BY_AI))
+    }
+
+    /// Overwrites `content_json` for a pending version (used when activation calibration repairs).
+    pub fn update_pending_content(&self, id: &str, version: u32, dag: &Dag) -> Result<()> {
+        let status: String = self
+            .conn
+            .query_row(
+                "SELECT status FROM dag_definitions WHERE id = ?1 AND version = ?2",
+                params![id, version],
+                |r| r.get(0),
+            )
+            .optional()?
+            .ok_or_else(|| StoreError::NotFound(format!("DAG '{id}' version {version}")))?;
+        if status.parse::<DagStatus>()? != DagStatus::Pending {
+            return Err(StoreError::Invalid(
+                "only pending DAG versions can be updated".into(),
+            ));
+        }
+        let mut content = dag.clone();
+        content.version = None;
+        let json = to_canonical_json(&content).map_err(|e| StoreError::Corrupt(e.to_string()))?;
+        let rows = self.conn.execute(
+            "UPDATE dag_definitions SET content_json = ?3 WHERE id = ?1 AND version = ?2 AND status = 'pending'",
+            params![id, version, json],
+        )?;
+        if rows == 0 {
+            return Err(StoreError::Conflict(
+                "DAG version is no longer pending".into(),
+            ));
+        }
+        Ok(())
     }
 
     pub fn active_version(&self, id: &str) -> Result<Option<u32>> {
         active_version(self.conn, id)
     }
+}
+
+fn collect_infos(
+    rows: rusqlite::MappedRows<'_, impl FnMut(&Row<'_>) -> rusqlite::Result<RawInfo>>,
+) -> Result<Vec<DagVersionInfo>> {
+    rows.map(|r| r.map_err(StoreError::from).and_then(RawInfo::decode))
+        .collect()
 }
 
 fn active_version(conn: &Connection, id: &str) -> Result<Option<u32>> {

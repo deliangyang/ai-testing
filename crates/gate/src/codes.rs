@@ -33,3 +33,7 @@ pub const EMPTY_FIELD: &str = "completeness.empty_field";
 pub const ORPHAN_NODE: &str = "completeness.orphan_node";
 pub const CLEANUP_HAS_SUCCESSOR: &str = "completeness.cleanup_has_successor";
 pub const UNASSERTED_HTTP: &str = "completeness.unasserted_http";
+
+pub const REPAIR_ADD_EDGE: &str = "calibrate.add_edge";
+pub const REPAIR_POLL_BACKOFF: &str = "calibrate.poll_backoff";
+pub const REPAIR_POLL_TIMEOUT: &str = "calibrate.poll_timeout";

@@ -1,6 +1,9 @@
 mod common;
 
-use common::{dag, edge, finding, findings, validate};
+use std::sync::Arc;
+
+use common::{dag, edge, finding, findings, validate, validate_with_api_specs};
+use gate::rules::MapApiSpecLookup;
 use gate::{codes, Severity};
 use serde_json::{json, Value};
 
@@ -119,6 +122,89 @@ fn subworkflow_outputs_and_db_rows_are_checked() {
             ),
             finding(codes::UNKNOWN_FIELD, Some("use"), Some("/nodes/2/path")),
         ]
+    );
+}
+
+#[test]
+fn api_spec_response_schema_used_when_inline_schema_missing() {
+    let spec_schema = json!({"type": "object", "properties": {"id": {"type": "string"}}});
+    let lookup =
+        Arc::new(MapApiSpecLookup::new().with_active("orders.create", Some(spec_schema.clone())));
+    let report = validate_with_api_specs(
+        &dag(
+            vec![
+                json!({"id": "create", "type": "http", "method": "POST", "path": "/orders",
+                    "api_spec_id": "orders.create"}),
+                user("u", "/o/${create.output.body.id}"),
+            ],
+            vec![edge("create", "u")],
+        ),
+        lookup,
+    );
+    assert!(report.issues.is_empty(), "{:#?}", report.issues);
+}
+
+#[test]
+fn api_spec_schema_takes_priority_over_inline_response_schema() {
+    let lookup = Arc::new(MapApiSpecLookup::new().with_active(
+        "orders.create",
+        Some(json!({"type": "object", "properties": {
+            "id": {"type": "string"},
+            "total": {"type": "number"}
+        }})),
+    ));
+    let report = validate_with_api_specs(
+        &dag(
+            vec![
+                json!({"id": "create", "type": "http", "method": "POST", "path": "/orders",
+                    "api_spec_id": "orders.create",
+                    "response_schema": {"type": "object", "properties": {"id": {"type": "string"}}}}),
+                user("u", "/${create.output.body.total}"),
+            ],
+            vec![edge("create", "u")],
+        ),
+        lookup,
+    );
+    assert!(report.issues.is_empty(), "{:#?}", report.issues);
+}
+
+#[test]
+fn api_spec_unknown_field_still_errors() {
+    let lookup = Arc::new(MapApiSpecLookup::new().with_active(
+        "orders.create",
+        Some(json!({"type": "object", "properties": {"id": {"type": "string"}}})),
+    ));
+    let report = validate_with_api_specs(
+        &dag(
+            vec![
+                json!({"id": "create", "type": "http", "method": "POST", "path": "/orders",
+                    "api_spec_id": "orders.create"}),
+                user("u", "/${create.output.body.missing}"),
+            ],
+            vec![edge("create", "u")],
+        ),
+        lookup,
+    );
+    assert!(report.has_code(codes::UNKNOWN_FIELD));
+}
+
+#[test]
+fn api_spec_id_without_lookup_falls_back_to_unverified() {
+    let report = validate(&dag(
+        vec![
+            json!({"id": "create", "type": "http", "method": "GET", "path": "/orders",
+                "api_spec_id": "orders.create"}),
+            user("u", "/${create.output.body.id}"),
+        ],
+        vec![edge("create", "u")],
+    ));
+    assert_eq!(
+        findings(&report),
+        vec![finding(
+            codes::UNVERIFIED_FIELD,
+            Some("u"),
+            Some("/nodes/1/path")
+        )]
     );
 }
 

@@ -5,7 +5,7 @@ use std::sync::{Arc, Barrier};
 
 use common::clock::{FixedClock, Timestamp};
 use model::Dag;
-use store::{DagRepository, DagStatus, Db, StoreError};
+use store::{DagRepository, DagStatus, Db, StoreError, CREATED_BY_AI};
 
 fn clock() -> FixedClock {
     FixedClock::new(Timestamp::from_unix_millis(1_700_000_000_000))
@@ -236,4 +236,55 @@ fn concurrent_saves_get_distinct_versions() {
     });
     versions.sort_unstable();
     assert_eq!(versions, (1..=THREADS as u32).collect::<Vec<_>>());
+}
+
+#[test]
+fn ai_candidates_are_pending_and_listed_separately() {
+    let clock = clock();
+    let db = Db::open_in_memory(&clock).unwrap();
+    let repo = DagRepository::new(db.conn(), &clock);
+
+    repo.save(&dag("orders", "/cli"), "cli").unwrap();
+    let ai = repo.save_ai_candidate(&dag("orders", "/ai")).unwrap();
+
+    assert_eq!(ai.info.status, DagStatus::Pending);
+    assert_eq!(ai.info.created_by, CREATED_BY_AI);
+    assert_eq!(repo.active_version("orders").unwrap(), None);
+
+    let pending_ai = repo.list_pending_ai().unwrap();
+    assert_eq!(pending_ai.len(), 1);
+    assert_eq!(pending_ai[0].version, ai.info.version);
+    assert_eq!(
+        repo.list_filtered(Some(DagStatus::Pending), Some(CREATED_BY_AI))
+            .unwrap(),
+        pending_ai
+    );
+}
+
+#[test]
+fn update_pending_content_rejects_non_pending() {
+    let clock = clock();
+    let db = Db::open_in_memory(&clock).unwrap();
+    let repo = DagRepository::new(db.conn(), &clock);
+    repo.save(&dag("orders", "/v1"), "alice").unwrap();
+    repo.activate("orders", 1, None).unwrap();
+    let err = repo
+        .update_pending_content("orders", 1, &dag("orders", "/v2"))
+        .unwrap_err();
+    assert!(matches!(err, StoreError::Invalid(_)));
+}
+
+#[test]
+fn ai_pending_cannot_become_active_without_going_through_activate() {
+    let clock = clock();
+    let db = Db::open_in_memory(&clock).unwrap();
+    let repo = DagRepository::new(db.conn(), &clock);
+
+    let saved = repo.save_ai_candidate(&dag("orders", "/v1")).unwrap();
+    assert_eq!(statuses(&repo, "orders"), [(1, DagStatus::Pending)]);
+
+    repo.activate("orders", saved.info.version, None).unwrap();
+    assert_eq!(statuses(&repo, "orders"), [(1, DagStatus::Active)]);
+    let record = repo.get("orders", 1).unwrap().unwrap();
+    assert_eq!(record.info.created_by, CREATED_BY_AI);
 }

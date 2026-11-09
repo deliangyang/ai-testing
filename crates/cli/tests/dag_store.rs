@@ -7,7 +7,7 @@ use std::process::{Command, Output};
 use common::clock::{FixedClock, Timestamp};
 use model::Dag;
 use serde_json::Value;
-use store::{DagRepository, Db};
+use store::{DagRepository, Db, CREATED_BY_AI};
 
 struct Workspace {
     dir: tempfile::TempDir,
@@ -224,4 +224,65 @@ fn list_prints_a_table() {
         "{text}"
     );
     assert!(lines[1].ends_with("  cli"), "{text}");
+}
+
+#[test]
+fn pending_lists_only_ai_review_queue() {
+    let ws = Workspace::new();
+    ws.save(&ws.file("orders.yaml", PLAIN));
+    let clock = FixedClock::new(Timestamp::from_unix_millis(1_700_000_000_000));
+    let db = Db::open(ws.db(), &clock).unwrap();
+    DagRepository::new(db.conn(), &clock)
+        .save_ai_candidate(&Dag::from_yaml_str(PLAIN).unwrap())
+        .unwrap();
+
+    let out = ws.mytool(&["dag", "pending", "--format", "json"]);
+    assert!(out.status.success(), "{}", stderr(&out));
+    let rows: Value = serde_json::from_str(&stdout(&out)).unwrap();
+    let rows = rows.as_array().unwrap();
+    assert_eq!(rows.len(), 1);
+    assert_eq!(rows[0]["created_by"].as_str().unwrap(), CREATED_BY_AI);
+    assert_eq!(rows[0]["status"].as_str().unwrap(), "pending");
+}
+
+const NEEDS_CALIBRATE: &str = r#"id: cal
+nodes:
+  - id: root
+    type: http
+    method: GET
+    path: /
+  - id: c
+    type: http
+    method: GET
+    path: /c
+  - id: d
+    type: http
+    method: POST
+    path: /d
+    body:
+      x: ${c.output.body.id}
+edges:
+  - from: root
+    to: c
+  - from: root
+    to: d
+"#;
+
+#[test]
+fn activate_runs_calibration_then_gate() {
+    let ws = Workspace::new();
+    if let Some(parent) = ws.db().parent() {
+        fs::create_dir_all(parent).unwrap();
+    }
+    let clock = FixedClock::new(Timestamp::from_unix_millis(1_700_000_000_000));
+    let db = Db::open(ws.db(), &clock).unwrap();
+    DagRepository::new(db.conn(), &clock)
+        .save(&Dag::from_yaml_str(NEEDS_CALIBRATE).unwrap(), "test")
+        .unwrap();
+
+    let out = ws.mytool(&["dag", "activate", "cal", "1"]);
+    assert!(out.status.success(), "{}", stderr(&out));
+    let text = stdout(&out);
+    assert!(text.contains("calibrated"), "{text}");
+    assert!(text.contains("activated DAG 'cal' version 1"));
 }

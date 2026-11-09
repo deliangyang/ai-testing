@@ -1,5 +1,6 @@
 //! Local HTTP API over the SQLite store (phase 1).
 
+mod api_import;
 mod catalog;
 mod dto;
 mod error;

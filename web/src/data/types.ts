@@ -74,6 +74,65 @@ export interface CreateRunResponse {
   run_id: string
 }
 
+export type ApiImportFormat = 'openapi' | 'postman' | 'curl' | 'har' | 'md'
+
+export type ApiImportMergeStrategy = 'merge' | 'overwrite' | 'skip'
+
+export type ApiImportMergeAction = 'add' | 'update' | 'unchanged' | 'skip'
+
+export interface ApiSpecDto {
+  id: string
+  name: string
+  method: string
+  path: string
+  params?: unknown[]
+  response_schema?: unknown
+  auth_scheme_ref?: string
+}
+
+export interface ApiImportPreviewItem {
+  spec: ApiSpecDto
+  confidence: number
+  source_lines: number[]
+  merge_action: ApiImportMergeAction
+}
+
+export interface ApiImportPreviewSummary {
+  add: number
+  update: number
+  unchanged: number
+  skip: number
+}
+
+export interface ApiImportPreviewResponse {
+  strategy: ApiImportMergeStrategy
+  items: ApiImportPreviewItem[]
+  summary: ApiImportPreviewSummary
+}
+
+export interface ApiImportPreviewRequest {
+  format: ApiImportFormat
+  content: string
+  strategy?: ApiImportMergeStrategy
+}
+
+export interface ApiImportCommitItem {
+  spec: ApiSpecDto
+  accepted: boolean
+}
+
+export interface ApiImportCommitRequest {
+  strategy: ApiImportMergeStrategy
+  items: ApiImportCommitItem[]
+}
+
+export interface ApiImportPersistSummary {
+  added: number
+  updated: number
+  unchanged: number
+  saved_ids: string[]
+}
+
 export type NodeStatus =
   'PENDING' | 'READY' | 'RUNNING' | 'POLLING' | 'COMPLETED' | 'FAILED' | 'SKIPPED'
 

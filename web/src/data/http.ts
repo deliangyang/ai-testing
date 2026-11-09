@@ -1,6 +1,10 @@
 import type { DataSource, RunEventHandler, SubscribeRunEventsOptions } from './datasource'
 import { DataSourceError } from './errors'
 import type {
+  ApiImportCommitRequest,
+  ApiImportPersistSummary,
+  ApiImportPreviewRequest,
+  ApiImportPreviewResponse,
   CreateRunRequest,
   CreateRunResponse,
   DagDetailDto,
@@ -209,6 +213,24 @@ export class HttpDataSource implements DataSource {
   async cancelRun(runId: string): Promise<{ cancelled: boolean }> {
     const response = await this.fetchFn(this.url(`/api/runs/${encodeURIComponent(runId)}/cancel`), {
       method: 'POST',
+    })
+    return this.parseJson(response)
+  }
+
+  async previewApiImport(request: ApiImportPreviewRequest): Promise<ApiImportPreviewResponse> {
+    const response = await this.fetchFn(this.url('/api/api-specs/import/preview'), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(request),
+    })
+    return this.parseJson(response)
+  }
+
+  async commitApiImport(request: ApiImportCommitRequest): Promise<ApiImportPersistSummary> {
+    const response = await this.fetchFn(this.url('/api/api-specs/import/commit'), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(request),
     })
     return this.parseJson(response)
   }

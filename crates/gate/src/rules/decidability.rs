@@ -28,7 +28,7 @@ impl Rule for DecidabilityRule {
             match &node.kind {
                 NodeKind::Poll(cfg) => {
                     check_backoff(cfg, &base, &mut found);
-                    let shape = output_shape(node);
+                    let shape = output_shape(node, ctx.api_specs());
                     check_condition(
                         &cfg.condition,
                         Some(&shape),
@@ -43,7 +43,7 @@ impl Rule for DecidabilityRule {
                         .contains(cfg.target.as_str())
                         .then(|| ctx.dag.node(&cfg.target))
                         .flatten()
-                        .map(output_shape);
+                        .map(|n| output_shape(n, ctx.api_specs()));
                     for (j, cond) in cfg.assertions.iter().enumerate() {
                         let pointer = format!("{base}/assertions/{j}");
                         check_condition(cond, shape.as_ref(), &pointer, &mut found);

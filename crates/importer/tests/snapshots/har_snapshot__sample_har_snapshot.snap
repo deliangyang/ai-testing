@@ -1,0 +1,7 @@
+---
+source: crates/importer/tests/har_snapshot.rs
+expression: snapshot
+---
+{"id":"v1.orders.ord_9.delete","method":"DELETE","name":"DELETE /v1/orders/ord_9","path":"/v1/orders/ord_9"}
+{"id":"v1.orders.post","method":"POST","name":"POST /v1/orders","params":[{"location":"body","name":"body","required":false,"schema":{"properties":{"qty":{"type":"integer"},"sku":{"type":"string"}},"type":"object"}},{"location":"header","name":"content-type","required":false,"schema":{"const":"application/json","type":"string"}}],"path":"/v1/orders","response_schema":{"properties":{"order_id":{"type":"string"},"total":{"type":"number"}},"type":"object"}}
+{"id":"v1.users.get","method":"GET","name":"GET /v1/users","params":[{"location":"header","name":"accept","required":false,"schema":{"const":"application/json","type":"string"}},{"location":"header","name":"authorization","required":false,"schema":{"type":"string"}},{"location":"query","name":"limit","required":false,"schema":{"type":"integer"}},{"location":"query","name":"status","required":false,"schema":{"type":"string"}}],"path":"/v1/users","response_schema":{"properties":{"users":{"items":{"properties":{"email":{"type":"string"},"id":{"type":"integer"}},"type":"object"},"type":"array"}},"type":"object"}}

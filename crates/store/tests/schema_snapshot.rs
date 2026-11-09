@@ -68,6 +68,31 @@ fn seed_dag(db: &Db, version: i64, status: &str) {
 }
 
 #[test]
+fn only_one_active_version_per_api_spec() {
+    let db = db();
+    exec(
+        &db,
+        "INSERT INTO api_specs (
+            id, version, name, method, path, status, created_by, created_at
+         ) VALUES ('api', 1, 'n', 'GET', '/x', 'active', 't', '2026-01-01T00:00:00.000Z')",
+    )
+    .unwrap();
+    exec(
+        &db,
+        "INSERT INTO api_specs (
+            id, version, name, method, path, status, created_by, created_at
+         ) VALUES ('api', 2, 'n', 'GET', '/x', 'draft', 't', '2026-01-01T00:00:00.000Z')",
+    )
+    .unwrap();
+    let err = exec(
+        &db,
+        "UPDATE api_specs SET status = 'active' WHERE version = 2",
+    )
+    .unwrap_err();
+    assert!(err.contains("UNIQUE"), "{err}");
+}
+
+#[test]
 fn only_one_active_version_per_dag() {
     let db = db();
     seed_dag(&db, 1, "active");

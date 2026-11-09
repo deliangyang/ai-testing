@@ -1,0 +1,33 @@
+[package]
+name = "importer"
+description = "Normalize imported HTTP API specs and persist via the store layer."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[features]
+default = ["markdown"]
+markdown = ["dep:llm-gateway", "dep:tokio"]
+
+[dependencies]
+common = { workspace = true }
+llm-gateway = { workspace = true, optional = true }
+model = { workspace = true }
+sha2 = { workspace = true }
+store = { workspace = true }
+tokio = { workspace = true, optional = true, features = ["macros", "rt"] }
+schemars = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+thiserror = { workspace = true }
+yaml_serde = { workspace = true }
+
+[dev-dependencies]
+common = { workspace = true }
+insta = { version = "1", features = ["json", "yaml"] }
+tokio = { workspace = true, features = ["rt-multi-thread", "macros"] }
+
+[lints]
+workspace = true

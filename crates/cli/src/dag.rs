@@ -3,7 +3,7 @@
 use std::path::Path;
 
 use anyhow::anyhow;
-use gate::{Gate, Report};
+use gate::{prepare_for_activation, Gate, RepairRecord, Report};
 use model::to_canonical_json;
 use serde_json::json;
 use store::{DagRepository, DagVersionInfo};
@@ -58,20 +58,25 @@ pub fn save(db_path: &Path, file: &Path) -> anyhow::Result<u8> {
 /// the save gate again: the DAGs it references may have changed since it was saved.
 pub fn activate(db_path: &Path, id: &str, version: u32) -> anyhow::Result<u8> {
     let store = Store::open(db_path)?;
-    let dag = {
+    let record = {
         let db = store.lock()?;
         DagRepository::new(db.conn(), store.clock.as_ref())
             .get(id, version)?
             .ok_or_else(|| anyhow!("DAG '{id}' has no version {version}"))?
-            .dag
     };
-    let report = store.gate(&dag);
-    if !report.passed() {
-        return rejected(&format!("DAG '{id}' version {version}"), &report);
+    let gate = store.for_save_gate();
+    let before = record.dag;
+    let prep = prepare_for_activation(&gate, before.clone());
+    if !prep.report.passed() {
+        return rejected(&format!("DAG '{id}' version {version}"), &prep.report);
     }
-    print_issues(&report);
+    print_repairs(&prep.repairs);
+    print_issues(&prep.report);
     let db = store.lock()?;
     let repo = DagRepository::new(db.conn(), store.clock.as_ref());
+    if dag_content_differs(&before, &prep.dag) {
+        repo.update_pending_content(id, version, &prep.dag)?;
+    }
     let previous = repo.active_version(id)?;
     repo.activate(id, version, previous)?;
     match previous {
@@ -80,6 +85,26 @@ pub fn activate(db_path: &Path, id: &str, version: u32) -> anyhow::Result<u8> {
         }
         Some(_) => println!("DAG '{id}' version {version} is already active"),
         None => println!("activated DAG '{id}' version {version}"),
+    }
+    Ok(exit::SUCCESS)
+}
+
+pub fn pending(db_path: &Path, format: OutputFormat) -> anyhow::Result<u8> {
+    let store = Store::open(db_path)?;
+    let versions = {
+        let db = store.lock()?;
+        DagRepository::new(db.conn(), store.clock.as_ref()).list_pending_ai()?
+    };
+    match format {
+        OutputFormat::Json => {
+            let rows: Vec<_> = versions.iter().map(version_json).collect();
+            println!("{}", to_canonical_json(&rows)?);
+        }
+        OutputFormat::Text if versions.is_empty() => println!("no AI candidates awaiting review"),
+        OutputFormat::Text => {
+            println!("AI candidates (pending):");
+            print_versions(&versions);
+        }
     }
     Ok(exit::SUCCESS)
 }
@@ -179,5 +204,27 @@ fn plural(n: usize) -> &'static str {
         ""
     } else {
         "s"
+    }
+}
+
+fn dag_content_differs(before: &model::Dag, after: &model::Dag) -> bool {
+    let mut a = before.clone();
+    let mut b = after.clone();
+    a.version = None;
+    b.version = None;
+    match (model::to_canonical_json(&a), model::to_canonical_json(&b)) {
+        (Ok(x), Ok(y)) => x != y,
+        _ => true,
+    }
+}
+
+fn print_repairs(repairs: &[RepairRecord]) {
+    for r in repairs {
+        println!(
+            "calibrated [{code}] {path}: {msg}",
+            code = r.code,
+            path = r.json_path,
+            msg = r.message
+        );
     }
 }

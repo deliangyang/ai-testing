@@ -5,6 +5,10 @@
 
 export type Node =
   | {
+      /**
+       * Active `api_specs` row to resolve response shape when set; overrides inline `response_schema` for gate checks.
+       */
+      api_spec_id?: string | null;
       body?: unknown;
       headers?: {
         [k: string]: string | undefined;

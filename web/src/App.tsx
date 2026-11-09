@@ -1,11 +1,15 @@
+import { ApiImportWorkbench } from './import'
 import { AppShell, DagEditWorkbench } from './shell'
 
 function App() {
-  if (
-    typeof window !== 'undefined' &&
-    new URLSearchParams(window.location.search).get('edit') === '1'
-  ) {
-    return <DagEditWorkbench />
+  if (typeof window !== 'undefined') {
+    const params = new URLSearchParams(window.location.search)
+    if (params.get('import') === '1') {
+      return <ApiImportWorkbench />
+    }
+    if (params.get('edit') === '1') {
+      return <DagEditWorkbench />
+    }
   }
   return <AppShell />
 }

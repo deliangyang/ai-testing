@@ -6,6 +6,7 @@ members = [
     "crates/gate",
     "crates/secrets",
     "crates/llm-gateway",
+    "crates/generator",
     "crates/store",
     "crates/classifier",
     "crates/engine",
@@ -13,6 +14,7 @@ members = [
     "crates/mock-sut",
     "crates/server",
     "crates/nsh-bridge",
+    "crates/importer",
 ]
 
 [workspace.package]
@@ -28,9 +30,11 @@ model = { path = "crates/model" }
 gate = { path = "crates/gate" }
 secrets = { path = "crates/secrets" }
 llm-gateway = { path = "crates/llm-gateway" }
+generator = { path = "crates/generator" }
 store = { path = "crates/store" }
 classifier = { path = "crates/classifier" }
 engine = { path = "crates/engine" }
+importer = { path = "crates/importer" }
 
 anyhow = "1"
 clap = { version = "4", features = ["derive", "env"] }

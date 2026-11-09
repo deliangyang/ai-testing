@@ -1,0 +1,6 @@
+---
+source: crates/importer/tests/openapi_snapshot.rs
+expression: specs_canonical_lines(&specs)
+---
+{"auth_scheme_ref":"petstore_auth","id":"findPetsByStatus","method":"GET","name":"Finds Pets by status","params":[{"location":"query","name":"status","required":true,"schema":{"enum":["available","pending","sold"],"type":"string"}}],"path":"/pet/findByStatus","response_schema":{"items":{"properties":{"id":{"format":"int64","type":"integer"},"name":{"type":"string"},"status":{"enum":["available","pending","sold"],"type":"string"}},"type":"object"},"type":"array"}}
+{"id":"getPetById","method":"GET","name":"Find pet by ID","params":[{"location":"path","name":"petId","required":true,"schema":{"format":"int64","type":"integer"}}],"path":"/pet/{petId}","response_schema":{"properties":{"id":{"format":"int64","type":"integer"},"name":{"type":"string"},"status":{"enum":["available","pending","sold"],"type":"string"}},"type":"object"}}

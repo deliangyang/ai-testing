@@ -80,4 +80,12 @@ export class NshDataSource implements DataSource {
   cancelRun(...args: Parameters<DataSource['cancelRun']>) {
     return this.ds().then((d) => d.cancelRun(...args))
   }
+
+  previewApiImport(...args: Parameters<DataSource['previewApiImport']>) {
+    return this.ds().then((d) => d.previewApiImport(...args))
+  }
+
+  commitApiImport(...args: Parameters<DataSource['commitApiImport']>) {
+    return this.ds().then((d) => d.commitApiImport(...args))
+  }
 }

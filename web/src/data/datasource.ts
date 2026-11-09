@@ -1,4 +1,8 @@
 import type {
+  ApiImportCommitRequest,
+  ApiImportPersistSummary,
+  ApiImportPreviewRequest,
+  ApiImportPreviewResponse,
   CreateRunRequest,
   CreateRunResponse,
   DagDetailDto,
@@ -44,4 +48,6 @@ export interface DataSource {
   activateDag(dagId: string, version: number): Promise<DagVersionDto>
   startRun(request: CreateRunRequest): Promise<CreateRunResponse>
   cancelRun(runId: string): Promise<{ cancelled: boolean }>
+  previewApiImport(request: ApiImportPreviewRequest): Promise<ApiImportPreviewResponse>
+  commitApiImport(request: ApiImportCommitRequest): Promise<ApiImportPersistSummary>
 }

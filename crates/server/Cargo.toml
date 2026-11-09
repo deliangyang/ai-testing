@@ -19,6 +19,7 @@ async-stream = "0.3"
 common = { workspace = true }
 engine = { workspace = true }
 gate = { workspace = true }
+importer = { path = "../importer", default-features = false }
 futures-util = "0.3"
 model = { workspace = true }
 serde = { workspace = true }
@@ -37,6 +38,7 @@ rustls = { workspace = true }
 http-body-util = "0.1"
 serde_json = { workspace = true }
 tempfile = { workspace = true }
+rusqlite = { workspace = true }
 tower = { version = "0.5", features = ["util"] }
 
 [lints]

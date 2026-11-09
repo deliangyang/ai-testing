@@ -184,23 +184,23 @@ M0 两周联合评审：P0-56。
 | P2-02 | `llm-gateway` crate：`LlmProvider` trait、OpenAI 兼容实现、录制/回放 Mock 实现（测试默认 Mock）；API Key 经 secrets 获取 | `crates/llm-gateway` | P2-01 | Mock 回放单测；真实调用仅在显式环境变量下运行 | DONE |
 | P2-03 | 迁移新增 `llm_call_logs`；每次调用记录 purpose/tokens/cost/latency/outcome | `crates/store`、`crates/llm-gateway` | P2-02 | 单测 | DONE |
 | P2-04 | 脱敏器 Redactor：发送前扫描提示词，疑似密码/密钥/token 替换为 `****`；gateway 强制经过 | `crates/llm-gateway` | P2-02 | 样本集（.env、yml、JWT、AK/SK）全部被替换 | DONE |
-| P2-05 | `importer` crate：归一化 `ApiSpec` 模型 + `ApiSpecRepository`（draft/active/deprecated，版本化） | `crates/importer`、`crates/store` | P0-22 | 单测 | TODO |
-| P2-06 | OpenAPI 3.x / Swagger 2.0 确定性解析器 | `crates/importer` | P2-05 | Petstore 等样例解析快照测试 | TODO |
-| P2-07 | Postman Collection v2.1 解析器 | `crates/importer` | P2-05 | 样例快照测试 | TODO |
-| P2-08 | cURL 命令解析器（请求还原 + 启发式推断） | `crates/importer` | P2-05 | ≥10 条 cURL 用例 | TODO |
-| P2-09 | HAR 解析器（去重同一端点、推断响应 schema） | `crates/importer` | P2-05 | 样例快照测试 | TODO |
-| P2-10 | 增量合并：新旧 ApiSpec diff，策略 合并/覆盖/跳过 | `crates/importer` | P2-05 | 三种策略单测 | TODO |
-| P2-11 | Markdown 导入：AI 抽取结构化草稿（带置信度、来源行号）→ 待审队列（status=draft） | `crates/importer` | P2-04、P2-05 | Mock 回放用例；草稿不进入 active | TODO |
-| P2-12 | CLI `mytool api import --format <openapi\|postman\|curl\|har\|md> <file> --strategy <...>` | `crates/cli` | P2-06 ~ P2-11 | 各格式端到端用例 | TODO |
-| P2-13 | 导入 UI：预览卡片、低置信度黄色高亮、逐条确认/修正、合并策略选择 | `web/`、`crates/server` | P2-12、P1-07 | E2E 用例 | TODO |
-| P2-14 | http 节点关联 `api_spec_id`，闸门字段存在规则改为优先使用 api_specs 的 response_schema | `crates/model`、`crates/gate` | P2-05、P0-17 | 单测 | TODO |
-| P2-15 | 提示词资产：`prompts/` 目录版本化模板（含 §10.3），prompt_version 参与缓存键 | `prompts/`、`crates/generator` | P2-02 | 模板加载与渲染单测 | TODO |
-| P2-16 | `generator` crate 上下文组装：自然语言描述 + 接口 schema + 业务规则 + Skill 契约 + 偏好（后两者先为空接口） | `crates/generator` | P2-15、P2-05 | 组装结果快照测试；经过 Redactor | TODO |
-| P2-17 | 生成与解析：调用 LLM，容错提取 JSON，反序列化为 Dag；只接受 DAG JSON，拒绝任何代码输出 | `crates/generator` | P2-16 | Mock 回放：正常/带解释文本/非法 JSON 三例 | TODO |
-| P2-18 | 闸门回喂循环：闸门失败时把 Issue 列表回喂模型修正，最多 N 轮；仍失败标记「需人工介入」 | `crates/generator` | P2-17、P0-20 | 无效变量引用候选被拦截并定位 | TODO |
-| P2-19 | 确定性自动校准器（§6.6）：可机械修复项（如引用了非相邻祖先补边、补默认 timeout）自动修复并记录每条修复 | `crates/gate` | P0-20 | 每类修复正反例；修复后再次闸门通过 | TODO |
-| P2-20 | 待审区：AI 候选以 `status=pending, created_by=ai` 保存；server/CLI 列表与详情 API | `crates/store`、`crates/server`、`crates/cli` | P2-18、P1-05 | AI 候选无法直接 active（测试） | TODO |
-| P2-21 | 激活流程：激活前重新执行闸门 + 自动校准，通过才产生 active 新版本 | `crates/store`、`crates/server` | P2-20、P2-19 | 绕过闸门的激活请求被拒绝 | TODO |
+| P2-05 | `importer` crate：归一化 `ApiSpec` 模型 + `ApiSpecRepository`（draft/active/deprecated，版本化） | `crates/importer`、`crates/store` | P0-22 | 单测 | DONE |
+| P2-06 | OpenAPI 3.x / Swagger 2.0 确定性解析器 | `crates/importer` | P2-05 | Petstore 等样例解析快照测试 | DONE |
+| P2-07 | Postman Collection v2.1 解析器 | `crates/importer` | P2-05 | 样例快照测试 | DONE |
+| P2-08 | cURL 命令解析器（请求还原 + 启发式推断） | `crates/importer` | P2-05 | ≥10 条 cURL 用例 | DONE |
+| P2-09 | HAR 解析器（去重同一端点、推断响应 schema） | `crates/importer` | P2-05 | 样例快照测试 | DONE |
+| P2-10 | 增量合并：新旧 ApiSpec diff，策略 合并/覆盖/跳过 | `crates/importer` | P2-05 | 三种策略单测 | DONE |
+| P2-11 | Markdown 导入：AI 抽取结构化草稿（带置信度、来源行号）→ 待审队列（status=draft） | `crates/importer` | P2-04、P2-05 | Mock 回放用例；草稿不进入 active | DONE |
+| P2-12 | CLI `mytool api import --format <openapi\|postman\|curl\|har\|md> <file> --strategy <...>` | `crates/cli` | P2-06 ~ P2-11 | 各格式端到端用例 | DONE |
+| P2-13 | 导入 UI：预览卡片、低置信度黄色高亮、逐条确认/修正、合并策略选择 | `web/`、`crates/server` | P2-12、P1-07 | E2E 用例 | DONE |
+| P2-14 | http 节点关联 `api_spec_id`，闸门字段存在规则改为优先使用 api_specs 的 response_schema | `crates/model`、`crates/gate` | P2-05、P0-17 | 单测 | DONE |
+| P2-15 | 提示词资产：`prompts/` 目录版本化模板（含 §10.3），prompt_version 参与缓存键 | `prompts/`、`crates/generator` | P2-02 | 模板加载与渲染单测 | DONE |
+| P2-16 | `generator` crate 上下文组装：自然语言描述 + 接口 schema + 业务规则 + Skill 契约 + 偏好（后两者先为空接口） | `crates/generator` | P2-15、P2-05 | 组装结果快照测试；经过 Redactor | DONE |
+| P2-17 | 生成与解析：调用 LLM，容错提取 JSON，反序列化为 Dag；只接受 DAG JSON，拒绝任何代码输出 | `crates/generator` | P2-16 | Mock 回放：正常/带解释文本/非法 JSON 三例 | DONE |
+| P2-18 | 闸门回喂循环：闸门失败时把 Issue 列表回喂模型修正，最多 N 轮；仍失败标记「需人工介入」 | `crates/generator` | P2-17、P0-20 | 无效变量引用候选被拦截并定位 | DONE |
+| P2-19 | 确定性自动校准器（§6.6）：可机械修复项（如引用了非相邻祖先补边、补默认 timeout）自动修复并记录每条修复 | `crates/gate` | P0-20 | 每类修复正反例；修复后再次闸门通过 | DONE |
+| P2-20 | 待审区：AI 候选以 `status=pending, created_by=ai` 保存；server/CLI 列表与详情 API | `crates/store`、`crates/server`、`crates/cli` | P2-18、P1-05 | AI 候选无法直接 active（测试） | DONE |
+| P2-21 | 激活流程：激活前重新执行闸门 + 自动校准，通过才产生 active 新版本 | `crates/store`、`crates/server`、`crates/cli` | P2-20、P2-19 | 绕过闸门的激活请求被拒绝 | DONE |
 | P2-22 | UI：AI 候选半透明预览、校验徽标、激活按钮、与当前 active 版本 diff | `web/` | P2-20、P1-24 | E2E 用例 | TODO |
 | P2-23 | UI：校验失败问题列表「交给 AI 修正」 | `web/`、`crates/server` | P2-22、P2-18 | E2E 用例 | TODO |
 | P2-24 | AI 副驾 Tab：对话界面；每条输出绑定工件（插入画布/定位节点/采纳断言）；顶部显示当前上下文 | `web/`、`crates/server` | P2-22 | E2E 用例（Mock 回放） | TODO |
@@ -392,8 +392,33 @@ M0 两周联合评审：P0-56。
 | 2026-11-09 | — | 编排 | [P1-32 预备](2c8a0b19-3f55-4bc2-8321-952fbd5707f3) → `docs/reviews/phase1.md`（7 行清单）；主编排已将 #1–#5 标为 Web 证据就绪 |
 | 2026-11-09 | — | 编排 | [P0-56 探索](1be80a6d-52da-429e-82a2-39ab665dc4c4) 后：Q8 文案同步 P1-29（细节见 `d5120c1`）；P0-56 仍 BLOCKED |
 | 2026-11-09 | P1-32 | 验收会话 | 功能证据：failure-evidence/gate-validation E2E、`DagReportReplayView` vitest、`cargo test -p nsh-bridge` 通过；`nsh test` SKIP；`check.ps1` exit 1 → `phase1.md` 结论不通过；新增 **P1-32-fix1**，P1-32 仍 DOING |
+| 2026-11-09 | P2-12 | DOING→DONE | `mytool api import`（openapi/postman/curl/har/md + merge/overwrite/skip）；`importer::pipeline` + `markdown_cassette`（默认 CLI 无 llm-gateway）；`ApiSpecRepository::list_effective_specs`；`crates/cli/tests/api_import.rs` 五格式各一例；未提交；`./scripts/check.sh` 全绿 |
 | 2026-11-09 | P1-32-fix1 | DOING→DONE | → `d5b633b`：web prettier/eslint；`statusBar*.test` 重命名；server 测试 `TokioSleeper`；`mytool run` `multi_thread` runtime 修复 golden 死锁；golden 两次运行间重启 mock-sut；`schema.sql` 快照；`./scripts/check.ps1` exit 0 |
 | 2026-11-09 | P1-32 | DOING→DONE | → `d5b633b`：`phase1.md` #7 与结论**通过** |
+| 2026-11-09 | P2-17 | DOING→DONE | `generate_dag`（`LlmProvider`/`CassetteProvider`）+ `extract_dag_json`/`parse_dag_from_llm_content`（markdown 围栏与前后说明容错；拒绝 rust/ts 等纯代码块）；`tests/fixtures/cassettes` 三例回放 + 解析单测；未提交；`./scripts/check.sh` 全绿 |
+| 2026-11-09 | P2-10 | DOING→DONE | `importer::merge`：`diff_api_specs`、`apply_merge_strategy`、`MergeStrategy`（merge/overwrite/skip）；按规范化 `id` 与 canonical JSON 判定变更；`merge.rs` 内 10 条单测（三策略各正反例 + diff/重复 id）；`lib.rs` 导出；未提交；`./scripts/check.sh` 全绿 |
+| 2026-11-09 | P2-09 | DOING→DONE | `importer::har`（`parse_har`/`parse_har_str`）；按 method+path 去重合并 params；从响应 JSON 推断 `response_schema`；`heuristic` 与 cURL 共用；fixture + insta；未提交；`./scripts/check.sh` 全绿 |
+| 2026-11-09 | P2-09/10/14/17 | DOING→DONE | HAR/merge/`api_spec_id`+`ApiSpecLookup`/`generate_dag`+`parse_dag_from_llm_content`；check 全绿 |
+| 2026-11-09 | P2-18 | DOING→DONE | `generate_dag_with_gate`（`Gate::standard()` + 错误级 Issue 规范化 JSON 回喂；默认 `max_rounds=3`；`GenerateDagWithGateResult::NeedsManualReview`）；cassette 修正/三轮仍失败用例；`reference.not_ancestor` 定位节点 `a`；未提交；`./scripts/check.sh` 全绿 |
+| 2026-11-09 | P2-11 | DOING→DONE | `importer::markdown`（`ApiSpecDraft{spec,confidence,source_lines}`）；`CassetteProvider` 回放 + `persist_api_spec_drafts` 仅 `save`/draft；未提交；`./scripts/check.sh` 全绿 |
+| 2026-11-09 | P2-13 | DOING→DONE | `importer::preview` + `parse_import_text`；server `POST /api/api-specs/import/preview|commit`；`web/import` 预览卡片/低置信高亮/采纳修正/合并策略；`?import=1` 工作台 + Vitest + Playwright；未提交；`./scripts/check.sh` 全绿 |
+| 2026-11-09 | P2-21 | DOING→DONE | `prepare_for_activation`（calibrate→for_save gate）；`update_pending_content`；CLI/server activate 写回校准内容；`dag_store`/`activation` 测试；`golden.rs` `pay_delay_ms(5)` 消除 async-poll 竞态；未提交；check 全绿 |
+| 2026-11-09 | P2-21 | TODO→DOING | 认领激活前校准与闸门 |
+| 2026-11-09 | P2-20 | DOING→DONE | `CREATED_BY_AI`/`save_ai_candidate`/`list_pending_ai`/`list_filtered`；server `GET /api/dags/pending`、`POST /api/dags/candidates`、`GET /api/dags?status&created_by`；CLI `mytool dag pending`；`pending_ai` 集成测试（HTTP activate 重跑闸门、无法绕闸直接 active）；未提交；`./scripts/check.sh` 全绿 |
+| 2026-11-09 | P2-12/P2-20 | TODO→DOING | 第五波：`mytool api import` + 待审区 API |
+| 2026-11-09 | P2-11/P2-18 | TODO→DOING | 第四波：Markdown 抽取 + 闸门回喂 |
+| 2026-11-09 | P2-09/P2-10/P2-14/P2-17 | TODO→DOING | 第三波并行：HAR/合并/闸门 schema/DAG 生成解析 |
+| 2026-11-09 | P2-06 | DOING→DONE | `openapi` 3.x/Swagger2 + 局部 `$ref`；fixture + insta；编排修正 postman `host` clippy |
+| 2026-11-09 | P2-08 | DOING→DONE | `importer::curl::parse_curl_command`；单行 cURL→单个 `ApiSpec`（method/path/query/header/body 参数 + JSON body  schema 推断）；`response_schema` 默认 `None`；表驱动 12 条；敏感头不落 `const`；未提交；`./scripts/check.sh` 全绿 |
+| 2026-11-09 | P2-16 | DOING→DONE | `generator::context`（`DagGenerateInputs`/`GenerationContext`/`EndpointDoc`）；schema JSON 或端点列表规范化；`SkillContracts`/`CorrectionPreferences` 占位；`redact_dag_generate_context`+`redacted_chat_request`；insta 组装/渲染快照；`importer::ApiSpec` 仅 dev 互操作；`./scripts/check.sh` 全绿；未提交 |
+| 2026-11-09 | P2-07 | DOING→DONE | `importer::postman`：`parse_postman_collection`/`_str` 递归 item/folder，解析 method/url/header/body；`tests/fixtures/postman/sample_v21.json` + insta 快照；`lib.rs` 与 curl/openapi 并列导出；未提交；`./scripts/check.sh` 全绿 |
+| 2026-11-09 | P2-06/P2-07/P2-08/P2-16 | TODO→DOING | 第二波并行：importer 三解析器 + generator 上下文组装 |
+| 2026-11-09 | P2-19 | TODO→DOING | 编排：与 P2-05/P2-15 并行；subagent 实现 `gate` 确定性自动校准 |
+| 2026-11-09 | P2-19 | DOING→DONE | `gate::calibrate`（`calibrate.add_edge` / `poll_backoff` / `poll_timeout`）；`tests/calibrate.rs` 正反例；默认 `backoff_ms=[1000]`、`timeout_ms=30000`；未提交（依用户要求）；`./scripts/check.sh` 全绿；偏差：`timeout_ms` 缺字段仍由反序列化拒绝，校准只处理已加载文档中的 0 或小于首项 backoff |
+| 2026-11-09 | P2-05 | DOING→DONE | `importer::ApiSpec`/`normalize_api_spec`；`V005__api_spec_versions` + `ApiSpecRepository` save/activate/get_active/list_versions；`auth_scheme_ref` 守卫；schema 快照与单测；`./scripts/check.sh` 全绿 |
+| 2026-11-09 | P2-05 | TODO→DOING | 编排：与 P2-15 并行；subagent 实现 `importer` + store 版 `ApiSpecRepository` |
+| 2026-11-09 | P2-15 | DOING→DONE | `prompts/`（manifest + `dag_generate_main` §10.3）；`generator` 加载/渲染/`cache_key_material`+`cache_key_hash`（`model::content_hash`）；insta 渲染快照 + 缓存键稳定性单测；`llm-gateway` 仅 `pub use` 预留；`./scripts/check.sh` 全绿 |
+| 2026-11-09 | P2-15 | TODO→DOING | 编排：与 P2-05 并行；subagent 实现 `prompts/` + `generator` 模板加载 |
 | 2026-11-09 | P2-04 | DOING→DONE | `redact` 启发式脱敏；OpenAi/Logging 路径强制 `redact_chat_request`；`prompt_redaction_wiremock` + 样本单测 |
 | 2026-11-09 | P2-04 | TODO→DOING | 编排：P2-03 完成后认领 Redactor + gateway 强制脱敏 |
 | 2026-11-09 | P2-03 | DOING→DONE | → `cf15030`：`V004__llm_call_logs` + `LlmCallLogRepository`；`LoggingLlmProvider`/`DbLlmCallLogger` 元数据落库；schema 快照 + store/llm-gateway 单测；`./scripts/check.ps1` 全绿 |

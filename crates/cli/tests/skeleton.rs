@@ -25,6 +25,7 @@ fn help_lists_the_command_groups_and_global_options() {
     assert!(out.status.success());
     let help = stdout(&out);
     for expected in [
+        "api",
         "dag",
         "run",
         "--db <DB>",

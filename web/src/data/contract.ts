@@ -49,4 +49,13 @@ export async function exerciseDataSourceContract(make: () => DataSource): Promis
 
   const gate = await ds.validateDag(active.dag)
   expect(gate.passed).toBe(true)
+
+  const preview = await ds.previewApiImport({ format: 'openapi', content: '{}', strategy: 'merge' })
+  expect(preview.items).toBeDefined()
+
+  const commit = await ds.commitApiImport({
+    strategy: 'merge',
+    items: [],
+  })
+  expect(commit.added).toBeGreaterThanOrEqual(0)
 }

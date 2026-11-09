@@ -11,8 +11,11 @@ pub mod nodes;
 pub mod runs;
 pub mod ui_layout;
 
-pub use api_specs::{ApiSpecRepository, NewApiSpec};
-pub use dags::{DagRecord, DagRepository, DagStatus, DagVersionInfo};
+pub use api_specs::{
+    ApiSpecRecord, ApiSpecRepository, ApiSpecSaveInput, ApiSpecStatus, ApiSpecVersionInfo,
+    NewApiSpec,
+};
+pub use dags::{DagRecord, DagRepository, DagStatus, DagVersionInfo, CREATED_BY_AI};
 pub use db::Db;
 pub use error::{Result, StoreError};
 pub use failures::{FailureRecord, FailureRecordRepository, NewFailure};

@@ -42,6 +42,18 @@ function installHttpMock(): void {
     if (pathname === '/api/dags/validate' && init?.method === 'POST') {
       return Promise.resolve(jsonResponse({ passed: true, issues: [] }))
     }
+    if (pathname === '/api/api-specs/import/preview' && init?.method === 'POST') {
+      return Promise.resolve(
+        jsonResponse({
+          strategy: 'merge',
+          items: [],
+          summary: { add: 0, update: 0, unchanged: 0, skip: 0 },
+        }),
+      )
+    }
+    if (pathname === '/api/api-specs/import/commit' && init?.method === 'POST') {
+      return Promise.resolve(jsonResponse({ added: 0, updated: 0, unchanged: 0, saved_ids: [] }))
+    }
     return Promise.resolve(jsonResponse({ error: `unexpected ${pathname}` }, 404))
   })
   vi.stubGlobal('fetch', fetchMock)

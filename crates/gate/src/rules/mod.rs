@@ -1,4 +1,5 @@
 mod acyclic;
+mod api_specs;
 mod completeness;
 mod decidability;
 mod fields;
@@ -7,6 +8,7 @@ mod structure;
 mod subworkflows;
 
 pub use acyclic::AcyclicRule;
+pub use api_specs::{ApiSpecLookup, ApiSpecLookupHandle, MapApiSpecLookup};
 pub use completeness::CompletenessRule;
 pub use decidability::{DecidabilityRule, TYPE_NAMES};
 pub use fields::FieldRule;

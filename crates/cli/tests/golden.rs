@@ -94,7 +94,8 @@ fn deterministic_canonical_bytes(path: &Path) -> Vec<u8> {
 
 async fn spawn_sut() -> mock_sut::MockSutHandle {
     MockSutBuilder::new()
-        .pay_delay_ms(40)
+        // After pay, status flips PAID only after this delay; first poll is immediate, second after 10ms backoff.
+        .pay_delay_ms(5)
         .jitter_ms(0)
         .seed(1)
         .spawn()

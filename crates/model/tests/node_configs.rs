@@ -59,6 +59,15 @@ response_schema:
     }
 
     #[test]
+    fn api_spec_id_deserializes() {
+        let yaml = "id: a\ntype: http\nmethod: get\npath: /\napi_spec_id: orders.get";
+        let NodeKind::Http(cfg) = single_node(yaml).unwrap() else {
+            panic!("expected http node")
+        };
+        assert_eq!(cfg.api_spec_id.as_deref(), Some("orders.get"));
+    }
+
+    #[test]
     fn minimal_config_defaults_optional_fields() {
         let NodeKind::Http(cfg) = single_node("id: a\ntype: http\nmethod: get\npath: /").unwrap()
         else {
@@ -67,8 +76,13 @@ response_schema:
         assert_eq!(cfg.method, HttpMethod::Get);
         assert!(cfg.query.is_empty() && cfg.headers.is_empty());
         assert_eq!(
-            (cfg.body, cfg.timeout_ms, cfg.response_schema),
-            (None, None, None)
+            (
+                cfg.body,
+                cfg.timeout_ms,
+                cfg.api_spec_id,
+                cfg.response_schema
+            ),
+            (None, None, None, None)
         );
     }
 

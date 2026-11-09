@@ -168,7 +168,7 @@ fn unknown_dags_and_versions_are_errors() {
 #[test]
 fn save_gate_adds_the_rule_to_the_standard_set() {
     assert!(!Gate::standard().rule_names().contains(&"subworkflow_cycle"));
-    let names = Gate::for_save(Arc::new(MapCatalog::new())).rule_names();
+    let names = Gate::for_save(Arc::new(MapCatalog::new()), None).rule_names();
     assert_eq!(names.last(), Some(&"subworkflow_cycle"));
     assert_eq!(names.len(), Gate::standard().rule_names().len() + 1);
 }

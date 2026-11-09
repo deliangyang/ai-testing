@@ -60,6 +60,9 @@ pub struct HttpConfig {
     pub body: Option<Value>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub timeout_ms: Option<u64>,
+    /// Active `api_specs` row to resolve response shape when set; overrides inline `response_schema` for gate checks.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub api_spec_id: Option<String>,
     /// JSON Schema of the response body; used by the gate to check `${node.output.body...}`.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub response_schema: Option<Value>,

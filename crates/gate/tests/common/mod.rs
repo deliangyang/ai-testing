@@ -33,6 +33,20 @@ pub fn validate_all(dag: &Dag) -> Report {
     Gate::standard().validate(dag)
 }
 
+pub fn validate_with_api_specs(
+    dag: &Dag,
+    lookup: std::sync::Arc<dyn gate::rules::ApiSpecLookup>,
+) -> Report {
+    let report = Gate::standard().with_api_specs(Some(lookup)).validate(dag);
+    Report::new(
+        report
+            .issues
+            .into_iter()
+            .filter(|i| !i.code.starts_with("completeness."))
+            .collect(),
+    )
+}
+
 /// (code, node_id, json_path) triples for compact assertions.
 pub fn findings(report: &Report) -> Vec<(String, Option<String>, Option<String>)> {
     report

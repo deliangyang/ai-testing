@@ -4,25 +4,38 @@
 //! `response_schema`; db_query output is `{rows}`, `{row}` or `{value}` with `response_schema`
 //! describing one row; subworkflow output keys are its `outputs`.
 
-use model::nodes::QueryResultMode;
+use model::nodes::{HttpConfig, QueryResultMode};
 use model::{Node, NodeKind, PathSeg};
 use serde_json::{json, Value};
+
+use crate::rules::ApiSpecLookup;
 
 pub(crate) enum OutputShape {
     Schema(Value),
     Unverified { reason: String },
 }
 
-pub(crate) fn output_shape(node: &Node) -> OutputShape {
-    let http_like = |schema: &Option<Value>| match schema {
-        Some(body) => OutputShape::Schema(http_output(body.clone())),
+fn http_body_schema(cfg: &HttpConfig, api_specs: Option<&dyn ApiSpecLookup>) -> Option<Value> {
+    if let Some(id) = cfg.api_spec_id.as_deref() {
+        if let Some(lookup) = api_specs {
+            if let Some(schema) = lookup.response_schema(id) {
+                return Some(schema);
+            }
+        }
+    }
+    cfg.response_schema.clone()
+}
+
+pub(crate) fn output_shape(node: &Node, api_specs: Option<&dyn ApiSpecLookup>) -> OutputShape {
+    let http_like = |schema: Option<Value>, node_id: &str| match schema {
+        Some(body) => OutputShape::Schema(http_output(body)),
         None => OutputShape::Unverified {
-            reason: format!("'{}' declares no response_schema", node.id),
+            reason: format!("'{node_id}' declares no response_schema"),
         },
     };
     match &node.kind {
-        NodeKind::Http(cfg) => http_like(&cfg.response_schema),
-        NodeKind::Poll(cfg) => http_like(&cfg.response_schema),
+        NodeKind::Http(cfg) => http_like(http_body_schema(cfg, api_specs), &node.id),
+        NodeKind::Poll(cfg) => http_like(cfg.response_schema.clone(), &node.id),
         NodeKind::DbQuery(cfg) => {
             let row = cfg.response_schema.clone().unwrap_or(json!({}));
             let (key, value) = match cfg.result {
