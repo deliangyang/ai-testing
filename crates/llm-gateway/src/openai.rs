@@ -7,6 +7,7 @@ use serde_json::json;
 
 use crate::error::LlmError;
 use crate::provider::{ChatFuture, LlmProvider};
+use crate::redact::redact_chat_request;
 use crate::types::{ChatRequest, ChatResponse, MessageRole, TokenUsage};
 
 const DEFAULT_BASE_URL: &str = "https://api.openai.com";
@@ -76,6 +77,7 @@ impl OpenAiClient {
     }
 
     async fn chat_impl(&self, request: ChatRequest) -> Result<ChatResponse, LlmError> {
+        let request = redact_chat_request(request);
         let api_key = match &self.config.resolved_api_key {
             Some(key) => key.clone(),
             None => secrets::resolve_credential_ref(&self.config.api_key_ref)?,

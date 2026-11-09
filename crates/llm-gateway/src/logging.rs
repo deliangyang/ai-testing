@@ -12,6 +12,7 @@ use store::{
 
 use crate::error::LlmError;
 use crate::provider::{ChatFuture, LlmProvider};
+use crate::redact::redact_chat_request;
 use crate::types::{ChatRequest, ChatResponse};
 
 /// Caller-supplied correlation fields; never includes prompt content or secrets.
@@ -131,6 +132,7 @@ impl<P: LlmProvider + Send + Sync + 'static> LoggingLlmProvider<P> {
         let run_id = ctx.run_id;
         let node_id = ctx.node_id;
         Box::pin(async move {
+            let request = redact_chat_request(request);
             let result = LlmProvider::chat(inner.as_ref(), request).await;
             persist_after_call(logger.as_ref(), run_id, node_id, purpose, start, &result)?;
             result

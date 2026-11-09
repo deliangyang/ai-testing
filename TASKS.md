@@ -183,7 +183,7 @@ M0 两周联合评审：P0-56。
 | P2-01 | `secrets` crate：解析 `keychain://service/account` 与 `${env:VAR}`；写入钥匙串（keyring）；store 层对 `*_ref` 列做格式守卫，拒绝明文 | `crates/secrets`、`crates/store` | P0-21 | 写入明文凭据返回错误；Windows 凭据管理器实测 | DONE |
 | P2-02 | `llm-gateway` crate：`LlmProvider` trait、OpenAI 兼容实现、录制/回放 Mock 实现（测试默认 Mock）；API Key 经 secrets 获取 | `crates/llm-gateway` | P2-01 | Mock 回放单测；真实调用仅在显式环境变量下运行 | DONE |
 | P2-03 | 迁移新增 `llm_call_logs`；每次调用记录 purpose/tokens/cost/latency/outcome | `crates/store`、`crates/llm-gateway` | P2-02 | 单测 | DONE |
-| P2-04 | 脱敏器 Redactor：发送前扫描提示词，疑似密码/密钥/token 替换为 `****`；gateway 强制经过 | `crates/llm-gateway` | P2-02 | 样本集（.env、yml、JWT、AK/SK）全部被替换 | TODO |
+| P2-04 | 脱敏器 Redactor：发送前扫描提示词，疑似密码/密钥/token 替换为 `****`；gateway 强制经过 | `crates/llm-gateway` | P2-02 | 样本集（.env、yml、JWT、AK/SK）全部被替换 | DONE |
 | P2-05 | `importer` crate：归一化 `ApiSpec` 模型 + `ApiSpecRepository`（draft/active/deprecated，版本化） | `crates/importer`、`crates/store` | P0-22 | 单测 | TODO |
 | P2-06 | OpenAPI 3.x / Swagger 2.0 确定性解析器 | `crates/importer` | P2-05 | Petstore 等样例解析快照测试 | TODO |
 | P2-07 | Postman Collection v2.1 解析器 | `crates/importer` | P2-05 | 样例快照测试 | TODO |
@@ -394,6 +394,8 @@ M0 两周联合评审：P0-56。
 | 2026-11-09 | P1-32 | 验收会话 | 功能证据：failure-evidence/gate-validation E2E、`DagReportReplayView` vitest、`cargo test -p nsh-bridge` 通过；`nsh test` SKIP；`check.ps1` exit 1 → `phase1.md` 结论不通过；新增 **P1-32-fix1**，P1-32 仍 DOING |
 | 2026-11-09 | P1-32-fix1 | DOING→DONE | → `d5b633b`：web prettier/eslint；`statusBar*.test` 重命名；server 测试 `TokioSleeper`；`mytool run` `multi_thread` runtime 修复 golden 死锁；golden 两次运行间重启 mock-sut；`schema.sql` 快照；`./scripts/check.ps1` exit 0 |
 | 2026-11-09 | P1-32 | DOING→DONE | → `d5b633b`：`phase1.md` #7 与结论**通过** |
+| 2026-11-09 | P2-04 | DOING→DONE | `redact` 启发式脱敏；OpenAi/Logging 路径强制 `redact_chat_request`；`prompt_redaction_wiremock` + 样本单测 |
+| 2026-11-09 | P2-04 | TODO→DOING | 编排：P2-03 完成后认领 Redactor + gateway 强制脱敏 |
 | 2026-11-09 | P2-03 | DOING→DONE | → `cf15030`：`V004__llm_call_logs` + `LlmCallLogRepository`；`LoggingLlmProvider`/`DbLlmCallLogger` 元数据落库；schema 快照 + store/llm-gateway 单测；`./scripts/check.ps1` 全绿 |
 | 2026-11-09 | P2-03 | TODO→DOING | 编排：P2-02 完成后认领 `llm_call_logs` 迁移与记录 |
 | 2026-11-09 | P2-02 | DOING→DONE | `LlmProvider` + `OpenAiClient`（reqwest/rustls，secrets 解析 API key）+ `CassetteProvider`（canonical 请求哈希回放）；集成测 wiremock + cassette fixture；`live_openai_smoke` 默认 `#[ignore]`/`AITEST_LIVE_LLM=1`；`./scripts/check.ps1` 全绿 |
