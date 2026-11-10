@@ -220,7 +220,7 @@ M0 两周联合评审：P0-56。
 | P3-02 | Skill 工件包格式：manifest（名称/semver/依赖）、类型化输入输出契约、内部 DAG、自带断言；JSON Schema 导出 | `crates/skills` | P0-05 | round-trip 与 schema 同步测试 | DONE |
 | P3-03 | `SkillRepository` + CLI `mytool skill save/activate/list`；保存前对内部 DAG 跑闸门 | `crates/skills`、`crates/cli` | P3-01、P3-02 | 单测 + CLI 用例 | DONE |
 | P3-04 | subworkflow 引用 Skill：`skill_id` + semver 约束解析到具体版本 | `crates/engine` | P3-03、P0-37 | 多版本共存时解析正确 | DONE |
-| P3-05 | 闸门规则：Skill 输入绑定与契约类型匹配、必填输入齐全、输出引用存在于契约 | `crates/gate` | P3-04 | 正反例 | TODO |
+| P3-05 | 闸门规则：Skill 输入绑定与契约类型匹配、必填输入齐全、输出引用存在于契约 | `crates/gate` | P3-04 | 正反例 | DOING |
 | P3-06 | DAG 激活时维护 `skill_references` | `crates/store` | P3-04 | 单测 | TODO |
 | P3-07 | 影响分析：Skill 新版本激活时列出所有受影响 pin（DAG/版本/节点） | `crates/skills` | P3-06 | 阶段验收用例 | TODO |
 | P3-08 | 批量更新 pin：为受影响 DAG 生成 pending 新版本，支持逐个确认 | `crates/skills`、`crates/server`、`web/` | P3-07 | E2E 用例 | TODO |
@@ -405,6 +405,7 @@ M0 两周联合评审：P0-56。
 | 2026-11-09 | P3-09 | DOING→DONE | → `fb84723`：`V007` + `ConnectionRepository` + `environment_connections` |
 | 2026-11-09 | P3-10 | DOING→DONE | → `ad781f0`：`db_query` sqlx SQLite、`read_only` 写拒绝 |
 | 2026-11-09 | P3-04 | DOING→DONE | → `b8120fd`：`SubworkflowTarget` skill semver、`skill_subworkflow` 测试 |
+| 2026-11-10 | P3-05 | TODO→DOING | 认领：Skill 输入/输出契约闸门规则（正反例） |
 | 2026-11-09 | P3-04/P3-10 | TODO→DOING | 编排：双 subagent 并行 |
 | 2026-11-09 | P3-03/P3-09 | TODO→DOING | → `fb84723`/`e5be339`/`190231c` |
 | 2026-11-09 | P2-24 | DOING→DONE | → `56bd077`：`CopilotPanel`、fixture `copilotChat`、`POST /api/copilot/chat`、`e2e/copilot.spec.ts` |
